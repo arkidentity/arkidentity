@@ -54,7 +54,7 @@ export default function GetInvolved() {
                   Lead discipleship groups, mentor students, facilitate ARK trainings
                 </p>
                 <a
-                  href="mailto:thearkidentity@gmail.com"
+                  href="mailto:info@arkidentity.com"
                   className="inline-block mt-4 px-6 py-3 rounded-lg font-semibold transition hover:opacity-90"
                   style={{ backgroundColor: 'var(--navy)', color: 'white' }}
                 >
@@ -82,7 +82,7 @@ export default function GetInvolved() {
                   Lead discipleship groups, mentor students, facilitate ARK trainings
                 </p>
                 <a
-                  href="mailto:thearkidentity@gmail.com"
+                  href="mailto:info@arkidentity.com"
                   className="inline-block mt-4 px-6 py-3 rounded-lg font-semibold transition hover:opacity-90"
                   style={{ backgroundColor: 'var(--navy)', color: 'white' }}
                 >
@@ -95,8 +95,8 @@ export default function GetInvolved() {
           <div className="text-center mt-8 space-y-4">
             <p className="text-gray-600">
               Email your resume to{' '}
-              <a href="mailto:thearkidentity@gmail.com" className="font-semibold hover:underline" style={{ color: 'var(--navy)' }}>
-                thearkidentity@gmail.com
+              <a href="mailto:info@arkidentity.com" className="font-semibold hover:underline" style={{ color: 'var(--navy)' }}>
+                info@arkidentity.com
               </a>
             </p>
             <p className="text-gray-600">
@@ -161,7 +161,7 @@ export default function GetInvolved() {
               </p>
               <div className="text-center">
                 <a
-                  href="mailto:thearkidentity@gmail.com"
+                  href="mailto:info@arkidentity.com"
                   className="inline-block px-6 py-3 rounded-lg font-semibold transition hover:opacity-90"
                   style={{ backgroundColor: 'var(--head-blue)', color: 'white' }}
                 >
@@ -185,7 +185,7 @@ export default function GetInvolved() {
               </p>
               <div className="text-center">
                 <a
-                  href="mailto:thearkidentity@gmail.com"
+                  href="mailto:info@arkidentity.com"
                   className="inline-block px-6 py-3 rounded-lg font-semibold transition hover:opacity-90"
                   style={{ backgroundColor: 'var(--gold)', color: 'var(--navy)' }}
                 >

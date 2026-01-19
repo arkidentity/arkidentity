@@ -54,10 +54,10 @@ export default function Footer() {
             </ul>
           </div>
 
-          {/* Products */}
+          {/* Resources */}
           <div>
             <h4 className="font-semibold mb-4" style={{ color: 'var(--gold)' }}>
-              Products
+              Resources
             </h4>
             <ul className="space-y-2 text-sm">
               <li>
@@ -81,7 +81,12 @@ export default function Footer() {
                 </a>
               </li>
               <li>
-                <span className="text-gray-500 text-xs">Campus (Coming Soon)</span>
+                <Link
+                  href="/iowa"
+                  className="text-gray-300 hover:text-gold transition"
+                >
+                  Campus Ministry
+                </Link>
               </li>
             </ul>
           </div>
@@ -93,8 +98,8 @@ export default function Footer() {
             </h4>
             <ul className="space-y-2 text-sm">
               <li>
-                <a href="mailto:thearkidentity@gmail.com" className="text-gray-300 hover:text-gold transition">
-                  thearkidentity@gmail.com
+                <a href="mailto:info@arkidentity.com" className="text-gray-300 hover:text-gold transition">
+                  info@arkidentity.com
                 </a>
               </li>
             </ul>

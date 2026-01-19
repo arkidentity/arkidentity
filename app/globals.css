@@ -1,0 +1,35 @@
+@import "tailwindcss";
+
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+
+  /* ARK Identity Brand Colors */
+  --navy: #143348;
+  --maroon: #5f0c0b;
+  --gold: #e8b562;
+  --head-blue: #1E90FF;
+  --heart-red: #8B0000;
+  --hands-gold: #e8b562;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+
+  /* ARK Identity Theme Colors */
+  --color-navy: var(--navy);
+  --color-maroon: var(--maroon);
+  --color-gold: var(--gold);
+  --color-head-blue: var(--head-blue);
+  --color-heart-red: var(--heart-red);
+  --color-hands-gold: var(--hands-gold);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}

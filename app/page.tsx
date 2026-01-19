@@ -130,11 +130,11 @@ export default function Home() {
             We're testing this ecosystem at University of Iowa—students using ARK tools daily + DNA Groups for multiplication. Watch what happens when the next generation encounters discipleship that actually works.
           </p>
           <Link
-            href="/about"
+            href="/iowa"
             className="inline-block px-6 py-3 rounded-lg font-semibold transition hover:opacity-90"
             style={{ backgroundColor: 'var(--gold)', color: 'var(--navy)' }}
           >
-            See the Campus Model
+            Join Us at Iowa
           </Link>
         </div>
       </section>

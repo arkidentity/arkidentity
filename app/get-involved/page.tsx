@@ -92,11 +92,17 @@ export default function GetInvolved() {
             </div>
           </div>
 
-          <div className="text-center mt-8">
+          <div className="text-center mt-8 space-y-4">
             <p className="text-gray-600">
               Email your resume to{' '}
               <a href="mailto:thearkidentity@gmail.com" className="font-semibold hover:underline" style={{ color: 'var(--navy)' }}>
                 thearkidentity@gmail.com
+              </a>
+            </p>
+            <p className="text-gray-600">
+              Student at U of Iowa?{' '}
+              <a href="/iowa" className="font-semibold hover:underline" style={{ color: 'var(--gold)' }}>
+                Learn about our campus ministry →
               </a>
             </p>
           </div>

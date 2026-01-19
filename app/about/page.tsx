@@ -97,12 +97,19 @@ export default function About() {
                 For Campus
               </h3>
               <p className="text-gray-700 mb-4"><strong>University of Iowa Model</strong> (Proof of Concept):</p>
-              <ul className="space-y-2 text-gray-600">
+              <ul className="space-y-2 text-gray-600 mb-4">
                 <li>Students use ARK tools daily for spiritual formation</li>
                 <li>DNA Groups form the core discipleship structure</li>
                 <li>Evangelism through Bridge training and campus outreach</li>
                 <li>Testing a model designed to scale to campuses nationwide</li>
               </ul>
+              <a
+                href="/iowa"
+                className="inline-block px-4 py-2 rounded-lg font-semibold transition hover:opacity-90 text-sm"
+                style={{ backgroundColor: 'var(--gold)', color: 'var(--navy)' }}
+              >
+                Join Us at Iowa →
+              </a>
             </div>
           </div>
         </div>

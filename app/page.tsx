@@ -124,10 +124,10 @@ export default function Home() {
         <div className="absolute inset-0 bg-black opacity-40"></div>
         <div className="relative max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center text-white">
           <h2 className="text-3xl md:text-4xl font-bold mb-4">
-            Proving the Model on Campus
+           The ARK at Iowa
           </h2>
           <p className="text-lg md:text-xl mb-8 text-gray-200">
-            We're testing this ecosystem at University of Iowa—students using ARK tools daily + DNA Groups for multiplication. Watch what happens when the next generation encounters discipleship that actually works.
+            Disicplship at University of Iowa—students using ARK tools daily + DNA Groups for multiplication. What happens when the next generation encounters Jesus through tools that actually works.
           </p>
           <Link
             href="/iowa"
@@ -205,7 +205,7 @@ export default function Home() {
             Where We're Headed in 2026
           </h2>
           <p className="text-lg mb-8 text-gray-200">
-            Launching full-time campus ministry at U of Iowa, scaling app adoption, and partnering with churches nationwide to multiply disciples.
+            Launching full-time campus ministry at U of Iowa, scaling the ARK app nationwide, and partnering with churches to multiply disciples.
           </p>
           <Link
             href="/vision-2026"

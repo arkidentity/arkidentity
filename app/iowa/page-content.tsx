@@ -76,7 +76,7 @@ export default function IowaPageContent() {
             From Distracted to Devoted
           </h1>
           <p className="text-xl md:text-2xl mb-8 text-gray-200">
-            Weekly discipleship gatherings and daily tools to help you follow Jesus through college.
+            Weekly gatherings and daily tools to help you follow Jesus in college and beyond.
           </p>
           <button
             onClick={scrollToRSVP}
@@ -460,7 +460,7 @@ export default function IowaPageContent() {
               </h3>
               <p className="text-maroon font-semibold mb-2">Campus Director</p>
               <p className="text-gray-700 mb-4">
-                Founded ARK Identity in 2013, launching campus ministry at University of Iowa.
+                Founder of ARK Identity, Auhtor, Church Planter, Evangelist, Ministry Director at Iowa.
               </p>
               <a
                 href="/team"

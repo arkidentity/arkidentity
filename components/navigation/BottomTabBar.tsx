@@ -81,7 +81,7 @@ export function BottomTabBar() {
   const allTabs = [...TABS, { id: 'more' }];
 
   const getActiveTab = () => {
-    if (pathname.startsWith('/courses')) return 'courses';
+    if (pathname === '/' || pathname.startsWith('/courses')) return 'courses';
     if (pathname.startsWith('/journal') || pathname.startsWith('/archive')) return 'journal';
     if (pathname.startsWith('/prayer')) return 'prayer';
     if (pathname.startsWith('/community')) return 'community';
@@ -100,7 +100,6 @@ export function BottomTabBar() {
 
   // Show public brochure nav instead on public pages
   const isPublicPage =
-    pathname === '/' ||
     pathname.startsWith('/about') ||
     pathname.startsWith('/beliefs') ||
     pathname.startsWith('/give') ||

@@ -3,7 +3,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/components/auth/AuthProvider';
-import { useTheme } from '@/components/ThemeProvider';
 import { updateUserProfile } from '@/lib/auth';
 import {
   isNotificationSupported,
@@ -49,8 +48,6 @@ function getStreakMessage(current: number, longest: number): string {
 
 export function SettingsDrawer({ isOpen, onClose }: SettingsDrawerProps) {
   const { signOut, isLoggedIn, user, profile, loading } = useAuth();
-  const theme = useTheme();
-  const isChurchBranded = !!theme.church_id;
 
   const [onboardingStatus, setOnboardingStatus] = useState<OnboardingStatus>({
     signin: false, install: false, journal: false, prayer: false, creed: false, complete: false,
@@ -217,7 +214,7 @@ export function SettingsDrawer({ isOpen, onClose }: SettingsDrawerProps) {
   const handleShare = async () => {
     if (navigator.share) {
       try {
-        await navigator.share({ title: 'Daily DNA', text: 'Check out Daily DNA - discipleship tools for your spiritual journey', url: 'https://dailydna.app' });
+        await navigator.share({ title: 'ARK Identity', text: 'Check out ARK Identity - discover who you are in Christ', url: 'https://arkidentity.com' });
       } catch { /* cancelled */ }
     }
     onClose();
@@ -348,27 +345,26 @@ export function SettingsDrawer({ isOpen, onClose }: SettingsDrawerProps) {
               <span className="profile-drawer-activity-label">Creed Cards</span>
               <span className="profile-drawer-activity-value"><span style={{ opacity: 0.6 }}>—</span></span>
             </Link>
-            <Link href="/tools" className="profile-drawer-activity-item" onClick={onClose}>
+            <Link href="/challenge" className="profile-drawer-activity-item" onClick={onClose}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" />
+                <path d="M6 9l6 6 6-6" />
+                <circle cx="12" cy="12" r="10" />
               </svg>
-              <span className="profile-drawer-activity-label">DNA Tools</span>
-              <span className="profile-drawer-activity-value">4</span>
+              <span className="profile-drawer-activity-label">3D Challenge</span>
+              <span className="profile-drawer-activity-value">{stats.currentStreak}d</span>
             </Link>
           </div>
 
           {/* ── SUPPORT ── */}
-          {!isChurchBranded && (
-            <Link href="/give" className="profile-drawer-support" onClick={onClose}>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M4.318 6.318a4.5 4.5 0 0 0 0 6.364L12 20.364l7.682-7.682a4.5 4.5 0 0 0-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 0 0-6.364 0z" />
-              </svg>
-              <span>Support the Mission</span>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="profile-drawer-support-chevron">
-                <path d="M9 18l6-6-6-6" />
-              </svg>
-            </Link>
-          )}
+          <Link href="/giving" className="profile-drawer-support" onClick={onClose}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M4.318 6.318a4.5 4.5 0 0 0 0 6.364L12 20.364l7.682-7.682a4.5 4.5 0 0 0-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 0 0-6.364 0z" />
+            </svg>
+            <span>Support the Mission</span>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="profile-drawer-support-chevron">
+              <path d="M9 18l6-6-6-6" />
+            </svg>
+          </Link>
 
           <div className="settings-divider" />
 
@@ -568,8 +564,8 @@ export function SettingsDrawer({ isOpen, onClose }: SettingsDrawerProps) {
 
           {/* ── APP FOOTER ── */}
           <div className="profile-drawer-footer">
-            <p className="profile-drawer-footer-title">Daily DNA</p>
-            <p className="profile-drawer-footer-sub">A ministry of ARK Identity</p>
+            <p className="profile-drawer-footer-title">ARK Identity</p>
+            <p className="profile-drawer-footer-sub">Discover who you are in Christ</p>
             <div className="profile-drawer-footer-links">
               <Link href="/privacy" onClick={onClose}>Privacy</Link>
               <span>·</span>
@@ -598,14 +594,14 @@ export function SettingsDrawer({ isOpen, onClose }: SettingsDrawerProps) {
                 <p className="install-modal-intro" style={{ display: 'none' }} />
                 <div className="install-step"><span className="install-step-num">1</span><div><strong>Tap the Share button</strong><p>The box with an arrow pointing up at the bottom of Safari</p></div></div>
                 <div className="install-step"><span className="install-step-num">2</span><div><strong>Tap &ldquo;Add to Home Screen&rdquo;</strong><p>Scroll down in the share sheet to find this option</p></div></div>
-                <div className="install-step"><span className="install-step-num">3</span><div><strong>Tap &ldquo;Add&rdquo;</strong><p>Daily DNA will appear on your home screen like any app</p></div></div>
+                <div className="install-step"><span className="install-step-num">3</span><div><strong>Tap &ldquo;Add&rdquo;</strong><p>ARK Identity will appear on your home screen like any app</p></div></div>
               </div>
             ) : (
               <div className="install-modal-steps">
                 <p className="install-modal-intro" style={{ display: 'none' }} />
                 <div className="install-step"><span className="install-step-num">1</span><div><strong>Tap the menu button</strong><p>Tap the three dots (⋮) in the top right of Chrome</p></div></div>
                 <div className="install-step"><span className="install-step-num">2</span><div><strong>Tap &ldquo;Add to Home screen&rdquo;</strong><p>Or look for &ldquo;Install app&rdquo; in the menu</p></div></div>
-                <div className="install-step"><span className="install-step-num">3</span><div><strong>Tap &ldquo;Add&rdquo;</strong><p>Daily DNA will appear on your home screen like any app</p></div></div>
+                <div className="install-step"><span className="install-step-num">3</span><div><strong>Tap &ldquo;Add&rdquo;</strong><p>ARK Identity will appear on your home screen like any app</p></div></div>
               </div>
             )}
             <button className="install-modal-done" onClick={() => {

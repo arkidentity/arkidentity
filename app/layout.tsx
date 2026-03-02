@@ -4,8 +4,14 @@ import { AuthProvider } from "@/components/auth/AuthProvider";
 import { ToastProvider } from "@/components/ui/Toast";
 import { BottomTabBar } from "@/components/navigation/BottomTabBar";
 import { BrochureShell } from "@/components/layout/BrochureShell";
+import { CreedCardsFAB } from "@/components/CreedCardsFAB";
+import { EncouragementToast } from "@/components/EncouragementToast";
+import { ChallengeNudge } from "@/components/ChallengeNudge";
 import "./globals.css";
 import "../styles/prayer.css";
+import "../styles/community.css";
+import "../styles/creed-cards.css";
+import "../styles/encouragements.css";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -58,6 +64,9 @@ export default function RootLayout({
               {children}
             </BrochureShell>
             <BottomTabBar />
+            <CreedCardsFAB />
+            <EncouragementToast />
+            <ChallengeNudge />
           </ToastProvider>
         </AuthProvider>
       </body>

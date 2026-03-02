@@ -1,5 +1,5 @@
 /**
- * Push notification utilities for Daily DNA PWA.
+ * Push notification utilities for ARK Identity PWA.
  *
  * Handles browser permission, push subscription, and Supabase sync.
  */

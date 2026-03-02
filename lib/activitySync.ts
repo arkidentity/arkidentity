@@ -1,6 +1,6 @@
 /**
  * Activity sync stubs for ARK Identity.
- * The Daily DNA app tracks activity for leader dashboards.
+ * In Daily DNA, activity syncs to leader dashboards.
  * ARK doesn't need this — these are no-ops to satisfy imports.
  */
 

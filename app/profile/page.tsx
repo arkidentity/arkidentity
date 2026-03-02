@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/components/auth/AuthProvider';
-import { useTheme } from '@/components/ThemeProvider';
 import { SettingsButton } from '@/components/settings';
 import { updateUserProfile } from '@/lib/auth';
 
@@ -36,9 +35,7 @@ function getStreakMessage(currentStreak: number, longestStreak: number): string 
 
 export default function ProfilePage() {
   const { user, profile, isLoggedIn, signOut, loading } = useAuth();
-  const theme = useTheme();
   const router = useRouter();
-  const isChurchBranded = !!theme.church_id;
 
   const [stats, setStats] = useState<Stats>({
     currentStreak: 0,
@@ -264,46 +261,45 @@ export default function ProfilePage() {
             <span className="profile-activity-value">0<span className="profile-activity-total">/50</span></span>
           </Link>
 
-          <Link href="/tools" className="profile-activity-item">
+          <Link href="/challenge" className="profile-activity-item">
             <div className="profile-activity-icon tools-icon">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" />
+                <path d="M6 9l6 6 6-6" />
+                <circle cx="12" cy="12" r="10" />
               </svg>
             </div>
             <div className="profile-activity-info">
-              <span className="profile-activity-label">DNA Tools</span>
-              <span className="profile-activity-sub">Assessments &amp; builders</span>
+              <span className="profile-activity-label">3D Challenge</span>
+              <span className="profile-activity-sub">Streak tiers &amp; badges</span>
             </div>
-            <span className="profile-activity-value">4</span>
+            <span className="profile-activity-value">{stats.currentStreak}d</span>
           </Link>
         </div>
 
-        {/* Support Card — hidden on church subdomains */}
-        {!isChurchBranded && (
-          <Link href="/give" className="profile-support-card">
-            <div className="profile-support-content">
-              <div className="profile-support-icon">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M4.318 6.318a4.5 4.5 0 0 0 0 6.364L12 20.364l7.682-7.682a4.5 4.5 0 0 0-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 0 0-6.364 0z" />
-                </svg>
-              </div>
-              <div>
-                <h4>Support the Mission</h4>
-                <p>Partner with ARK Identity</p>
-              </div>
+        {/* Support Card */}
+        <Link href="/giving" className="profile-support-card">
+          <div className="profile-support-content">
+            <div className="profile-support-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M4.318 6.318a4.5 4.5 0 0 0 0 6.364L12 20.364l7.682-7.682a4.5 4.5 0 0 0-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 0 0-6.364 0z" />
+              </svg>
             </div>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="profile-support-arrow">
-              <path d="M9 5l7 7-7 7" />
-            </svg>
-          </Link>
-        )}
+            <div>
+              <h4>Support the Mission</h4>
+              <p>Partner with ARK Identity</p>
+            </div>
+          </div>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="profile-support-arrow">
+            <path d="M9 5l7 7-7 7" />
+          </svg>
+        </Link>
 
         {/* App Info Footer */}
         <div className="profile-app-info">
-          <h3>Daily DNA</h3>
-          <p>A ministry of ARK Identity</p>
+          <h3>ARK Identity</h3>
+          <p>Discover who you are in Christ</p>
           <p className="profile-app-mission">Moving believers from consumer Christianity to spiritual ownership by teaching them who they are in Christ.</p>
-          <Link href="/give" className="profile-give-link">Support the Mission</Link>
+          <Link href="/giving" className="profile-give-link">Support the Mission</Link>
           <div className="profile-legal-links">
             <Link href="/privacy">Privacy Policy</Link>
             <span className="profile-legal-divider">|</span>

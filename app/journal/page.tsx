@@ -7,7 +7,6 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useTheme } from '@/components/ThemeProvider';
 import { JournalForm } from '@/components/journal/JournalForm';
 import { BibleSelector } from '@/components/journal/BibleSelector';
 import { PassagePopup } from '@/components/journal/PassagePopup';
@@ -35,33 +34,10 @@ import { getVersionById, getVersionName } from '@/lib/bibleData';
 import type { JournalEntry, BiblePassage, ChallengePopupType } from '@/types/journal';
 import type { PopupDecision } from '@/lib/challengeIntegration';
 
-/** Renders the church header: logo or styled text depending on header_style setting */
-function ChurchHeader({ logoUrl, appTitle, accentColor, headerStyle }: {
-  logoUrl: string | null;
-  appTitle: string;
-  accentColor: string;
-  headerStyle: 'text' | 'logo';
-}) {
-  if (headerStyle === 'logo' && logoUrl) {
-    // eslint-disable-next-line @next/next/no-img-element
-    return <img src={logoUrl} alt={appTitle} style={{ height: '40px', width: 'auto', objectFit: 'contain' }} />;
-  }
-  const words = appTitle.trim().toUpperCase().split(/\s+/);
-  const first = words[0];
-  const rest = words.slice(1).join(' ');
-  return (
-    <>
-      <span style={{ color: accentColor }}>{first}</span>
-      {rest && <span style={{ color: 'white', marginLeft: '0.3rem' }}>{rest}</span>}
-    </>
-  );
-}
-
 export default function JournalPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { user, isLoggedIn } = useAuth();
-  const theme = useTheme();
   const { versionId: defaultVersion } = useTranslationPreference();
   const { entries, streak, save, update, refresh } = useJournal();
   const {

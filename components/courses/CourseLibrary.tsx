@@ -1,71 +1,138 @@
 'use client';
 
-import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { getCourseList, getCourseTheme } from '@/lib/courses/courseRegistry';
 
-interface CourseInfo {
-  id: string;
-  title: string;
-  subtitle: string;
-  sessions: number;
-  theme: {
-    primary: string;
-    secondary: string;
-    accent: string;
-  };
-}
-
-const FALLBACK_COURSES: CourseInfo[] = [
-  { id: '100x', title: '100X', subtitle: 'Prepare \u2022 Protect \u2022 Produce', sessions: 3, theme: { primary: '#143348', secondary: '#1a4a6e', accent: '#e8b562' } },
-  { id: 'identity-trinity', title: 'ID3', subtitle: 'Identity in the Trinity', sessions: 6, theme: { primary: '#5f0c0b', secondary: '#7a1a19', accent: '#e8b562' } },
-  { id: 'the-way', title: 'The Way', subtitle: 'The Original Christian Creed', sessions: 6, theme: { primary: '#143348', secondary: '#1a4a6e', accent: '#e8b562' } },
-  { id: 'hindered-hearing', title: 'Hindered Hearing', subtitle: 'Removing Barriers to God\u2019s Voice', sessions: 4, theme: { primary: '#2d1b4e', secondary: '#3d2760', accent: '#e8b562' } },
-  { id: 'the-bridge', title: 'The Bridge', subtitle: 'Connecting Faith to Action', sessions: 5, theme: { primary: '#1a3a2a', secondary: '#2a5a3a', accent: '#e8b562' } },
-];
+const courses = getCourseList();
 
 export function CourseLibrary() {
-  const [courses, setCourses] = useState<CourseInfo[]>([]);
-
-  useEffect(() => {
-    fetch('/api/courses')
-      .then((res) => res.json())
-      .then((data) => setCourses(data.courses || []))
-      .catch(() => {});
-  }, []);
-
-  const displayCourses = courses.length > 0 ? courses : FALLBACK_COURSES;
-
   return (
-    <div className="min-h-screen" style={{ background: 'var(--primary-color)', paddingBottom: 'calc(80px + env(safe-area-inset-bottom, 0px))' }}>
-      <div className="px-5 pt-12 pb-6">
-        <h1 className="text-2xl font-bold text-white mb-1">Courses</h1>
-        <p className="text-white/60 text-sm">Discipleship courses for every stage of your journey</p>
+    <div className="course-library">
+      <div className="library-header">
+        <h1>Courses</h1>
+        <p>Discipleship courses for every stage of your journey</p>
       </div>
 
-      <div className="px-5 flex flex-col gap-4">
-        {displayCourses.map((course) => (
-          <Link
-            key={course.id}
-            href={`/courses/${course.id}`}
-            className="block rounded-2xl p-5 transition-all hover:scale-[1.01]"
-            style={{
-              background: `linear-gradient(135deg, ${course.theme.primary}, ${course.theme.secondary})`,
-              border: '1px solid rgba(255,255,255,0.1)',
-            }}
-          >
-            <h2 className="text-xl font-bold text-white mb-1">{course.title}</h2>
-            <p className="text-white/70 text-sm mb-3">{course.subtitle}</p>
-            <div className="flex items-center gap-2">
-              <span
-                className="text-xs font-medium px-2.5 py-1 rounded-full"
-                style={{ background: 'rgba(255,255,255,0.15)', color: 'rgba(255,255,255,0.9)' }}
-              >
-                {course.sessions} sessions
-              </span>
-            </div>
-          </Link>
-        ))}
+      <div className="course-grid">
+        {courses.map((course) => {
+          const theme = getCourseTheme(course.id);
+          return (
+            <Link key={course.id} href={`/courses/${course.id}`} className="course-card">
+              <div
+                className="card-bg"
+                style={{
+                  background: theme.gradient || `linear-gradient(135deg, ${theme.primary}, ${theme.accent || theme.dark})`,
+                }}
+              />
+              <div className="card-content">
+                <h2>{course.title}</h2>
+                <p className="subtitle">{course.subtitle}</p>
+                {course.tagline && <p className="tagline">{course.tagline}</p>}
+                <div className="card-meta">
+                  <span className="session-count">{course.sessions} sessions</span>
+                </div>
+              </div>
+            </Link>
+          );
+        })}
       </div>
+
+      <style jsx>{`
+        .course-library {
+          min-height: 100vh;
+          background: var(--primary-color, #143348);
+          padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px));
+        }
+        .library-header {
+          padding: 48px 20px 24px;
+        }
+        .library-header h1 {
+          font-size: 28px;
+          font-weight: 700;
+          color: #FFFFFF;
+          margin: 0 0 4px 0;
+        }
+        .library-header p {
+          font-size: 14px;
+          color: rgba(255, 255, 255, 0.5);
+          margin: 0;
+        }
+        .course-grid {
+          display: flex;
+          flex-direction: column;
+          gap: 16px;
+          padding: 0 20px;
+        }
+        .course-grid :global(.course-card) {
+          position: relative;
+          display: block;
+          border-radius: 16px;
+          overflow: hidden;
+          min-height: 160px;
+          text-decoration: none;
+          transition: transform 0.3s ease, box-shadow 0.3s ease;
+          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+        }
+        .course-grid :global(.course-card):hover {
+          transform: scale(1.02) translateY(-2px);
+          box-shadow: 0 8px 30px rgba(0, 0, 0, 0.35);
+        }
+        .course-grid :global(.course-card):active {
+          transform: scale(0.99);
+        }
+        .card-bg {
+          position: absolute;
+          inset: 0;
+          opacity: 0.9;
+          transition: opacity 0.3s ease;
+        }
+        .course-grid :global(.course-card):hover .card-bg {
+          opacity: 1;
+        }
+        .card-content {
+          position: relative;
+          z-index: 1;
+          padding: 24px;
+          display: flex;
+          flex-direction: column;
+          justify-content: flex-end;
+          min-height: 160px;
+        }
+        .card-content h2 {
+          font-size: 24px;
+          font-weight: 700;
+          color: #FFFFFF;
+          margin: 0 0 4px 0;
+          text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+        }
+        .subtitle {
+          font-size: 14px;
+          color: rgba(255, 255, 255, 0.8);
+          margin: 0 0 4px 0;
+        }
+        .tagline {
+          font-size: 12px;
+          color: rgba(255, 255, 255, 0.6);
+          font-style: italic;
+          margin: 0 0 12px 0;
+        }
+        .card-meta {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          margin-top: 8px;
+        }
+        .session-count {
+          display: inline-block;
+          padding: 3px 10px;
+          background: rgba(255, 255, 255, 0.15);
+          backdrop-filter: blur(4px);
+          color: rgba(255, 255, 255, 0.9);
+          border-radius: 12px;
+          font-size: 12px;
+          font-weight: 600;
+        }
+      `}</style>
     </div>
   );
 }

@@ -12,44 +12,6 @@ const CHEVRON_RIGHT = (
 
 const MORE_LINKS = [
   {
-    id: 'profile',
-    label: 'Profile',
-    href: '/profile',
-    icon: (
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-        <circle cx="12" cy="7" r="4" />
-      </svg>
-    ),
-  },
-  {
-    id: 'challenge',
-    label: '3D Challenge',
-    href: '/challenge',
-    icon: (
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5C7 4 7 7 7 7" />
-        <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5C17 4 17 7 17 7" />
-        <path d="M4 22h16" />
-        <path d="M10 22V10" />
-        <path d="M14 22V10" />
-        <path d="M8 6h8l2 4H6l2-4Z" />
-      </svg>
-    ),
-  },
-  {
-    id: 'creed-cards',
-    label: 'Creed Cards',
-    href: '/creed-cards',
-    icon: (
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-        <rect x="2" y="3" width="20" height="14" rx="2" ry="2" />
-        <line x1="8" y1="21" x2="16" y2="21" />
-        <line x1="12" y1="17" x2="12" y2="21" />
-      </svg>
-    ),
-  },
-  {
     id: 'about',
     label: 'About ARK',
     href: '/about',
@@ -86,11 +48,33 @@ const MORE_LINKS = [
   {
     id: 'vision',
     label: 'Vision 2026',
-    href: '/vision',
+    href: '/vision-2026',
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
         <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
         <circle cx="12" cy="12" r="3" />
+      </svg>
+    ),
+  },
+  {
+    id: 'dna',
+    label: 'DNA Discipleship',
+    href: 'https://dna.arkidentity.com',
+    external: true,
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+      </svg>
+    ),
+  },
+  {
+    id: 'iowa',
+    label: 'ARK Iowa',
+    href: '/iowa',
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+        <path d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
       </svg>
     ),
   },
@@ -126,23 +110,42 @@ export function MoreDrawer({ isOpen, onClose }: MoreDrawerProps) {
         </div>
 
         <div className="settings-menu-items">
-          {MORE_LINKS.map((link) => (
-            <Link
-              key={link.id}
-              href={link.href}
-              className="links-drawer-item"
-              onClick={onClose}
-            >
-              <span className="links-drawer-item-icon">{link.icon}</span>
-              <span className="links-drawer-item-label">{link.label}</span>
-              <span className="links-drawer-item-chevron">{CHEVRON_RIGHT}</span>
-            </Link>
-          ))}
+          {MORE_LINKS.map((link) => {
+            const isExternal = 'external' in link && link.external;
+            if (isExternal) {
+              return (
+                <a
+                  key={link.id}
+                  href={link.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="links-drawer-item"
+                  onClick={onClose}
+                >
+                  <span className="links-drawer-item-icon">{link.icon}</span>
+                  <span className="links-drawer-item-label">{link.label}</span>
+                  <span className="links-drawer-item-chevron">{CHEVRON_RIGHT}</span>
+                </a>
+              );
+            }
+            return (
+              <Link
+                key={link.id}
+                href={link.href}
+                className="links-drawer-item"
+                onClick={onClose}
+              >
+                <span className="links-drawer-item-icon">{link.icon}</span>
+                <span className="links-drawer-item-label">{link.label}</span>
+                <span className="links-drawer-item-chevron">{CHEVRON_RIGHT}</span>
+              </Link>
+            );
+          })}
         </div>
 
         <div className="more-drawer-footer">
           <p className="more-drawer-brand">ARK Identity</p>
-          <p className="more-drawer-tagline">Discipleship Tools That Naturally Multiply</p>
+          <p className="more-drawer-tagline">Knowing God and who God says you are</p>
         </div>
       </div>
     </>,

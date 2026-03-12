@@ -89,7 +89,7 @@ export default function IowaPageContent() {
       </section>
 
       {/* SECTION 2: MEETING TIMES */}
-      <section className="bg-white py-20">
+      <section style={{ background: '#FAF8F5' }} className="py-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <h2 className="text-3xl md:text-4xl font-bold text-center mb-12" style={{ color: 'var(--navy)' }}>
             Join Us at Iowa
@@ -110,12 +110,12 @@ export default function IowaPageContent() {
                 <p className="text-lg font-semibold mb-2" style={{ color: 'var(--maroon)' }}>
                   Tuesdays 7:30pm
                 </p>
-                <p className="text-gray-600 mb-4">
+                <p className="text-[#5a5247] mb-4">
                   Geneva at Old Brick<br />
                   26 E Market St.<br />
                   (Entrance off Clinton St.)
                 </p>
-                <p className="text-gray-700">
+                <p className="text-[#4a4540]">
                   Worship, prayer, teaching, community. Our main weekly gathering for all students.
                 </p>
               </div>
@@ -135,11 +135,11 @@ export default function IowaPageContent() {
                 <p className="text-lg font-semibold mb-2" style={{ color: 'var(--maroon)' }}>
                   Thursdays 6:30pm
                 </p>
-                <p className="text-gray-600 mb-4">
+                <p className="text-[#5a5247] mb-4">
                   Burge Dining Hall<br />
                   (RSVP for more info)
                 </p>
-                <p className="text-gray-700">
+                <p className="text-[#4a4540]">
                   Dinner + small groups of 4. Life-on-life discipleship where you learn to hear God and follow Jesus daily.
                 </p>
               </div>
@@ -159,10 +159,10 @@ export default function IowaPageContent() {
                 <p className="text-lg font-semibold mb-2" style={{ color: 'var(--maroon)' }}>
                   Any day/time that works
                 </p>
-                <p className="text-gray-600 mb-4">
+                <p className="text-[#5a5247] mb-4">
                   Your schedule
                 </p>
-                <p className="text-gray-700">
+                <p className="text-[#4a4540]">
                   We'll help you gather 3-4 students and give you resources to lead a discipleship group.
                 </p>
               </div>
@@ -172,13 +172,13 @@ export default function IowaPageContent() {
       </section>
 
       {/* SECTION 3: WHAT WE DO */}
-      <section className="bg-gray-50 py-20">
+      <section style={{ background: '#F5F2EE' }} className="py-20">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           <h2 className="text-3xl md:text-4xl font-bold text-center mb-8" style={{ color: 'var(--navy)' }}>
             What is ARK Identity?
           </h2>
 
-          <div className="space-y-6 text-lg text-gray-700 leading-relaxed">
+          <div className="space-y-6 text-lg text-[#4a4540] leading-relaxed">
             <p>
               ARK Identity equips students to follow Jesus daily through discipleship groups and practical devotional tools. We help you hear God's voice, discover your identity in Christ, and build spiritual habits that actually stick through college and beyond.
             </p>
@@ -205,7 +205,7 @@ export default function IowaPageContent() {
       </section>
 
       {/* SECTION 4: WHAT TO EXPECT */}
-      <section className="bg-white py-20">
+      <section style={{ background: '#FAF8F5' }} className="py-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <h2 className="text-3xl md:text-4xl font-bold text-center mb-12" style={{ color: 'var(--navy)' }}>
             Your First Meeting
@@ -220,7 +220,7 @@ export default function IowaPageContent() {
               <h3 className="text-xl font-bold mb-3" style={{ color: 'var(--navy)' }}>
                 Show Up
               </h3>
-              <p className="text-gray-700">
+              <p className="text-[#4a4540]">
                 Tuesdays 7:30pm at Geneva at Old Brick. Bring yourself (Bible optional, we provide one).
               </p>
             </div>
@@ -233,7 +233,7 @@ export default function IowaPageContent() {
               <h3 className="text-xl font-bold mb-3" style={{ color: 'var(--navy)' }}>
                 Meet the Crew
               </h3>
-              <p className="text-gray-700">
+              <p className="text-[#4a4540]">
                 We'll grab food, introduce you around, answer questions. No pressure, no weird rituals.
               </p>
             </div>
@@ -246,7 +246,7 @@ export default function IowaPageContent() {
               <h3 className="text-xl font-bold mb-3" style={{ color: 'var(--navy)' }}>
                 Experience a Discipleship Group
               </h3>
-              <p className="text-gray-700">
+              <p className="text-[#4a4540]">
                 See how we journal through Scripture, pray together, hear what God's doing in each other's lives.
               </p>
             </div>
@@ -259,7 +259,7 @@ export default function IowaPageContent() {
               <h3 className="text-xl font-bold mb-3" style={{ color: 'var(--navy)' }}>
                 Decide if You're In
               </h3>
-              <p className="text-gray-700">
+              <p className="text-[#4a4540]">
                 Join a discipleship group, download the ARK app, commit to weekly meetings + daily journaling.
               </p>
             </div>
@@ -268,13 +268,13 @@ export default function IowaPageContent() {
       </section>
 
       {/* SECTION 5: RSVP FORM */}
-      <section id="rsvp" className="bg-gray-50 py-20">
+      <section id="rsvp" style={{ background: '#F5F2EE' }} className="py-20">
         <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-10">
             <h2 className="text-3xl md:text-4xl font-bold mb-4" style={{ color: 'var(--navy)' }}>
               Reserve Your Spot
             </h2>
-            <p className="text-lg text-gray-600">
+            <p className="text-lg text-[#5a5247]">
               We'd love to save you a seat. Let us know you're coming.
             </p>
           </div>
@@ -342,7 +342,7 @@ export default function IowaPageContent() {
                     onChange={(e) => handleCheckboxChange(e.target.value)}
                     className="mt-1 h-5 w-5 rounded border-gray-300 text-navy focus:ring-navy"
                   />
-                  <span className="ml-3 text-gray-700">Tuesday Nights (Campus Service)</span>
+                  <span className="ml-3 text-[#4a4540]">Tuesday Nights (Campus Service)</span>
                 </label>
                 <label className="flex items-start">
                   <input
@@ -352,7 +352,7 @@ export default function IowaPageContent() {
                     onChange={(e) => handleCheckboxChange(e.target.value)}
                     className="mt-1 h-5 w-5 rounded border-gray-300 text-navy focus:ring-navy"
                   />
-                  <span className="ml-3 text-gray-700">Thursday Nights (Discipleship Groups)</span>
+                  <span className="ml-3 text-[#4a4540]">Thursday Nights (Discipleship Groups)</span>
                 </label>
                 <label className="flex items-start">
                   <input
@@ -362,7 +362,7 @@ export default function IowaPageContent() {
                     onChange={(e) => handleCheckboxChange(e.target.value)}
                     className="mt-1 h-5 w-5 rounded border-gray-300 text-navy focus:ring-navy"
                   />
-                  <span className="ml-3 text-gray-700">Start My Own Group</span>
+                  <span className="ml-3 text-[#4a4540]">Start My Own Group</span>
                 </label>
               </div>
             </div>
@@ -424,7 +424,7 @@ export default function IowaPageContent() {
       </section>
 
       {/* SECTION 6: QUICK INFO FOOTER */}
-      <section className="bg-white py-20 border-t border-gray-200">
+      <section style={{ background: '#FAF8F5', borderTop: '1px solid #e8e4df' }} className="py-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
             {/* Column 1: What We Believe */}
@@ -432,7 +432,7 @@ export default function IowaPageContent() {
               <h3 className="text-2xl font-bold mb-4" style={{ color: 'var(--navy)' }}>
                 What We Believe
               </h3>
-              <p className="text-gray-700 mb-4">
+              <p className="text-[#4a4540] mb-4">
                 We're rooted in historic Christian orthodoxy—Trinitarian, Bible-centered, grace-focused.
               </p>
               <a
@@ -459,7 +459,7 @@ export default function IowaPageContent() {
                 Travis Gluckler
               </h3>
               <p className="text-maroon font-semibold mb-2">Campus Director</p>
-              <p className="text-gray-700 mb-4">
+              <p className="text-[#4a4540] mb-4">
                 Founder of ARK Identity, Auhtor, Church Planter, Evangelist, Ministry Director at Iowa.
               </p>
               <a
@@ -475,7 +475,7 @@ export default function IowaPageContent() {
               <h3 className="text-2xl font-bold mb-4" style={{ color: 'var(--navy)' }}>
                 We're Hiring
               </h3>
-              <p className="text-gray-700 mb-4">
+              <p className="text-[#4a4540] mb-4">
                 2 Campus Coordinator positions open (male + female)
               </p>
               <a

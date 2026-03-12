@@ -8,21 +8,25 @@ export const metadata = {
 
 export default function Giving() {
   return (
-    <div className="bg-white">
+    <div style={{ background: '#FAF8F5' }}>
       {/* Hero Section */}
       <section className="py-20" style={{ background: 'linear-gradient(135deg, var(--navy) 0%, var(--maroon) 100%)' }}>
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h1 className="text-4xl md:text-5xl font-bold mb-6 text-white">
+          <p className="text-sm font-semibold tracking-widest uppercase mb-4" style={{ color: 'var(--gold)' }}>
             Partner With Us
+          </p>
+          <h1 className="text-4xl md:text-5xl font-bold mb-6 text-white">
+            Invest in What Multiplies
           </h1>
-          <p className="text-xl text-gray-200 leading-relaxed max-w-3xl mx-auto">
+          <p className="text-xl text-gray-300 leading-relaxed max-w-3xl mx-auto">
             You want to invest in people. You give generously to ministries, but deep down you wonder—is this producing real life change? Are we creating disciples who make disciples, or just funding programs that fill seats? If your heart longs to invest in something that multiplies—not just maintains—then you&apos;re not alone.
           </p>
+          <div className="w-16 h-1 mx-auto mt-8 rounded-full" style={{ background: 'linear-gradient(90deg, var(--gold), transparent)' }} />
         </div>
       </section>
 
       {/* Two Giving Options */}
-      <section className="py-16">
+      <section className="py-16" style={{ background: '#FAF8F5' }}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <h2 className="text-3xl font-bold mb-12 text-center" style={{ color: 'var(--navy)' }}>
             Choose Your Giving Method
@@ -30,21 +34,19 @@ export default function Giving() {
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
             {/* Option 1: Direct Giving */}
-            <div className="bg-white rounded-xl shadow-lg overflow-hidden border-2" style={{ borderColor: 'var(--navy)' }}>
+            <div className="rounded-xl shadow-lg overflow-hidden border-2" style={{ borderColor: 'var(--navy)', backgroundColor: '#FFFFFF' }}>
               <div className="p-6" style={{ backgroundColor: 'var(--navy)' }}>
                 <h3 className="text-2xl font-bold text-white">Direct Giving</h3>
-                <p className="text-gray-200 mt-2">Support ARK Identity directly</p>
+                <p className="text-gray-300 mt-2">Support ARK Identity directly</p>
               </div>
               <div className="p-6">
-                <p className="text-gray-700 mb-4">
+                <p className="mb-4" style={{ color: '#4a4540' }}>
                   These funds go straight to development, hosting, and content creation.
                 </p>
-                <p className="text-sm text-gray-600 mb-6">
-                  <strong>Note:</strong> Donations are not tax-deductible
+                <p className="text-sm mb-6" style={{ color: '#6b6157' }}>
+                  <strong style={{ color: 'var(--navy)' }}>Note:</strong> Donations are not tax-deductible
                 </p>
-
-                {/* Embedded Square Checkout */}
-                <div className="bg-gray-100 rounded-lg mb-4">
+                <div className="rounded-lg mb-4" style={{ backgroundColor: '#F5F2EE' }}>
                   <iframe
                     src="https://checkout.square.site/merchant/MLC3G13NXWEVC/checkout/KF3JBKCHDFBPSV32MKF62UU3"
                     className="w-full rounded-lg"
@@ -56,21 +58,19 @@ export default function Giving() {
             </div>
 
             {/* Option 2: Tax-Deductible */}
-            <div className="bg-white rounded-xl shadow-lg overflow-hidden border-2" style={{ borderColor: 'var(--gold)' }}>
+            <div className="rounded-xl shadow-lg overflow-hidden border-2" style={{ borderColor: 'var(--gold)', backgroundColor: '#FFFFFF' }}>
               <div className="p-6" style={{ backgroundColor: 'var(--gold)' }}>
                 <h3 className="text-2xl font-bold" style={{ color: 'var(--navy)' }}>Tax-Deductible Donation</h3>
-                <p className="text-gray-700 mt-2">Give through our fiscal sponsor</p>
+                <p className="mt-2" style={{ color: '#3a2a10' }}>Give through our fiscal sponsor</p>
               </div>
               <div className="p-6">
-                <p className="text-gray-700 mb-4">
+                <p className="mb-4" style={{ color: '#4a4540' }}>
                   Give through our fiscal sponsor, Global Service Associates (501c3). You&apos;ll receive a tax receipt.
                 </p>
-                <p className="text-sm text-gray-600 mb-6">
-                  <strong>Note:</strong> Tax-deductible via Global Service Associates (501c3)
+                <p className="text-sm mb-6" style={{ color: '#6b6157' }}>
+                  <strong style={{ color: 'var(--navy)' }}>Note:</strong> Tax-deductible via Global Service Associates (501c3)
                 </p>
-
-                {/* Embedded Global Service Associates Form - DonorView */}
-                <div className="bg-gray-100 rounded-lg mb-4">
+                <div className="rounded-lg mb-4" style={{ backgroundColor: '#F5F2EE' }}>
                   <Script
                     src="https://app.donorview.com/scripts/shared/iframeResizer/iframeResizer.min.js"
                     strategy="lazyOnload"
@@ -105,12 +105,12 @@ export default function Giving() {
       </section>
 
       {/* Vision 2026 CTA */}
-      <section className="py-16 bg-gray-50">
+      <section className="py-16" style={{ background: '#F5F2EE' }}>
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h2 className="text-3xl font-bold mb-4" style={{ color: 'var(--navy)' }}>
             See Where Your Giving Goes
           </h2>
-          <p className="text-lg text-gray-700 mb-8">
+          <p className="text-lg mb-8" style={{ color: '#5a5247' }}>
             Learn about our Vision 2026 goals and how your partnership helps us multiply disciples nationwide.
           </p>
           <Link

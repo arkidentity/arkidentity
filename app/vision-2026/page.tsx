@@ -7,14 +7,15 @@ export const metadata = {
 
 export default function Vision2026() {
   return (
-    <div className="bg-white">
+    <div style={{ background: '#FAF8F5' }}>
       {/* Hero Section with Video Placeholder */}
       <section className="py-20" style={{ backgroundColor: 'var(--navy)' }}>
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+          <p className="text-sm font-semibold tracking-widest uppercase mb-4 text-center" style={{ color: 'var(--gold)' }}>Our Future</p>
           <h1 className="text-4xl md:text-5xl font-bold mb-6 text-center text-white">
             Vision 2026
           </h1>
-          <p className="text-xl text-gray-200 mb-8 text-center">
+          <p className="text-xl text-gray-300 mb-8 text-center">
             Your Partnership Empowers Us To...
           </p>
 
@@ -39,12 +40,12 @@ export default function Vision2026() {
 
           <div className="space-y-12">
             {/* Goal 1 */}
-            <div className="bg-gray-50 p-8 rounded-xl">
+            <div style={{ background: '#F5F2EE' }} className=" p-8 rounded-xl">
               <h3 className="text-2xl font-bold mb-4" style={{ color: 'var(--gold)' }}>
                 Goal 1: Launch Campus Ministry at U of Iowa
               </h3>
-              <p className="text-lg mb-4 font-semibold text-gray-700">By Fall 2026:</p>
-              <ul className="space-y-2 text-gray-700">
+              <p className="text-lg mb-4 font-semibold text-[#4a4540]">By Fall 2026:</p>
+              <ul className="space-y-2 text-[#4a4540]">
                 <li className="flex items-start">
                   <svg className="w-6 h-6 mr-2 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" style={{ color: 'var(--gold)' }}>
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
@@ -73,14 +74,14 @@ export default function Vision2026() {
             </div>
 
             {/* Goal 2 */}
-            <div className="bg-gray-50 p-8 rounded-xl">
+            <div style={{ background: '#F5F2EE' }} className=" p-8 rounded-xl">
               <h3 className="text-2xl font-bold mb-4" style={{ color: 'var(--head-blue)' }}>
                 Goal 2: Scale ARK App + DNA System
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 <div>
-                  <p className="text-lg mb-4 font-semibold text-gray-700">App Growth:</p>
-                  <ul className="space-y-2 text-gray-700">
+                  <p className="text-lg mb-4 font-semibold text-[#4a4540]">App Growth:</p>
+                  <ul className="space-y-2 text-[#4a4540]">
                     <li className="flex items-start">
                       <svg className="w-6 h-6 mr-2 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" style={{ color: 'var(--head-blue)' }}>
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
@@ -102,8 +103,8 @@ export default function Vision2026() {
                   </ul>
                 </div>
                 <div>
-                  <p className="text-lg mb-4 font-semibold text-gray-700">DNA Church Partnerships:</p>
-                  <ul className="space-y-2 text-gray-700">
+                  <p className="text-lg mb-4 font-semibold text-[#4a4540]">DNA Church Partnerships:</p>
+                  <ul className="space-y-2 text-[#4a4540]">
                     <li className="flex items-start">
                       <svg className="w-6 h-6 mr-2 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" style={{ color: 'var(--maroon)' }}>
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
@@ -128,14 +129,14 @@ export default function Vision2026() {
             </div>
 
             {/* Goal 3 */}
-            <div className="bg-gray-50 p-8 rounded-xl">
+            <div style={{ background: '#F5F2EE' }} className=" p-8 rounded-xl">
               <h3 className="text-2xl font-bold mb-4" style={{ color: 'var(--maroon)' }}>
                 Goal 3: Expand Product Offerings
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 <div>
-                  <p className="text-lg mb-4 font-semibold text-gray-700">New Resources:</p>
-                  <ul className="space-y-2 text-gray-700">
+                  <p className="text-lg mb-4 font-semibold text-[#4a4540]">New Resources:</p>
+                  <ul className="space-y-2 text-[#4a4540]">
                     <li className="flex items-start">
                       <svg className="w-6 h-6 mr-2 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" style={{ color: 'var(--maroon)' }}>
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
@@ -163,8 +164,8 @@ export default function Vision2026() {
                   </ul>
                 </div>
                 <div>
-                  <p className="text-lg mb-4 font-semibold text-gray-700">Missions:</p>
-                  <ul className="space-y-2 text-gray-700">
+                  <p className="text-lg mb-4 font-semibold text-[#4a4540]">Missions:</p>
+                  <ul className="space-y-2 text-[#4a4540]">
                     <li className="flex items-start">
                       <svg className="w-6 h-6 mr-2 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" style={{ color: 'var(--maroon)' }}>
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
@@ -202,7 +203,7 @@ export default function Vision2026() {
               <h3 className="text-lg font-bold mb-2" style={{ color: 'var(--navy)' }}>
                 Spiritual Formation
               </h3>
-              <p className="text-gray-600 text-sm">
+              <p className="text-[#5a5247] text-sm">
                 Daily tools that help believers experience God
               </p>
             </div>
@@ -216,7 +217,7 @@ export default function Vision2026() {
               <h3 className="text-lg font-bold mb-2" style={{ color: 'var(--navy)' }}>
                 Evangelism Training
               </h3>
-              <p className="text-gray-600 text-sm">
+              <p className="text-[#5a5247] text-sm">
                 Bridge course and campus outreach
               </p>
             </div>
@@ -230,7 +231,7 @@ export default function Vision2026() {
               <h3 className="text-lg font-bold mb-2" style={{ color: 'var(--navy)' }}>
                 Life-on-Life Multiplication
               </h3>
-              <p className="text-gray-600 text-sm">
+              <p className="text-[#5a5247] text-sm">
                 DNA Groups that naturally multiply
               </p>
             </div>
@@ -240,7 +241,7 @@ export default function Vision2026() {
             <p className="text-xl font-semibold mb-4" style={{ color: 'var(--navy)' }}>
               The Tools We Provide:
             </p>
-            <p className="text-gray-700">
+            <p className="text-[#4a4540]">
               ARK App (journal, prayer, courses, challenge) • DNA System (church assessment, groups, leader resources) • Campus Model (University of Iowa as proof of concept)
             </p>
           </div>
@@ -256,7 +257,7 @@ export default function Vision2026() {
                 <path d="M14.017 21v-7.391c0-5.704 3.731-9.57 8.983-10.609l.995 2.151c-2.432.917-3.995 3.638-3.995 5.849h4v10h-9.983zm-14.017 0v-7.391c0-5.704 3.748-9.57 9-10.609l.996 2.151c-2.433.917-3.996 3.638-3.996 5.849h3.983v10h-9.983z" />
               </svg>
             </div>
-            <p className="text-xl text-gray-700 italic mb-6 leading-relaxed">
+            <p className="text-xl text-[#4a4540] italic mb-6 leading-relaxed">
               &quot;The Ark has shifted the culture of our church from the consumer mentality to being a priesthood of believers. If you partner with Ark Identity, it will not only change you, but it will help you make faithful disciples and be a spirit-led family of people who live on mission.&quot;
             </p>
             <div className="flex items-center justify-between">
@@ -264,7 +265,7 @@ export default function Vision2026() {
                 <p className="font-bold" style={{ color: 'var(--navy)' }}>
                   Pastor Michael Winakur
                 </p>
-                <p className="text-gray-600">Cross Culture Church, Denver</p>
+                <p className="text-[#5a5247]">Cross Culture Church, Denver</p>
               </div>
             </div>
           </div>
@@ -291,7 +292,7 @@ export default function Vision2026() {
           <h2 className="text-3xl font-bold mb-4 text-center" style={{ color: 'var(--navy)' }}>
             2 Full-Time Leaders. 12 Volunteers. Imagine 100.
           </h2>
-          <p className="text-lg text-gray-700 mb-12 text-center max-w-3xl mx-auto">
+          <p className="text-lg text-[#4a4540] mb-12 text-center max-w-3xl mx-auto">
             Travis and Kimberly lead ARK full-time. These 12 volunteer leaders run DNA Groups, teach courses, and multiply disciples in their communities—while working full-time jobs. Vision 2026: Add 2 paid campus coordinators and scale this model nationwide.
           </p>
 
@@ -332,77 +333,77 @@ export default function Vision2026() {
               Volunteer Leaders
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              <div className="bg-white p-4 rounded-lg shadow-sm">
+              <div className="p-4 rounded-xl" style={{ backgroundColor: '#FFFFFF', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
                 <p className="font-semibold text-sm" style={{ color: 'var(--navy)' }}>
                   Sy Ruiz
                 </p>
-                <p className="text-xs text-gray-600">Aurora/Denver, CO</p>
+                <p className="text-xs text-[#5a5247]">Aurora/Denver, CO</p>
               </div>
-              <div className="bg-white p-4 rounded-lg shadow-sm">
+              <div className="p-4 rounded-xl" style={{ backgroundColor: '#FFFFFF', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
                 <p className="font-semibold text-sm" style={{ color: 'var(--navy)' }}>
                   Monic Ruiz-Blanco
                 </p>
-                <p className="text-xs text-gray-600">Denver, CO</p>
+                <p className="text-xs text-[#5a5247]">Denver, CO</p>
               </div>
-              <div className="bg-white p-4 rounded-lg shadow-sm">
+              <div className="p-4 rounded-xl" style={{ backgroundColor: '#FFFFFF', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
                 <p className="font-semibold text-sm" style={{ color: 'var(--navy)' }}>
                   Melissa Ruiz
                 </p>
-                <p className="text-xs text-gray-600">Aurora/Denver, CO</p>
+                <p className="text-xs text-[#5a5247]">Aurora/Denver, CO</p>
               </div>
-              <div className="bg-white p-4 rounded-lg shadow-sm">
+              <div className="p-4 rounded-xl" style={{ backgroundColor: '#FFFFFF', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
                 <p className="font-semibold text-sm" style={{ color: 'var(--navy)' }}>
                   Leah Jennings
                 </p>
-                <p className="text-xs text-gray-600">Las Vegas, NV</p>
+                <p className="text-xs text-[#5a5247]">Las Vegas, NV</p>
               </div>
-              <div className="bg-white p-4 rounded-lg shadow-sm">
+              <div className="p-4 rounded-xl" style={{ backgroundColor: '#FFFFFF', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
                 <p className="font-semibold text-sm" style={{ color: 'var(--navy)' }}>
                   Baruky Ruiz
                 </p>
-                <p className="text-xs text-gray-600">Denver, CO</p>
+                <p className="text-xs text-[#5a5247]">Denver, CO</p>
               </div>
-              <div className="bg-white p-4 rounded-lg shadow-sm">
+              <div className="p-4 rounded-xl" style={{ backgroundColor: '#FFFFFF', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
                 <p className="font-semibold text-sm" style={{ color: 'var(--navy)' }}>
                   David Pinto
                 </p>
-                <p className="text-xs text-gray-600">Loveland, CO</p>
+                <p className="text-xs text-[#5a5247]">Loveland, CO</p>
               </div>
-              <div className="bg-white p-4 rounded-lg shadow-sm">
+              <div className="p-4 rounded-xl" style={{ backgroundColor: '#FFFFFF', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
                 <p className="font-semibold text-sm" style={{ color: 'var(--navy)' }}>
                   Alec Schubele
                 </p>
-                <p className="text-xs text-gray-600">Parker/Aurora, CO</p>
+                <p className="text-xs text-[#5a5247]">Parker/Aurora, CO</p>
               </div>
-              <div className="bg-white p-4 rounded-lg shadow-sm">
+              <div className="p-4 rounded-xl" style={{ backgroundColor: '#FFFFFF', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
                 <p className="font-semibold text-sm" style={{ color: 'var(--navy)' }}>
                   Adrian Sanchez
                 </p>
-                <p className="text-xs text-gray-600">Iowa City, IA</p>
+                <p className="text-xs text-[#5a5247]">Iowa City, IA</p>
               </div>
-              <div className="bg-white p-4 rounded-lg shadow-sm">
+              <div className="p-4 rounded-xl" style={{ backgroundColor: '#FFFFFF', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
                 <p className="font-semibold text-sm" style={{ color: 'var(--navy)' }}>
                   Bob Sandberg
                 </p>
-                <p className="text-xs text-gray-600">Denver, CO</p>
+                <p className="text-xs text-[#5a5247]">Denver, CO</p>
               </div>
-              <div className="bg-white p-4 rounded-lg shadow-sm">
+              <div className="p-4 rounded-xl" style={{ backgroundColor: '#FFFFFF', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
                 <p className="font-semibold text-sm" style={{ color: 'var(--navy)' }}>
                   Amy Baker
                 </p>
-                <p className="text-xs text-gray-600">Denver, CO</p>
+                <p className="text-xs text-[#5a5247]">Denver, CO</p>
               </div>
-              <div className="bg-white p-4 rounded-lg shadow-sm">
+              <div className="p-4 rounded-xl" style={{ backgroundColor: '#FFFFFF', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
                 <p className="font-semibold text-sm" style={{ color: 'var(--navy)' }}>
                   Josiah Rognmoe
                 </p>
-                <p className="text-xs text-gray-600">Parker/Aurora, CO</p>
+                <p className="text-xs text-[#5a5247]">Parker/Aurora, CO</p>
               </div>
-              <div className="bg-white p-4 rounded-lg shadow-sm">
+              <div className="p-4 rounded-xl" style={{ backgroundColor: '#FFFFFF', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
                 <p className="font-semibold text-sm" style={{ color: 'var(--navy)' }}>
                   Mandi Mullin
                 </p>
-                <p className="text-xs text-gray-600">Denver, CO</p>
+                <p className="text-xs text-[#5a5247]">Denver, CO</p>
               </div>
             </div>
           </div>

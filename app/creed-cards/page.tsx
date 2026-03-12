@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { AppHeader } from '@/components/navigation/AppHeader';
 import { CREED_CARDS, CATEGORIES } from '@/lib/creedCardsData';
 
 const STORAGE_KEY = 'creedcards_learned';
@@ -78,10 +79,12 @@ export default function CreedCardsPage() {
 
   return (
     <div className="creed-cards-page">
-      {/* Header */}
-      <div className="px-5 pt-12 pb-3">
+      <AppHeader />
+
+      {/* Creed Cards Sub-header */}
+      <div className="px-5 pt-4 pb-3">
         <div className="flex items-center justify-between mb-1">
-          <h1 className="text-2xl font-bold text-white">Creed Cards</h1>
+          <h2 className="text-lg font-semibold text-white">Creed Cards</h2>
           <span className="text-sm font-semibold px-3 py-1 rounded-full" style={{ background: 'var(--ark-gold)', color: 'var(--ark-navy)' }}>
             {learned.size}/50
           </span>

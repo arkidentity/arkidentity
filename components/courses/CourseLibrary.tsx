@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
+import { AppHeader } from '@/components/navigation/AppHeader';
 import { getCourseList, getCourseTheme, getCourseRegistryEntry } from '@/lib/courses/courseRegistry';
 
 const courses = getCourseList();
@@ -9,10 +10,7 @@ const courses = getCourseList();
 export function CourseLibrary() {
   return (
     <div className="course-library">
-      <div className="library-header">
-        <h1>Courses</h1>
-        <p>Discipleship courses for every stage of your journey</p>
-      </div>
+      <AppHeader />
 
       <div className="course-grid">
         {courses.map((course) => {

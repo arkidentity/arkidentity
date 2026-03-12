@@ -2,6 +2,7 @@
 
 import { usePrayer } from './PrayerContext';
 import { useWakeLock } from '@/hooks/useWakeLock';
+import { AppHeader } from '@/components/navigation/AppHeader';
 import { PrayerBackground } from './PrayerBackground';
 import { EnterGate } from './EnterGate';
 import { PrayerDashboard } from './PrayerDashboard';
@@ -54,9 +55,12 @@ export function PrayerPage() {
     }
   };
 
+  const showHeader = state.currentView === 'gate';
+
   return (
     <div className={`prayer-container theme-${state.theme}`}>
       <PrayerBackground />
+      {showHeader && <AppHeader />}
       <div className="prayer-content">
         {renderView()}
       </div>

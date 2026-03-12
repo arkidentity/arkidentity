@@ -4,7 +4,6 @@ import { useState, Fragment } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { usePrayer } from './PrayerContext';
-import { SettingsButton } from '@/components/settings';
 import { prayerInfo } from '@/lib/prayerData';
 import type { PrayerTheme } from '@/lib/prayerData';
 
@@ -21,18 +20,7 @@ export function EnterGate() {
 
   return (
     <div className="prayer-enter-gate">
-      {/* Header */}
-      <header className="prayer-gate-header">
-        <div className="prayer-gate-header-inner">
-          <h1 className="prayer-gate-header-title">
-            <span style={{ color: 'var(--ark-gold)' }}>4D</span>
-            <span style={{ color: 'white', marginLeft: '0.3rem' }}>Prayer</span>
-          </h1>
-          <SettingsButton />
-        </div>
-      </header>
-
-      {/* Back Button + Theme Selector */}
+      {/* Theme Selector Row */}
       <div className="prayer-gate-back-row">
         <Link href="/journal" className="prayer-back-button">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

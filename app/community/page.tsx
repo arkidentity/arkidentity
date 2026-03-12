@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
+import { AppHeader } from '@/components/navigation/AppHeader';
 import { useAuth } from '@/components/auth/AuthProvider';
 import { createClient } from '@supabase/supabase-js';
 
@@ -411,11 +412,7 @@ export default function CommunityPage() {
 
   return (
     <div className="min-h-screen" style={{ background: 'var(--primary-color)', paddingBottom: 'calc(80px + env(safe-area-inset-bottom, 0px))' }}>
-      {/* Header */}
-      <div className="px-5 pt-12 pb-4">
-        <h1 className="text-2xl font-bold text-white mb-1">Community</h1>
-        <p className="text-white/60 text-sm">Journals & testimonies from the ARK community</p>
-      </div>
+      <AppHeader />
 
       {/* ARK Online Section */}
       <div className="px-5 mb-5">

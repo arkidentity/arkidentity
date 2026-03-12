@@ -110,6 +110,25 @@ export default function Team() {
           </div>
         </div>
       </section>
+
+      {/* Join CTA */}
+      <section className="py-16" style={{ backgroundColor: 'var(--navy)' }}>
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+          <h2 className="text-3xl font-bold mb-4" style={{ color: 'var(--gold)' }}>
+            Join Our Team
+          </h2>
+          <p className="text-lg mb-8 text-gray-300 max-w-2xl mx-auto">
+            We&apos;re looking for passionate disciple-makers who want to activate transformation in believers.
+          </p>
+          <a
+            href="/get-involved"
+            className="inline-block px-8 py-4 rounded-lg font-semibold text-lg transition hover:opacity-90"
+            style={{ backgroundColor: 'var(--gold)', color: 'var(--navy)' }}
+          >
+            Get Involved
+          </a>
+        </div>
+      </section>
     </div>
   );
 }

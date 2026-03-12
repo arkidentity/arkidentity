@@ -46,6 +46,14 @@
   --ark-neon-green: #00ff66;
   --bright-blue: #3b82f6;
 
+  /* Brochure shorthand aliases */
+  --navy: var(--ark-navy);
+  --gold: var(--ark-gold);
+  --maroon: var(--ark-maroon);
+  --head-blue: var(--head);
+  --heart-red: var(--heart);
+  --hands-gold: var(--hands);
+
   /* UI grays */
   --gray-50: #f9fafb;
   --gray-100: #f3f4f6;
@@ -2374,6 +2382,39 @@ html, body {
   color: rgba(255, 255, 255, 0.4);
   font-size: 0.875rem;
   text-align: center;
+}
+
+/* Links drawer item icon */
+.links-drawer-item-icon {
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+}
+
+.links-drawer-item-icon svg {
+  width: 100%;
+  height: 100%;
+}
+
+/* More drawer footer */
+.more-drawer-footer {
+  padding: 1.25rem 1.5rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  text-align: center;
+}
+
+.more-drawer-brand {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--ark-gold, #e8b562);
+  margin: 0 0 0.25rem;
+}
+
+.more-drawer-tagline {
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.45);
+  margin: 0;
+  font-style: italic;
 }
 
 /* ============================================

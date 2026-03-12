@@ -59,7 +59,7 @@ const MORE_LINKS = [
   {
     id: 'dna',
     label: 'DNA Discipleship',
-    href: 'https://dna.arkidentity.com',
+    href: 'https://dnadiscipleship.com',
     external: true,
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">

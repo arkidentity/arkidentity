@@ -53,7 +53,7 @@ export default function GetInvolved() {
           <p className="text-lg mb-12 text-center max-w-3xl mx-auto" style={{ color: '#5a5247' }}>Partner with us financially or through ministry collaboration. We believe in partnership, not just patronage.</p>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {[
-              { title: 'For Churches', desc: 'Launch ARK Identity for your congregation. Our DNA system equips your members to make disciples who multiply.', color: 'var(--maroon)', btn: 'Explore DNA for Churches', href: 'https://dna.arkidentity.com', ext: true, icon: 'M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4' },
+              { title: 'For Churches', desc: 'Launch ARK Identity for your congregation. Our DNA system equips your members to make disciples who multiply.', color: 'var(--maroon)', btn: 'Explore DNA for Churches', href: 'https://dnadiscipleship.com', ext: true, icon: 'M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4' },
               { title: 'For Content Creators', desc: 'Use our resources, co-create courses, and help us reach more believers with the gospel.', color: 'var(--head-blue)', btn: "Let's Talk", href: 'mailto:info@arkidentity.com', ext: false, icon: 'M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z' },
               { title: 'For Ministries', desc: 'Integrate ARK tools into your discipleship strategy. We provide the framework, you provide the community.', color: 'var(--gold)', btn: "Let's Talk", href: 'mailto:info@arkidentity.com', ext: false, icon: 'M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z' },
             ].map((card) => (
@@ -69,6 +69,25 @@ export default function GetInvolved() {
               </div>
             ))}
           </div>
+        </div>
+      </section>
+
+      {/* Partner CTA */}
+      <section className="py-16" style={{ backgroundColor: 'var(--navy)' }}>
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+          <h2 className="text-3xl font-bold mb-4" style={{ color: 'var(--gold)' }}>
+            Ready to Partner?
+          </h2>
+          <p className="text-lg mb-8 text-gray-300 max-w-2xl mx-auto">
+            Your partnership helps us multiply disciples across the nation. Every gift goes toward building tools, equipping leaders, and launching campus ministry.
+          </p>
+          <a
+            href="/giving"
+            className="inline-block px-8 py-4 rounded-lg font-semibold text-lg transition hover:opacity-90"
+            style={{ backgroundColor: 'var(--gold)', color: 'var(--navy)' }}
+          >
+            Support the Mission
+          </a>
         </div>
       </section>
     </div>

@@ -105,18 +105,18 @@ export default function Giving() {
       </section>
 
       {/* Vision 2026 CTA */}
-      <section className="py-16" style={{ background: '#F5F2EE' }}>
+      <section className="py-16" style={{ backgroundColor: 'var(--navy)' }}>
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h2 className="text-3xl font-bold mb-4" style={{ color: 'var(--navy)' }}>
+          <h2 className="text-3xl font-bold mb-4" style={{ color: 'var(--gold)' }}>
             See Where Your Giving Goes
           </h2>
-          <p className="text-lg mb-8" style={{ color: '#5a5247' }}>
+          <p className="text-lg mb-8 text-gray-300">
             Learn about our Vision 2026 goals and how your partnership helps us multiply disciples nationwide.
           </p>
           <Link
             href="/vision-2026"
             className="inline-block px-8 py-4 rounded-lg font-semibold text-lg transition hover:opacity-90"
-            style={{ backgroundColor: 'var(--navy)', color: 'white' }}
+            style={{ backgroundColor: 'var(--gold)', color: 'var(--navy)' }}
           >
             See Vision 2026
           </Link>

@@ -60,20 +60,20 @@ export default function Beliefs() {
       </section>
 
       {/* Additional Resource */}
-      <section className="py-16" style={{ background: '#FAF8F5' }}>
+      <section className="py-16" style={{ backgroundColor: 'var(--navy)' }}>
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h2 className="text-3xl font-bold mb-6" style={{ color: 'var(--navy)' }}>
+          <h2 className="text-3xl font-bold mb-6" style={{ color: 'var(--gold)' }}>
             Want to Learn More?
           </h2>
-          <p className="text-lg mb-8 max-w-2xl mx-auto" style={{ color: '#5a5247' }}>
+          <p className="text-lg mb-8 max-w-2xl mx-auto text-gray-300">
             This is an amazing resource that highlights what we believe is most important to the Christian faith.
           </p>
           <a
             href="/We Believe.pdf"
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-block px-8 py-4 rounded-lg font-semibold text-white transition hover:opacity-90"
-            style={{ backgroundColor: 'var(--navy)' }}
+            className="inline-block px-8 py-4 rounded-lg font-semibold transition hover:opacity-90"
+            style={{ backgroundColor: 'var(--gold)', color: 'var(--navy)' }}
           >
             <div className="flex items-center space-x-3">
               <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">

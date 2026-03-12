@@ -72,7 +72,7 @@ export default function Footer() {
               </li>
               <li>
                 <a
-                  href="https://dna.arkidentity.com"
+                  href="https://dnadiscipleship.com"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-gray-300 hover:text-gold transition"

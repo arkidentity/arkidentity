@@ -1,15 +1,22 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 
 export function AppHeader() {
   return (
     <header className="app-header">
       <div className="app-header-inner">
         {/* Logo */}
-        <Link href="/journal" className="app-header-logo">
-          <span className="logo-ark">ARK</span>
-          <span className="logo-identity">IDENTITY</span>
+        <Link href="/courses" className="app-header-logo">
+          <Image
+            src="/images/ark-logo-web.png"
+            alt="ARK Identity"
+            width={160}
+            height={32}
+            priority
+            className="app-header-logo-img"
+          />
         </Link>
 
         {/* Profile */}

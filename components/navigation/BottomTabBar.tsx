@@ -7,15 +7,13 @@ import { MoreDrawer } from './MoreDrawer';
 
 const TABS = [
   {
-    id: 'courses',
-    label: 'Courses',
-    href: '/courses',
+    id: 'prayer',
+    label: 'Prayer',
+    href: '/prayer',
     icon: (
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
-        <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
-        <path d="M8 7h8" />
-        <path d="M8 11h6" />
+      <svg viewBox="0 0 24 24" fill="currentColor" stroke="none">
+        <path d="M11 21H8.5C7.7 21 7 20.6 6.6 19.9L4.1 15.4C3.7 14.7 3.7 13.8 4 13.1L7.5 6C7.9 5.1 9 4.7 9.9 5.1 10.6 5.4 11 6.1 11 6.9V21Z" />
+        <path d="M13 21H15.5C16.3 21 17 20.6 17.4 19.9L19.9 15.4C20.3 14.7 20.3 13.8 20 13.1L16.5 6C16.1 5.1 15 4.7 14.1 5.1 13.4 5.4 13 6.1 13 6.9V21Z" />
       </svg>
     ),
   },
@@ -31,13 +29,15 @@ const TABS = [
     ),
   },
   {
-    id: 'prayer',
-    label: 'Prayer',
-    href: '/prayer',
+    id: 'courses',
+    label: 'Courses',
+    href: '/courses',
     icon: (
-      <svg viewBox="0 0 24 24" fill="currentColor" stroke="none">
-        <path d="M11 21H8.5C7.7 21 7 20.6 6.6 19.9L4.1 15.4C3.7 14.7 3.7 13.8 4 13.1L7.5 6C7.9 5.1 9 4.7 9.9 5.1 10.6 5.4 11 6.1 11 6.9V21Z" />
-        <path d="M13 21H15.5C16.3 21 17 20.6 17.4 19.9L19.9 15.4C20.3 14.7 20.3 13.8 20 13.1L16.5 6C16.1 5.1 15 4.7 14.1 5.1 13.4 5.4 13 6.1 13 6.9V21Z" />
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+        <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
+        <path d="M8 7h8" />
+        <path d="M8 11h6" />
       </svg>
     ),
   },
@@ -81,9 +81,9 @@ export function BottomTabBar() {
   const allTabs = [...TABS, { id: 'more' }];
 
   const getActiveTab = () => {
-    if (pathname === '/' || pathname.startsWith('/courses')) return 'courses';
-    if (pathname.startsWith('/journal') || pathname.startsWith('/archive')) return 'journal';
     if (pathname.startsWith('/prayer')) return 'prayer';
+    if (pathname.startsWith('/journal') || pathname.startsWith('/archive')) return 'journal';
+    if (pathname === '/' || pathname.startsWith('/courses')) return 'courses';
     if (pathname.startsWith('/community')) return 'community';
     return null;
   };

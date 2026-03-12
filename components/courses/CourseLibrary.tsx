@@ -16,7 +16,6 @@ export function CourseLibrary() {
       <div className="courses-hero">
         <div className="courses-hero-overlay" />
         <div className="courses-hero-content">
-          <p className="courses-hero-eyebrow">ARK IDENTITY</p>
           <h1 className="courses-hero-title">
             Courses that build your<br />
             <span className="courses-hero-accent">identity in Christ</span>

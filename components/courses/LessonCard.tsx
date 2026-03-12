@@ -82,7 +82,7 @@ export function LessonCard({
 
       <style jsx>{`
         .lesson-card {
-          background: #242D3D;
+          background: #223344;
           border-radius: 12px;
           overflow: hidden;
           border: 2px solid transparent;
@@ -112,9 +112,9 @@ export function LessonCard({
           justify-content: center;
           font-size: 16px;
           font-weight: 700;
-          background: #1A2332;
-          color: var(--course-accent, #D4A853);
-          border: 1px solid var(--course-accent, #D4A853);
+          background: #0d1520;
+          color: #e8b562;
+          border: 1px solid #e8b562;
           flex-shrink: 0;
         }
         .lesson-card.completed .lesson-number {
@@ -145,7 +145,7 @@ export function LessonCard({
           display: inline-block;
           padding: 1px 8px;
           background: rgba(232, 181, 98, 0.15);
-          color: var(--course-accent, #D4A853);
+          color: #e8b562;
           border-radius: 10px;
           font-size: 11px;
           font-weight: 600;
@@ -156,15 +156,15 @@ export function LessonCard({
         }
         .lesson-content {
           padding: 0 24px 24px 24px;
-          border-top: 1px solid #3D4A5C;
+          border-top: 1px solid rgba(232, 181, 98, 0.1);
         }
         .btn-complete {
           display: block;
           width: 100%;
           padding: 14px 20px;
           margin-top: 24px;
-          background: var(--course-accent, #D4A853);
-          color: #1A1A1A;
+          background: #e8b562;
+          color: #1a2b3c;
           border: none;
           border-radius: 8px;
           font-size: 0.95rem;

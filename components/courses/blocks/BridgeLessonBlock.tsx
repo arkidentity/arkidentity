@@ -26,7 +26,7 @@ export function BridgeLessonBlock({ block }: { block: ContentBlock }) {
 
       <style jsx>{`
         .bridge-lesson-block {
-          background: linear-gradient(135deg, var(--course-primary, #143348), var(--course-secondary, #1a4a6e));
+          background: linear-gradient(135deg, #1a2b3c, #143348);
           border-radius: 12px;
           padding: 24px;
           margin: 20px 0;
@@ -38,7 +38,7 @@ export function BridgeLessonBlock({ block }: { block: ContentBlock }) {
           font-weight: 700;
           letter-spacing: 0.12em;
           text-transform: uppercase;
-          color: var(--course-accent, #D4A853);
+          color: #e8b562;
           margin-bottom: 8px;
         }
         .bridge-title {
@@ -66,7 +66,7 @@ export function BridgeLessonBlock({ block }: { block: ContentBlock }) {
         .bridge-actions :global(.cta-primary) {
           display: inline-flex;
           padding: 10px 20px;
-          background: var(--course-accent, #D4A853);
+          background: #e8b562;
           color: #1A1A1A;
           border-radius: 6px;
           font-size: 0.85rem;

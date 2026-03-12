@@ -72,10 +72,10 @@ export default function CourseLandingPage({ params }: { params: Promise<{ course
 
   if (!course) {
     return (
-      <div style={{ minHeight: '100vh', background: '#1A2332', color: '#FFFFFF', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
-        <h1 style={{ color: '#D4A853', fontSize: 32, marginBottom: 16 }}>Course Not Found</h1>
+      <div style={{ minHeight: '100vh', background: '#1a2b3c', color: '#FFFFFF', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
+        <h1 style={{ color: '#e8b562', fontSize: 32, marginBottom: 16 }}>Course Not Found</h1>
         <p style={{ color: '#A0AEC0', marginBottom: 24 }}>This course doesn&apos;t exist.</p>
-        <Link href="/courses" style={{ color: '#D4A853', textDecoration: 'underline' }}>Back to Courses</Link>
+        <Link href="/courses" style={{ color: '#e8b562', textDecoration: 'underline' }}>Back to Courses</Link>
       </div>
     );
   }
@@ -144,7 +144,7 @@ export default function CourseLandingPage({ params }: { params: Promise<{ course
       <style jsx>{`
         .course-landing {
           min-height: 100vh;
-          background: #1A2332;
+          background: #1a2b3c;
           color: #FFFFFF;
           padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px));
         }
@@ -152,7 +152,7 @@ export default function CourseLandingPage({ params }: { params: Promise<{ course
           position: sticky;
           top: 0;
           z-index: 10;
-          background: rgba(26, 35, 50, 0.85);
+          background: rgba(26, 43, 60, 0.85);
           backdrop-filter: blur(12px);
           -webkit-backdrop-filter: blur(12px);
           border-bottom: 1px solid rgba(255, 255, 255, 0.06);
@@ -172,7 +172,7 @@ export default function CourseLandingPage({ params }: { params: Promise<{ course
           transition: color 0.2s;
         }
         .page-header :global(.back-link):hover {
-          color: var(--course-accent, #D4A853);
+          color: #e8b562;
         }
         .landing-main {
           padding: 0 24px;

@@ -4,6 +4,15 @@ import registry from '@/data/courses/registry.json';
 
 const courseRegistry = registry as unknown as CourseRegistry;
 
+// ARK Identity brand colors — used for all course content
+const ARK_BRAND = {
+  navy: '#1a2b3c',
+  gold: '#e8b562',
+  maroon: '#5f0c0b',
+  darkNavy: '#0d1520',
+  teal: '#143348',
+} as const;
+
 export function getCourseList(): CourseRegistryEntry[] {
   return courseRegistry.courses
     .filter((c) => c.available)
@@ -15,10 +24,10 @@ export function getCourseTheme(courseId: string): CourseBranding {
   if (theme) return theme;
   // Fallback: ARK Identity default colors
   return {
-    primary: '#143348',
-    secondary: '#1a4a6e',
-    accent: '#e8b562',
-    dark: '#0d1b2a',
+    primary: ARK_BRAND.navy,
+    secondary: ARK_BRAND.teal,
+    accent: ARK_BRAND.gold,
+    dark: ARK_BRAND.darkNavy,
   };
 }
 
@@ -35,3 +44,5 @@ export function getCourseThemeVars(courseId: string): Record<string, string> {
     '--course-dark': theme.dark,
   };
 }
+
+export { ARK_BRAND };

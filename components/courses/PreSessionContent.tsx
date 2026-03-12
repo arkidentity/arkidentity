@@ -71,7 +71,7 @@ export function PreSessionContent({ content }: PreSessionContentProps) {
         .creed-title {
           font-size: 18px;
           font-weight: 700;
-          color: var(--course-accent, #D4A853);
+          color: #e8b562;
           margin: 0 0 8px 0;
         }
         .creed-description {
@@ -92,13 +92,13 @@ export function PreSessionContent({ content }: PreSessionContentProps) {
           padding: 10px 14px;
           background: rgba(255, 255, 255, 0.03);
           border-radius: 10px;
-          border-left: 3px solid var(--course-accent, #D4A853);
+          border-left: 3px solid #e8b562;
         }
         .point-label {
           font-size: 12px;
           font-weight: 700;
           text-transform: uppercase;
-          color: var(--course-accent, #D4A853);
+          color: #e8b562;
           flex-shrink: 0;
           min-width: 85px;
         }
@@ -141,8 +141,8 @@ export function PreSessionContent({ content }: PreSessionContentProps) {
           align-items: center;
           justify-content: center;
           border-radius: 8px;
-          background: var(--course-primary, #143348);
-          color: var(--course-accent, #D4A853);
+          background: #1a2b3c;
+          color: #e8b562;
           font-size: 14px;
           font-weight: 700;
         }

@@ -119,9 +119,9 @@ export function SessionTOC({ courseId, sessions }: SessionTOCProps) {
           border: 2px solid rgba(255, 255, 255, 0.1);
         }
         .session-number.in-progress {
-          color: var(--course-accent, #D4A853);
-          border-color: var(--course-accent, #D4A853);
-          background: rgba(212, 168, 83, 0.1);
+          color: #e8b562;
+          border-color: #e8b562;
+          background: rgba(232, 181, 98, 0.1);
         }
         .session-number.complete {
           color: #2E7D5E;
@@ -161,7 +161,7 @@ export function SessionTOC({ courseId, sessions }: SessionTOCProps) {
         .progress-indicator {
           font-size: 12px;
           font-weight: 600;
-          color: var(--course-accent, #D4A853);
+          color: #e8b562;
         }
         .card-arrow {
           flex-shrink: 0;

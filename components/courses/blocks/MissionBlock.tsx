@@ -21,7 +21,7 @@ export function MissionBlock({ block }: { block: ContentBlock }) {
         .mission-block {
           background: rgba(232, 181, 98, 0.08);
           border: 1px solid rgba(232, 181, 98, 0.25);
-          border-left: 3px solid var(--course-accent, #D4A853);
+          border-left: 3px solid #e8b562;
           border-radius: 8px;
           padding: 20px 24px;
           margin: 20px 0;
@@ -34,7 +34,7 @@ export function MissionBlock({ block }: { block: ContentBlock }) {
           font-weight: 700;
           letter-spacing: 0.12em;
           text-transform: uppercase;
-          color: var(--course-accent, #D4A853);
+          color: #e8b562;
           margin-bottom: 10px;
         }
         .prompt {

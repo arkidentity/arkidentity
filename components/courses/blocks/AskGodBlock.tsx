@@ -19,11 +19,11 @@ export function AskGodBlock({ block }: { block: ContentBlock }) {
 
       <style jsx>{`
         .askgod-block {
-          background: linear-gradient(135deg, #2E7D5E 0%, #1A5C42 100%);
+          background: #1a2b3c;
           border-radius: 8px;
           padding: 20px 24px;
           margin: 20px 0;
-          border-left: 3px solid var(--course-accent, #D4A853);
+          border-left: 3px solid #e8b562;
         }
         .block-label {
           display: flex;
@@ -33,7 +33,7 @@ export function AskGodBlock({ block }: { block: ContentBlock }) {
           font-weight: 700;
           letter-spacing: 0.12em;
           text-transform: uppercase;
-          color: var(--course-accent, #D4A853);
+          color: #e8b562;
           margin-bottom: 10px;
         }
         .prompt {

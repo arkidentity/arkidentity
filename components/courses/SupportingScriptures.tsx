@@ -97,7 +97,7 @@ export function SupportingScriptures({ scriptures }: SupportingScripturesProps) 
         }
         .scripture-item {
           background: #F5F0E8;
-          border-left: 3px solid var(--course-accent, #D4A853);
+          border-left: 3px solid #e8b562;
           border-radius: 6px;
           padding: 14px 18px;
         }
@@ -109,7 +109,7 @@ export function SupportingScriptures({ scriptures }: SupportingScripturesProps) 
           margin: 0 0 6px 0;
         }
         .scripture-ref {
-          color: var(--course-accent, #D4A853);
+          color: #e8b562;
           font-weight: 700;
           font-size: 0.75rem;
           letter-spacing: 0.03em;

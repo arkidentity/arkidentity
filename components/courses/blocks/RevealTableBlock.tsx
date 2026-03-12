@@ -68,15 +68,15 @@ export function RevealTableBlock({ block }: { block: ContentBlock }) {
           border-collapse: collapse;
         }
         th {
-          background: var(--course-dark, #1A2332);
-          color: var(--course-accent, #D4A853);
+          background: #1a2b3c;
+          color: #e8b562;
           padding: 12px 16px;
           text-align: left;
           font-size: 0.8rem;
           font-weight: 700;
           text-transform: uppercase;
           letter-spacing: 0.05em;
-          border-bottom: 2px solid var(--course-accent, #D4A853);
+          border-bottom: 2px solid #e8b562;
         }
         td {
           padding: 12px 16px;

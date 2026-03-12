@@ -22,7 +22,7 @@ export function FeatureLinkBlock({ block }: { block: ContentBlock }) {
         .feature-link-block {
           background: rgba(255, 255, 255, 0.04);
           border: 1px solid rgba(255, 255, 255, 0.1);
-          border-left: 3px solid var(--course-primary, #143348);
+          border-left: 3px solid #1a2b3c;
           border-radius: 8px;
           padding: 20px 24px;
           margin: 20px 0;
@@ -48,7 +48,7 @@ export function FeatureLinkBlock({ block }: { block: ContentBlock }) {
           display: inline-flex;
           align-items: center;
           gap: 6px;
-          color: var(--course-accent, #D4A853);
+          color: #e8b562;
           font-size: 0.85rem;
           font-weight: 600;
         }

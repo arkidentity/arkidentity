@@ -3,40 +3,39 @@
   "lastUpdated": "2024-12-24",
   "themes": {
     "100x": {
-      "primary": "#C9922B",
-      "secondary": "#6BA3D6",
-      "accent": "#8B6914",
-      "dark": "#2C1810",
-      "gradient": "linear-gradient(135deg, #C9922B 0%, #8B6914 100%)"
+      "primary": "#1a2b3c",
+      "secondary": "#143348",
+      "accent": "#e8b562",
+      "dark": "#0d1520",
+      "cardGradient": "linear-gradient(135deg, #C9922B 0%, #8B6914 100%)"
     },
     "identity-trinity": {
-      "primary": "#4A90D9",
-      "secondary": "#6BA3D6",
-      "accent": "#2E5C8A",
-      "dark": "#1A3A5C",
-      "light": "#A8C5E8",
-      "gradient": "linear-gradient(135deg, #4A90D9 0%, #1A3A5C 100%)"
+      "primary": "#1a2b3c",
+      "secondary": "#143348",
+      "accent": "#e8b562",
+      "dark": "#0d1520",
+      "cardGradient": "linear-gradient(135deg, #4A90D9 0%, #1A3A5C 100%)"
     },
     "hindered-hearing": {
-      "primary": "#1A1A1A",
-      "secondary": "#7CFC00",
-      "accent": "#D4A020",
-      "dark": "#0D0D0D",
-      "gradient": "linear-gradient(135deg, #2A2A2A 0%, #0D0D0D 100%)"
+      "primary": "#1a2b3c",
+      "secondary": "#143348",
+      "accent": "#e8b562",
+      "dark": "#0d1520",
+      "cardGradient": "linear-gradient(135deg, #2A2A2A 0%, #0D0D0D 100%)"
     },
     "the-way": {
-      "primary": "#E67E22",
-      "secondary": "#3498DB",
-      "accent": "#F39C12",
-      "dark": "#2C3E50",
-      "gradient": "linear-gradient(135deg, #E67E22 0%, #F39C12 100%)"
+      "primary": "#1a2b3c",
+      "secondary": "#143348",
+      "accent": "#e8b562",
+      "dark": "#0d1520",
+      "cardGradient": "linear-gradient(135deg, #E67E22 0%, #2C3E50 100%)"
     },
     "the-bridge": {
-      "primary": "#D4A574",
-      "secondary": "#E8C89E",
-      "accent": "#B8860B",
-      "dark": "#3D2914",
-      "gradient": "linear-gradient(135deg, #D4A574 0%, #B8860B 100%)"
+      "primary": "#1a2b3c",
+      "secondary": "#143348",
+      "accent": "#e8b562",
+      "dark": "#0d1520",
+      "cardGradient": "linear-gradient(135deg, #D4A574 0%, #3D2914 100%)"
     }
   },
   "courses": [
@@ -46,9 +45,9 @@
       "subtitle": "Prepare • Protect • Produce",
       "description": "Prepare your heart for spiritual transformation through the parable of the four soils.",
       "sessions": 4,
-      "coverImage": "assets/images/100x/cover.jpg",
-      "bookCover": "assets/images/100x/100x-cover.jpg",
-      "thumbnail": "assets/images/100x/thumb.jpg",
+      "coverImage": "/images/courses/100x/cover.jpg",
+      "bookCover": "/images/courses/100x/100x-cover.jpg",
+      "thumbnail": "/images/courses/100x/thumb.jpg",
       "pdfDownload": "./100X_book.pdf",
       "available": true,
       "order": 1
@@ -60,9 +59,9 @@
       "tagline": "God Designed You To Be Just Like Him.",
       "description": "We all have blind spots. Blind spots distort the way you see God, yourself and your ability to hear God clearly. Your true identity is revealed through the Trinity.",
       "sessions": 6,
-      "coverImage": "assets/images/identity-trinity/id3_cover.jpg",
-      "bookCover": "assets/images/identity-trinity/id3_cover.jpg",
-      "thumbnail": "assets/images/identity-trinity/id3_cover.jpg",
+      "coverImage": "/images/courses/identity-trinity/id3_cover.jpg",
+      "bookCover": "/images/courses/identity-trinity/id3_cover.jpg",
+      "thumbnail": "/images/courses/identity-trinity/id3_cover.jpg",
       "pdfDownload": "./ID3_Book_Print_ready.pdf",
       "available": true,
       "order": 2
@@ -73,9 +72,9 @@
       "subtitle": "5 Things That Could Hold You Back From Hearing God",
       "description": "God is speaking but can you hear Him clearly? Discover what might be blocking your spiritual reception.",
       "sessions": 1,
-      "coverImage": "assets/images/hindered-hearing/hindered_hearing_cover.jpg",
-      "bookCover": "assets/images/hindered-hearing/hindered_hearing_cover.jpg",
-      "thumbnail": "assets/images/hindered-hearing/hindered_hearing_cover.jpg",
+      "coverImage": "/images/courses/hindered-hearing/hindered_hearing_cover.jpg",
+      "bookCover": "/images/courses/hindered-hearing/hindered_hearing_cover.jpg",
+      "thumbnail": "/images/courses/hindered-hearing/hindered_hearing_cover.jpg",
       "available": true,
       "order": 3
     },
@@ -86,9 +85,9 @@
       "tagline": "Discover the foundational truths of following Jesus",
       "description": "The Way is a comprehensive 6-session course covering the essential beliefs and practices of the Christian faith. From understanding the Trinity to walking in the gifts of the Spirit, this course establishes the foundational truths every follower of Jesus needs to know.",
       "sessions": 6,
-      "coverImage": "assets/images/the-way/cover.jpg",
-      "bookCover": "assets/images/the-way/cover.jpg",
-      "thumbnail": "assets/images/the-way/thumb.jpg",
+      "coverImage": "/images/courses/the-way/cover.jpg",
+      "bookCover": "/images/courses/the-way/cover.jpg",
+      "thumbnail": "/images/courses/the-way/thumb.jpg",
       "available": true,
       "order": 4
     },
@@ -99,9 +98,9 @@
       "tagline": "Living on mission every day of your Christian life",
       "description": "Move from awkward to authentic in sharing your faith. Learn to craft your testimony, ask transformative questions, hear God for others, and step into your calling as an ambassador of Christ.",
       "sessions": 6,
-      "coverImage": "assets/images/the-bridge/cover.jpg",
-      "bookCover": "assets/images/the-bridge/the-bridge-cover.jpg",
-      "thumbnail": "assets/images/the-bridge/thumb.jpg",
+      "coverImage": "/images/courses/the-bridge/cover.jpg",
+      "bookCover": "/images/courses/the-bridge/the-bridge-cover.jpg",
+      "thumbnail": "/images/courses/the-bridge/thumb.jpg",
       "pdfDownload": "./TheBridge_book.pdf",
       "available": true,
       "order": 5

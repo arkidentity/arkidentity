@@ -21,7 +21,8 @@ export function DiscussionBlock({ block }: { block: ContentBlock }) {
 
       <style jsx>{`
         .discussion-block {
-          background: #2E7D5E;
+          background: #1a2b3c;
+          border: 1px solid rgba(232, 181, 98, 0.2);
           border-radius: 8px;
           padding: 20px 24px;
           margin: 20px 0;
@@ -34,7 +35,7 @@ export function DiscussionBlock({ block }: { block: ContentBlock }) {
           font-weight: 700;
           letter-spacing: 0.12em;
           text-transform: uppercase;
-          color: var(--course-accent, #D4A853);
+          color: #e8b562;
           margin-bottom: 10px;
         }
         ul {

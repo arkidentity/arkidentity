@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { VideoEmbed } from './VideoEmbed';
+import { getCourseRegistryEntry } from '@/lib/courses/courseRegistry';
 
 interface CourseHeroProps {
   courseId: string;
@@ -31,9 +32,19 @@ export function CourseHero({
   const progressPercent = totalLessons > 0 ? Math.round((completedLessons / totalLessons) * 100) : 0;
   const hasStarted = completedLessons > 0;
   const isComplete = completedLessons >= totalLessons && totalLessons > 0;
+  const entry = getCourseRegistryEntry(courseId);
 
   return (
     <div className="course-hero">
+      {/* Background cover image */}
+      {entry?.coverImage && (
+        <img
+          className="hero-bg-image"
+          src={entry.coverImage}
+          alt=""
+          aria-hidden="true"
+        />
+      )}
       <div className="hero-gradient" />
       <div className="hero-content">
         <div className="hero-meta">
@@ -91,20 +102,29 @@ export function CourseHero({
           border-radius: 0 0 24px 24px;
           margin-bottom: 32px;
         }
+        .hero-bg-image {
+          position: absolute;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+          z-index: 0;
+        }
         .hero-gradient {
           position: absolute;
           inset: 0;
           background: linear-gradient(
             160deg,
-            var(--course-primary, #143348) 0%,
-            var(--course-secondary, #1a4a6e) 50%,
-            var(--course-dark, #0d1b2a) 100%
+            rgba(26, 43, 60, 0.92) 0%,
+            rgba(20, 51, 72, 0.95) 50%,
+            rgba(13, 21, 32, 0.98) 100%
           );
-          opacity: 0.95;
+          z-index: 1;
         }
         .hero-content {
           position: relative;
-          z-index: 1;
+          z-index: 2;
           padding: 48px 24px 32px;
         }
         .hero-meta {
@@ -123,8 +143,8 @@ export function CourseHero({
           font-weight: 600;
         }
         .meta-badge.in-progress {
-          color: var(--course-accent, #D4A853);
-          background: rgba(212, 168, 83, 0.15);
+          color: #e8b562;
+          background: rgba(232, 181, 98, 0.15);
         }
         .meta-badge.complete {
           color: #2E7D5E;
@@ -145,7 +165,7 @@ export function CourseHero({
         }
         .hero-tagline {
           font-size: 14px;
-          color: var(--course-accent, #D4A853);
+          color: #e8b562;
           font-style: italic;
           margin: 0 0 16px 0;
         }
@@ -167,7 +187,7 @@ export function CourseHero({
         }
         .progress-fill {
           height: 100%;
-          background: var(--course-accent, #D4A853);
+          background: #e8b562;
           border-radius: 3px;
           transition: width 0.4s ease;
         }
@@ -184,8 +204,8 @@ export function CourseHero({
         .hero-cta :global(.cta-button) {
           display: inline-block;
           padding: 12px 28px;
-          background: var(--course-accent, #D4A853);
-          color: #FFFFFF;
+          background: #e8b562;
+          color: #1a2b3c;
           font-size: 15px;
           font-weight: 600;
           border-radius: 12px;
@@ -194,7 +214,7 @@ export function CourseHero({
         }
         .hero-cta :global(.cta-button):hover {
           transform: translateY(-1px);
-          box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+          box-shadow: 0 4px 16px rgba(232, 181, 98, 0.35);
         }
         .hero-cta :global(.cta-button):active {
           transform: scale(0.98);

@@ -158,6 +158,7 @@ export interface CourseBranding {
   accent: string;
   dark: string;
   gradient?: string;
+  cardGradient?: string;
   light?: string;
 }
 

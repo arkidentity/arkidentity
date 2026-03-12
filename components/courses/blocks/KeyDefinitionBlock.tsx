@@ -11,15 +11,15 @@ export function KeyDefinitionBlock({ block }: { block: ContentBlock }) {
 
       <style jsx>{`
         .key-definition {
-          background: var(--course-dark, #1A2332);
-          border-top: 2px solid var(--course-accent, #D4A853);
-          border-bottom: 2px solid var(--course-accent, #D4A853);
+          background: #1a2b3c;
+          border-top: 2px solid #e8b562;
+          border-bottom: 2px solid #e8b562;
           border-radius: 4px;
           padding: 18px 20px;
           margin: 24px 0;
         }
         .key-definition p {
-          color: var(--course-accent, #D4A853);
+          color: #e8b562;
           font-weight: 600;
           font-size: 1.05rem;
           line-height: 1.55;

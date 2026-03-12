@@ -1,7 +1,8 @@
 'use client';
 
 import Link from 'next/link';
-import { getCourseList, getCourseTheme } from '@/lib/courses/courseRegistry';
+import Image from 'next/image';
+import { getCourseList, getCourseTheme, getCourseRegistryEntry } from '@/lib/courses/courseRegistry';
 
 const courses = getCourseList();
 
@@ -16,20 +17,43 @@ export function CourseLibrary() {
       <div className="course-grid">
         {courses.map((course) => {
           const theme = getCourseTheme(course.id);
+          const entry = getCourseRegistryEntry(course.id);
+          const cardGradient = theme.cardGradient || `linear-gradient(135deg, #1a2b3c, #0d1520)`;
           return (
             <Link key={course.id} href={`/courses/${course.id}`} className="course-card">
+              {/* Background cover image */}
+              {entry?.coverImage && (
+                <img
+                  className="card-bg-image"
+                  src={entry.coverImage}
+                  alt=""
+                  aria-hidden="true"
+                />
+              )}
+              {/* Gradient overlay */}
               <div
-                className="card-bg"
-                style={{
-                  background: theme.gradient || `linear-gradient(135deg, ${theme.primary}, ${theme.accent || theme.dark})`,
-                }}
+                className="card-overlay"
+                style={{ background: cardGradient }}
               />
+              {/* Content */}
               <div className="card-content">
-                <h2>{course.title}</h2>
-                <p className="subtitle">{course.subtitle}</p>
-                {course.tagline && <p className="tagline">{course.tagline}</p>}
-                <div className="card-meta">
-                  <span className="session-count">{course.sessions} sessions</span>
+                {/* Book cover on the left */}
+                {entry?.bookCover && (
+                  <div className="book-cover-wrap">
+                    <img
+                      className="book-cover"
+                      src={entry.bookCover}
+                      alt={`${course.title} cover`}
+                    />
+                  </div>
+                )}
+                <div className="card-info">
+                  <h2>{course.title}</h2>
+                  <p className="subtitle">{course.subtitle}</p>
+                  {course.tagline && <p className="tagline">{course.tagline}</p>}
+                  <div className="card-meta">
+                    <span className="session-count">{course.sessions} sessions</span>
+                  </div>
                 </div>
               </div>
             </Link>
@@ -40,7 +64,7 @@ export function CourseLibrary() {
       <style jsx>{`
         .course-library {
           min-height: 100vh;
-          background: var(--primary-color, #143348);
+          background: #1a2b3c;
           padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px));
         }
         .library-header {
@@ -68,46 +92,79 @@ export function CourseLibrary() {
           display: block;
           border-radius: 16px;
           overflow: hidden;
-          min-height: 160px;
+          min-height: 200px;
           text-decoration: none;
-          transition: transform 0.3s ease, box-shadow 0.3s ease;
-          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+          transition: transform 0.2s ease, box-shadow 0.2s ease;
+          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
         }
         .course-grid :global(.course-card):hover {
-          transform: scale(1.02) translateY(-2px);
-          box-shadow: 0 8px 30px rgba(0, 0, 0, 0.35);
+          transform: translateY(-2px);
+          box-shadow: 0 8px 30px rgba(232, 181, 98, 0.2);
         }
         .course-grid :global(.course-card):active {
           transform: scale(0.99);
         }
-        .card-bg {
+
+        /* Background image layer */
+        .card-bg-image {
+          position: absolute;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+          z-index: 0;
+        }
+
+        /* Gradient overlay on top of background image */
+        .card-overlay {
           position: absolute;
           inset: 0;
-          opacity: 0.9;
-          transition: opacity 0.3s ease;
+          opacity: 0.88;
+          z-index: 1;
         }
-        .course-grid :global(.course-card):hover .card-bg {
-          opacity: 1;
-        }
+
+        /* Content layer */
         .card-content {
           position: relative;
-          z-index: 1;
-          padding: 24px;
+          z-index: 2;
           display: flex;
-          flex-direction: column;
-          justify-content: flex-end;
-          min-height: 160px;
+          align-items: center;
+          gap: 20px;
+          padding: 20px;
+          min-height: 200px;
         }
-        .card-content h2 {
-          font-size: 24px;
+
+        /* Book cover */
+        .book-cover-wrap {
+          flex-shrink: 0;
+        }
+        .book-cover {
+          width: 120px;
+          border-radius: 4px;
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4), 0 8px 20px rgba(0, 0, 0, 0.25);
+          transform: rotate(-2deg);
+          transition: transform 0.2s ease;
+        }
+        .course-grid :global(.course-card):hover .book-cover {
+          transform: rotate(0deg) scale(1.03);
+        }
+
+        /* Info */
+        .card-info {
+          flex: 1;
+          min-width: 0;
+        }
+        .card-info h2 {
+          font-size: 22px;
           font-weight: 700;
           color: #FFFFFF;
-          margin: 0 0 4px 0;
-          text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+          margin: 0 0 6px 0;
+          text-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
         }
         .subtitle {
           font-size: 14px;
-          color: rgba(255, 255, 255, 0.8);
+          color: rgba(255, 255, 255, 0.85);
           margin: 0 0 4px 0;
         }
         .tagline {
@@ -120,17 +177,17 @@ export function CourseLibrary() {
           display: flex;
           align-items: center;
           gap: 8px;
-          margin-top: 8px;
+          margin-top: 10px;
         }
         .session-count {
           display: inline-block;
           padding: 3px 10px;
-          background: rgba(255, 255, 255, 0.15);
-          backdrop-filter: blur(4px);
-          color: rgba(255, 255, 255, 0.9);
+          background: rgba(232, 181, 98, 0.9);
+          color: #1a2b3c;
           border-radius: 12px;
           font-size: 12px;
-          font-weight: 600;
+          font-weight: 700;
+          text-transform: uppercase;
         }
       `}</style>
     </div>

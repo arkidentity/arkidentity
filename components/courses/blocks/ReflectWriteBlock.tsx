@@ -94,7 +94,7 @@ export function ReflectWriteBlock({ block }: { block: ContentBlock }) {
         }
         .reflect-textarea:focus {
           outline: none;
-          border-color: var(--course-accent, #D4A853);
+          border-color: #e8b562;
           box-shadow: 0 0 0 2px rgba(212, 168, 83, 0.2);
         }
         .reflect-textarea::placeholder {

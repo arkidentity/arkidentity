@@ -143,7 +143,7 @@ export function VocabularyDrawer({ terms }: VocabularyDrawerProps) {
         .term-word {
           font-size: 14px;
           font-weight: 600;
-          color: var(--course-accent, #D4A853);
+          color: #e8b562;
         }
         .term-chevron {
           color: rgba(255, 255, 255, 0.3);

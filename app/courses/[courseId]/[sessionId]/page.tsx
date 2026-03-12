@@ -97,9 +97,9 @@ export default function SessionPage({ params }: { params: Promise<{ courseId: st
   if (!course || !session) {
     return (
       <div style={{ minHeight: '100vh', background: '#1A2332', color: '#FFFFFF', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
-        <h1 style={{ color: '#D4A853', fontSize: 32, marginBottom: 16 }}>Not Found</h1>
+        <h1 style={{ color: '#e8b562', fontSize: 32, marginBottom: 16 }}>Not Found</h1>
         <p style={{ color: '#A0AEC0', marginBottom: 24 }}>This session doesn&apos;t exist.</p>
-        <Link href="/courses" style={{ color: '#D4A853', textDecoration: 'underline' }}>Back to Courses</Link>
+        <Link href="/courses" style={{ color: '#e8b562', textDecoration: 'underline' }}>Back to Courses</Link>
       </div>
     );
   }
@@ -183,13 +183,13 @@ export default function SessionPage({ params }: { params: Promise<{ courseId: st
       <style jsx>{`
         .session-page {
           min-height: 100vh;
-          background: #1A2332;
+          background: #1a2b3c;
           color: #FFFFFF;
           padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px));
         }
         .page-header {
-          background: #242D3D;
-          border-bottom: 1px solid #3D4A5C;
+          background: #143348;
+          border-bottom: 1px solid rgba(232, 181, 98, 0.1);
           padding: 16px 24px;
         }
         .header-content {
@@ -206,7 +206,7 @@ export default function SessionPage({ params }: { params: Promise<{ courseId: st
           transition: color 0.2s;
         }
         .page-header :global(.back-link):hover {
-          color: var(--course-accent, #D4A853);
+          color: #e8b562;
         }
         .session-main {
           padding: 24px;
@@ -232,7 +232,7 @@ export default function SessionPage({ params }: { params: Promise<{ courseId: st
           justify-content: space-between;
           margin-top: 40px;
           padding-top: 24px;
-          border-top: 1px solid #3D4A5C;
+          border-top: 1px solid rgba(232, 181, 98, 0.1);
         }
         .session-navigation :global(.nav-link) {
           display: inline-flex;
@@ -245,7 +245,7 @@ export default function SessionPage({ params }: { params: Promise<{ courseId: st
           transition: color 0.2s;
         }
         .session-navigation :global(.nav-link):hover {
-          color: var(--course-accent, #D4A853);
+          color: #e8b562;
         }
         .session-navigation :global(.nav-link.next) {
           margin-left: auto;

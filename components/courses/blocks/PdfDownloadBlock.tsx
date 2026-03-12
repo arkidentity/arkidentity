@@ -48,7 +48,7 @@ export function PdfDownloadBlock({ block }: { block: ContentBlock }) {
           align-items: center;
           gap: 8px;
           padding: 10px 20px;
-          background: var(--course-accent, #D4A853);
+          background: #e8b562;
           color: #1A1A1A;
           border-radius: 6px;
           font-size: 0.9rem;

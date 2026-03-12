@@ -67,7 +67,7 @@ export function InteractiveWorksheetBlock({ block }: { block: ContentBlock }) {
           margin: 20px 0;
         }
         .worksheet-title {
-          color: var(--course-accent, #D4A853);
+          color: #e8b562;
           font-size: 1rem;
           font-weight: 600;
           margin: 0 0 8px 0;
@@ -112,7 +112,7 @@ export function InteractiveWorksheetBlock({ block }: { block: ContentBlock }) {
         }
         textarea:focus {
           outline: none;
-          border-color: var(--course-accent, #D4A853);
+          border-color: #e8b562;
           box-shadow: 0 0 0 2px rgba(212, 168, 83, 0.2);
         }
         textarea::placeholder {

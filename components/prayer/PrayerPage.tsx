@@ -1,6 +1,7 @@
 'use client';
 
 import { usePrayer } from './PrayerContext';
+import { useWakeLock } from '@/hooks/useWakeLock';
 import { PrayerBackground } from './PrayerBackground';
 import { EnterGate } from './EnterGate';
 import { PrayerDashboard } from './PrayerDashboard';
@@ -13,6 +14,7 @@ import { GuidedActivationsList } from './GuidedActivationsList';
 
 export function PrayerPage() {
   const { state } = usePrayer();
+  useWakeLock();
 
   if (state.isLoading) {
     return (

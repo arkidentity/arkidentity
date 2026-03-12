@@ -139,7 +139,9 @@ export function updateJournalEntry(id: number, updates: Partial<JournalEntry>): 
 }
 
 /**
- * Soft delete a journal entry (sets deletedAt, keeps for sync)
+ * Delete a journal entry.
+ * - Entries with a cloudId are soft-deleted (kept for sync, then hard-deleted after cloud confirms).
+ * - Entries without a cloudId (local-only) are hard-deleted immediately since there's nothing to sync.
  */
 export function deleteJournalEntry(id: number): boolean {
   const entry = getJournalEntry(id);
@@ -148,15 +150,18 @@ export function deleteJournalEntry(id: number): boolean {
     return false;
   }
 
-  const now = new Date().toISOString();
-  updateJournalEntry(id, { deletedAt: now, updatedAt: now });
-
-  // Add to deletion log if has cloudId (prevents re-download on sync)
   if (entry.cloudId) {
+    // Cloud-synced entry: soft delete so sync can propagate deletion
+    const now = new Date().toISOString();
+    updateJournalEntry(id, { deletedAt: now, updatedAt: now });
     addToDeletedLog(entry.cloudId);
+    console.log('[Storage] Soft deleted journal entry:', id);
+  } else {
+    // Local-only entry: hard delete immediately (no cloud record to clean up)
+    hardDeleteJournalEntry(id);
+    console.log('[Storage] Hard deleted local-only journal entry:', id);
   }
 
-  console.log('[Storage] Soft deleted journal entry:', id);
   return true;
 }
 
@@ -359,11 +364,28 @@ export function getUserStreak(): UserStreak {
 }
 
 /**
- * Update the user's streak after journaling
+ * Get the "streak day" string (YYYY-MM-DD) using local time with a 3am boundary.
+ * Before 3am counts as the previous day — so night owls don't lose their streak.
+ */
+function getStreakDay(date?: Date): string {
+  const d = date ?? new Date();
+  // If before 3am local, treat as previous day
+  if (d.getHours() < 3) {
+    d.setDate(d.getDate() - 1);
+  }
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
+/**
+ * Update the user's streak after journaling.
+ * Day resets at 3am local time — journaling before 3am counts as the prior day.
  */
 export function updateStreak(): UserStreak {
   const streak = getUserStreak();
-  const today = new Date().toISOString().split('T')[0];
+  const today = getStreakDay();
   const lastDate = streak.lastDate;
 
   if (lastDate === today) {
@@ -371,10 +393,10 @@ export function updateStreak(): UserStreak {
     return streak;
   }
 
-  // Check if yesterday
-  const yesterday = new Date();
-  yesterday.setDate(yesterday.getDate() - 1);
-  const yesterdayStr = yesterday.toISOString().split('T')[0];
+  // Check if yesterday (relative to 3am boundary)
+  const yesterdayDate = new Date();
+  yesterdayDate.setDate(yesterdayDate.getDate() - 1);
+  const yesterdayStr = getStreakDay(yesterdayDate);
 
   let newCurrent: number;
   if (lastDate === yesterdayStr) {

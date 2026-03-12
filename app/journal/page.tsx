@@ -38,7 +38,7 @@ export default function JournalPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { user, isLoggedIn } = useAuth();
-  const { versionId: defaultVersion } = useTranslationPreference();
+  const { versionId: defaultVersion, setVersion: saveTranslationPreference } = useTranslationPreference();
   const { entries, streak, save, update, refresh } = useJournal();
   const {
     registered,
@@ -364,6 +364,7 @@ export default function JournalPage() {
         defaultVersion={defaultVersion}
         onSelect={handlePassageSelect}
         onClose={() => setShowBibleSelector(false)}
+        onVersionChange={saveTranslationPreference}
       />
 
       {/* Passage Popup */}

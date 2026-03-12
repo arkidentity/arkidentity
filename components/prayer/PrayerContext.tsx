@@ -364,11 +364,7 @@ export function PrayerProvider({ children }: PrayerProviderProps) {
   }, [state.isFirstTime]);
 
   const exitPrayer = useCallback(() => {
-    // Stop music
-    if (audioRef.current) {
-      audioRef.current.pause();
-    }
-    dispatch({ type: 'SET_MUSIC_PLAYING', playing: false });
+    // Music keeps playing — user controls it via the header music button
 
     // Clear session
     if (timerRef.current) {
@@ -376,7 +372,7 @@ export function PrayerProvider({ children }: PrayerProviderProps) {
     }
     dispatch({ type: 'SET_SESSION', session: null });
 
-    // Navigate back (in a real app, this would use router)
+    // Navigate back
     window.history.back();
   }, []);
 
@@ -576,9 +572,8 @@ export function PrayerProvider({ children }: PrayerProviderProps) {
       clearInterval(timerRef.current);
       timerRef.current = null;
     }
-    // Ref is already up to date since the interval updates it
-    pauseMusic();
-  }, [pauseMusic]);
+    // Music continues playing — only the timer pauses
+  }, []);
 
   const resumeSession = useCallback(() => {
     dispatch({ type: 'SET_PAUSED', paused: false });
@@ -587,9 +582,8 @@ export function PrayerProvider({ children }: PrayerProviderProps) {
       timeRemainingRef.current -= 1;
       dispatch({ type: 'SET_TIME_REMAINING', time: timeRemainingRef.current });
     }, 1000);
-
-    playMusic();
-  }, [playMusic]);
+    // Music is already playing — no need to restart
+  }, []);
 
   const nextCard = useCallback(() => {
     if (!state.session) return;

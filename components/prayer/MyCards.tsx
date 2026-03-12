@@ -165,8 +165,8 @@ export function MyCards() {
                 </div>
 
                 <div className="card-item-actions">
-                  {card.status === 'active' && (
-                    <>
+                  <div className="card-action-icons">
+                    {card.status === 'active' && (
                       <button
                         className="card-action-btn edit"
                         onClick={() => openEditModal(card)}
@@ -177,27 +177,29 @@ export function MyCards() {
                           <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
                         </svg>
                       </button>
-                      <button
-                        className="card-action-btn answered"
-                        onClick={() => openAnswerModal(card)}
-                        title="Mark as Answered"
-                      >
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                          <polyline points="20 6 9 17 4 12" />
-                        </svg>
-                      </button>
-                    </>
+                    )}
+                    <button
+                      className="card-action-btn delete"
+                      onClick={() => openDeleteModal(card)}
+                      title="Delete"
+                    >
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <polyline points="3 6 5 6 21 6" />
+                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                      </svg>
+                    </button>
+                  </div>
+                  {card.status === 'active' && (
+                    <button
+                      className="card-answered-full-btn"
+                      onClick={() => openAnswerModal(card)}
+                    >
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" width="13" height="13" style={{ flexShrink: 0 }}>
+                        <polyline points="20 6 9 17 4 12" />
+                      </svg>
+                      Answered Prayer
+                    </button>
                   )}
-                  <button
-                    className="card-action-btn delete"
-                    onClick={() => openDeleteModal(card)}
-                    title="Delete"
-                  >
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <polyline points="3 6 5 6 21 6" />
-                      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-                    </svg>
-                  </button>
                 </div>
               </div>
             ))

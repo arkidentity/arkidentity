@@ -1,7 +1,8 @@
 'use client';
 
-import Image from 'next/image';
+import { useState, Fragment } from 'react';
 import { usePrayer } from './PrayerContext';
+import { prayerInfo } from '@/lib/prayerData';
 import { MusicBar } from './MusicBar';
 
 // Card distribution lookup
@@ -22,15 +23,14 @@ export function PrayerDashboard() {
     navigateTo,
     startSession,
     setSessionDuration,
-    showInfo,
     exitPrayer,
   } = usePrayer();
+  const [activeDim, setActiveDim] = useState<number | null>(null);
 
   const totalCards = totalCardsMap[state.sessionDuration] || 8;
   const systemCardsPerType = getSystemCardsPerType(state.sessionDuration);
   const systemCards = systemCardsPerType * 3;
   const userCardsNeeded = totalCards - systemCards;
-  const availableUserCards = state.activeCards.length;
 
   const handleDurationChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = parseInt(e.target.value);
@@ -44,34 +44,48 @@ export function PrayerDashboard() {
       <MusicBar showThemeSelector={true} />
 
       <div className="prayer-dashboard">
-        {/* Subheader */}
-        <div className="prayer-subheader">
-          <h1 className="prayer-welcome-title">
-            <Image
-              src="/images/4d-prayer-logo.png"
-              alt="4D"
-              width={28}
-              height={28}
-              className="prayer-title-icon"
-            />
-            Prayer
-          </h1>
-          <button className="prayer-info-link" onClick={showInfo}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <circle cx="12" cy="12" r="10" />
-              <path d="M12 16v-4" />
-              <path d="M12 8h.01" />
-            </svg>
-            What is 4D Prayer?
-          </button>
+        {/* 4 Dimensions */}
+        <p className="prayer-dim-heading">4 Dimensions of Prayer</p>
+        <div className="prayer-dimensions-row prayer-dimensions-lobby">
+          {[
+            { d: '1D', label: 'Revere' },
+            { d: '2D', label: 'Reflect' },
+            { d: '3D', label: 'Request' },
+            { d: '4D', label: 'Rest' },
+          ].map(({ d, label }, i) => (
+            <Fragment key={d}>
+              <div className="prayer-dimension-item" onClick={() => setActiveDim(i)}>
+                <div className="prayer-dimension-circle">{d}</div>
+                <span className="prayer-dimension-label">{label}</span>
+              </div>
+              {i < 3 && <div className="prayer-dim-connector" />}
+            </Fragment>
+          ))}
         </div>
+        <p className="prayer-dim-hint">tap to reveal their meaning</p>
+
+        {/* Dimension Popup */}
+        {activeDim !== null && (
+          <div className="prayer-dim-popup-overlay" onClick={() => setActiveDim(null)}>
+            <div className="prayer-dim-popup" onClick={(e) => e.stopPropagation()}>
+              <div className="prayer-dim-popup-header">
+                <span className="prayer-dim-popup-badge">{activeDim + 1}D</span>
+                <h3>{prayerInfo.dimensions[activeDim].name}</h3>
+              </div>
+              <p className="prayer-dim-popup-tagline">{prayerInfo.dimensions[activeDim].tagline}</p>
+              <p className="prayer-dim-popup-desc">{prayerInfo.dimensions[activeDim].description}</p>
+              <p className="prayer-dim-popup-tip">{prayerInfo.dimensions[activeDim].tip}</p>
+              <button className="prayer-dim-popup-btn" onClick={() => setActiveDim(null)}>Got It</button>
+            </div>
+          </div>
+        )}
 
         {/* Personal Prayer Section */}
         <div className="prayer-section">
           <div className="glass-card prayer-duration-card">
             <div className="prayer-duration-header">
               <span className="prayer-duration-label">Prayer length</span>
-              <span className="prayer-duration-value">{state.sessionDuration} min</span>
+              <span className="prayer-duration-value">{state.sessionDuration} min ({totalCards} cards)</span>
             </div>
 
             <input
@@ -84,45 +98,20 @@ export function PrayerDashboard() {
               onChange={handleDurationChange}
             />
 
-            <div className="prayer-card-info">
-              <span>{totalCards} total cards</span>
-              <span>
-                {availableUserCards >= userCardsNeeded
-                  ? `${userCardsNeeded} of your cards`
-                  : `${availableUserCards}/${userCardsNeeded} cards available`}
-              </span>
+            <p className="prayer-card-summary">
+              {userCardsNeeded} of your cards randomly selected
+            </p>
+
+            <div className="prayer-hero-actions">
+              <button className="prayer-mycards-btn" onClick={() => navigateTo('my-cards')}>
+                My Cards ({state.activeCards.length})
+              </button>
+              <button className="prayer-start-btn" onClick={startSession}>
+                Start Prayer
+              </button>
             </div>
-
-            <button className="prayer-start-btn" onClick={startSession}>
-              Start Prayer
-            </button>
           </div>
         </div>
-
-        {/* My Cards Section */}
-        <div className="prayer-section">
-          <div className="glass-card prayer-section-row">
-            <span className="prayer-section-label">
-              My Cards <span className="count">({state.activeCards.length})</span>
-            </span>
-            <button className="prayer-compact-btn" onClick={() => navigateTo('my-cards')}>
-              Manage →
-            </button>
-          </div>
-        </div>
-
-        {/* No Cards Hint */}
-        {state.activeCards.length === 0 && (
-          <p className="no-cards-hint">
-            Add prayer cards to personalize your session.{' '}
-            <button
-              className="text-link"
-              onClick={() => navigateTo('my-cards')}
-            >
-              Add your first card →
-            </button>
-          </p>
-        )}
 
         {/* Guided Activations Section */}
         <div className="prayer-section">
@@ -138,10 +127,19 @@ export function PrayerDashboard() {
 
         {/* Footer */}
         <div className="prayer-footer">
-          <div className="prayer-streak-display">
-            <span className="streak-flame">🔥</span>
-            <span className="streak-count">
-              {state.streak.current}-day streak
+          <div className="prayer-rhythm-display">
+            <div className="prayer-rhythm-dots">
+              {Array.from({ length: 7 }, (_, i) => (
+                <span
+                  key={i}
+                  className={`rhythm-dot${i >= 7 - Math.min(state.streak.current, 7) ? ' filled' : ''}`}
+                />
+              ))}
+            </div>
+            <span className="prayer-rhythm-label">
+              {state.streak.current === 0
+                ? 'Start your prayer rhythm'
+                : `${state.streak.current}-day rhythm`}
             </span>
           </div>
           <button className="prayer-exit-btn" onClick={exitPrayer}>

@@ -19,7 +19,6 @@ export function ScriptureHero({
   isEditing,
   onChangeClick,
   onPassageTap,
-  onInfoClick,
 }: ScriptureHeroProps) {
   const versionName = getVersionName(version);
   const hasReference = reference && reference.trim().length > 0;
@@ -83,42 +82,17 @@ export function ScriptureHero({
         )}
       </div>
 
-      {/* Bottom row: tap hint left, What's 3D? right */}
-      <div className="flex items-center justify-between px-4 pt-2 pb-3 mt-1">
-
-        {/* Tap hint */}
-        {hasPassage ? (
+      {/* Bottom row: Read full passage — centered */}
+      {hasPassage && (
+        <div className="flex items-center justify-center px-4 pt-2 pb-3 mt-1">
           <p
             onClick={onPassageTap}
             className="text-[var(--accent-color)] text-sm cursor-pointer hover:opacity-80 transition-opacity"
           >
             Read full passage
           </p>
-        ) : (
-          <span />
-        )}
-
-        {/* What's 3D? — plain link, accent icon, white text, no pill */}
-        <button
-          type="button"
-          onClick={onInfoClick}
-          className="flex items-center gap-1 text-xs font-medium text-white hover:opacity-75 transition-opacity"
-        >
-          <svg
-            className="w-4 h-4 shrink-0"
-            style={{ color: 'var(--accent-color)' }}
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-          >
-            <circle cx="12" cy="12" r="10" />
-            <path d="M12 16v-4M12 8h.01" />
-          </svg>
-          <span>What's 3D?</span>
-        </button>
-
-      </div>
+        </div>
+      )}
     </div>
   );
 }

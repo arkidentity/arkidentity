@@ -17,6 +17,7 @@ export function BibleSelector({
   defaultVersion,
   onSelect,
   onClose,
+  onVersionChange,
 }: BibleSelectorProps) {
   const {
     state,
@@ -103,7 +104,11 @@ export function BibleSelector({
             {/* Version selector */}
             <select
               value={state.version}
-              onChange={(e) => setVersion(parseInt(e.target.value))}
+              onChange={(e) => {
+                const id = parseInt(e.target.value);
+                setVersion(id);
+                onVersionChange?.(id);
+              }}
               className="
                 bg-white/10 text-white text-sm font-medium
                 px-3 py-2 rounded-lg

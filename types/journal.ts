@@ -230,7 +230,7 @@ export interface ScriptureHeroProps {
   isEditing: boolean;
   onChangeClick: () => void;
   onPassageTap: () => void;
-  onInfoClick: () => void;
+  onInfoClick?: () => void;
 }
 
 export interface BibleSelectorProps {
@@ -238,6 +238,7 @@ export interface BibleSelectorProps {
   defaultVersion: number;
   onSelect: (passage: BiblePassage) => void;
   onClose: () => void;
+  onVersionChange?: (versionId: number) => void;
 }
 
 export interface JournalArchiveEntryProps {

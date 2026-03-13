@@ -9,6 +9,7 @@ import { WarmUpBlock } from '@/components/courses/WarmUpBlock';
 import { LessonCard } from '@/components/courses/LessonCard';
 import { SupportingScriptures } from '@/components/courses/SupportingScriptures';
 import { COURSE_STORAGE_KEYS } from '@/types/courses';
+import { TVModeProvider, TVModeToggle } from '@/components/courses/TVMode';
 
 function getStoredProgress(courseId: string): number[] {
   if (typeof window === 'undefined') return [];
@@ -105,6 +106,7 @@ export default function SessionPage({ params }: { params: Promise<{ courseId: st
   }
 
   return (
+    <TVModeProvider>
     <div className="session-page" style={themeVars as React.CSSProperties}>
       {/* Back Navigation */}
       <div className="page-header">
@@ -115,6 +117,7 @@ export default function SessionPage({ params }: { params: Promise<{ courseId: st
             </svg>
             {course.title}
           </Link>
+          <TVModeToggle />
         </div>
       </div>
 
@@ -195,6 +198,9 @@ export default function SessionPage({ params }: { params: Promise<{ courseId: st
         .header-content {
           max-width: 800px;
           margin: 0 auto;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
         }
         .page-header :global(.back-link) {
           display: inline-flex;
@@ -252,5 +258,6 @@ export default function SessionPage({ params }: { params: Promise<{ courseId: st
         }
       `}</style>
     </div>
+    </TVModeProvider>
   );
 }

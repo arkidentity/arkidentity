@@ -126,6 +126,8 @@ export function CourseHero({
           position: relative;
           z-index: 2;
           padding: 48px 24px 32px;
+          max-width: 800px;
+          margin: 0 auto;
         }
         .hero-meta {
           display: flex;

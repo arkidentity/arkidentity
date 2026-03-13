@@ -9,6 +9,7 @@ import { SessionTOC } from '@/components/courses/SessionTOC';
 import { VocabularyDrawer } from '@/components/courses/VocabularyDrawer';
 import { PreSessionContent } from '@/components/courses/PreSessionContent';
 import { COURSE_STORAGE_KEYS } from '@/types/courses';
+import { TVModeProvider, TVModeToggle } from '@/components/courses/TVMode';
 
 function getCourseProgressFromStorage(courseId: string): {
   completedLessons: number;
@@ -97,6 +98,7 @@ export default function CourseLandingPage({ params }: { params: Promise<{ course
   });
 
   return (
+    <TVModeProvider>
     <div className="course-landing" style={themeVars as React.CSSProperties}>
       {/* Back Navigation */}
       <div className="page-header">
@@ -107,6 +109,7 @@ export default function CourseLandingPage({ params }: { params: Promise<{ course
             </svg>
             All Courses
           </Link>
+          <TVModeToggle />
         </div>
       </div>
 
@@ -161,6 +164,9 @@ export default function CourseLandingPage({ params }: { params: Promise<{ course
         .header-content {
           max-width: 800px;
           margin: 0 auto;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
         }
         .page-header :global(.back-link) {
           display: inline-flex;
@@ -183,5 +189,6 @@ export default function CourseLandingPage({ params }: { params: Promise<{ course
         }
       `}</style>
     </div>
+    </TVModeProvider>
   );
 }

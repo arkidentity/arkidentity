@@ -12,6 +12,7 @@ import "../styles/prayer.css";
 import "../styles/community.css";
 import "../styles/creed-cards.css";
 import "../styles/encouragements.css";
+import "../styles/tv-mode.css";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",

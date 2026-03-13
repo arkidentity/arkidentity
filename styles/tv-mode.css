@@ -1,0 +1,285 @@
+/* ============================================================
+   TV / Presentation Mode — ARK Identity Courses
+   Activated via body.tv-mode class
+   ============================================================ */
+
+/* ── Hide navigation chrome ── */
+body.tv-mode .bottom-tab-bar,
+body.tv-mode .app-header,
+body.tv-mode .creed-fab,
+body.tv-mode .page-header {
+  display: none !important;
+}
+
+/* ── Dark background ── */
+body.tv-mode {
+  background: #0a0a0a !important;
+}
+
+body.tv-mode .course-landing,
+body.tv-mode .session-page,
+body.tv-mode .course-library {
+  background: #0a0a0a !important;
+  padding-bottom: 80px !important;
+}
+
+/* ── Remove max-width constraints for TV ── */
+body.tv-mode .landing-container,
+body.tv-mode .session-container,
+body.tv-mode .header-content,
+body.tv-mode .courses-container {
+  max-width: none !important;
+}
+
+/* ── Hero full-bleed ── */
+body.tv-mode .course-hero {
+  border-radius: 0 !important;
+  margin-bottom: 48px !important;
+}
+
+body.tv-mode .hero-content {
+  max-width: none !important;
+  padding: 64px 48px 48px !important;
+}
+
+/* ── Typography scale-up ── */
+body.tv-mode .hero-title {
+  font-size: 3.5rem !important;
+}
+
+body.tv-mode .hero-subtitle {
+  font-size: 1.5rem !important;
+}
+
+body.tv-mode .hero-description {
+  font-size: 1.25rem !important;
+}
+
+body.tv-mode .hero-tagline {
+  font-size: 1.125rem !important;
+}
+
+body.tv-mode .meta-badge {
+  font-size: 1rem !important;
+  padding: 6px 16px !important;
+}
+
+/* ── Session hero cards ── */
+body.tv-mode .session-hero-card {
+  padding: 40px 36px !important;
+  border-radius: 20px !important;
+}
+
+body.tv-mode .session-hero-card .session-title {
+  font-size: 2.5rem !important;
+}
+
+body.tv-mode .session-hero-card .session-badge {
+  font-size: 1rem !important;
+}
+
+body.tv-mode .session-hero-card .verse-text {
+  font-size: 1.25rem !important;
+}
+
+/* ── Lesson cards ── */
+body.tv-mode .lesson-card {
+  padding: 28px 32px !important;
+}
+
+body.tv-mode .lesson-card .lesson-title {
+  font-size: 1.5rem !important;
+}
+
+body.tv-mode .lesson-card .lesson-duration {
+  font-size: 1rem !important;
+}
+
+/* ── Content blocks ── */
+body.tv-mode .content-block p,
+body.tv-mode .lesson-content p {
+  font-size: 1.375rem !important;
+  line-height: 1.8 !important;
+}
+
+body.tv-mode .content-block h2,
+body.tv-mode .lesson-content h2 {
+  font-size: 2rem !important;
+}
+
+body.tv-mode .content-block h3,
+body.tv-mode .lesson-content h3 {
+  font-size: 1.5rem !important;
+}
+
+/* ── Scripture blocks ── */
+body.tv-mode .scripture-block {
+  border-width: 3px !important;
+  padding: 28px !important;
+  font-size: 1.375rem !important;
+}
+
+body.tv-mode .scripture-block .scripture-text {
+  font-size: 1.375rem !important;
+  line-height: 1.8 !important;
+}
+
+body.tv-mode .scripture-block .scripture-ref {
+  font-size: 1rem !important;
+}
+
+/* ── Question / Discussion boxes ── */
+body.tv-mode .discussion-block,
+body.tv-mode .question-box,
+body.tv-mode .warm-up-block {
+  padding: 28px 32px !important;
+  border-width: 3px !important;
+}
+
+body.tv-mode .discussion-block li,
+body.tv-mode .question-box p,
+body.tv-mode .warm-up-block li {
+  font-size: 1.375rem !important;
+  line-height: 1.7 !important;
+}
+
+/* ── Reflect/Write prompts ── */
+body.tv-mode .reflect-write-block .prompt-text,
+body.tv-mode .introspective-block .prompt-text,
+body.tv-mode .ask-god-block .prompt-text,
+body.tv-mode .mission-block .action-text {
+  font-size: 1.5rem !important;
+}
+
+/* ── Key definition ── */
+body.tv-mode .key-definition-block {
+  padding: 28px 32px !important;
+}
+
+body.tv-mode .key-definition-block .term {
+  font-size: 1.5rem !important;
+}
+
+body.tv-mode .key-definition-block .definition {
+  font-size: 1.25rem !important;
+}
+
+/* ── Buttons ── */
+body.tv-mode .cta-button,
+body.tv-mode .lesson-complete-btn {
+  font-size: 1.25rem !important;
+  padding: 14px 32px !important;
+}
+
+/* ── Session TOC ── */
+body.tv-mode .session-toc-card {
+  padding: 24px 28px !important;
+}
+
+body.tv-mode .session-toc-card .toc-title {
+  font-size: 1.375rem !important;
+}
+
+body.tv-mode .session-toc-card .toc-synopsis {
+  font-size: 1.125rem !important;
+}
+
+/* ── Warm-up heading ── */
+body.tv-mode .warm-up-heading {
+  font-size: 1.25rem !important;
+}
+
+/* ── Lessons heading ── */
+body.tv-mode .lessons-heading {
+  font-size: 1.25rem !important;
+}
+
+/* ── Session navigation ── */
+body.tv-mode .session-navigation a {
+  font-size: 1.125rem !important;
+}
+
+/* ── Diagrams / images ── */
+body.tv-mode .interactive-diagram {
+  max-width: 900px !important;
+  margin: 0 auto !important;
+  padding: 32px !important;
+}
+
+/* ── Video embeds ── */
+body.tv-mode .video-embed {
+  max-width: 1200px !important;
+  margin: 0 auto !important;
+}
+
+/* ── Course library cards in TV mode ── */
+body.tv-mode .courses-hero {
+  border-radius: 0 !important;
+  margin: 0 -20px 32px !important;
+  min-height: 240px !important;
+}
+
+body.tv-mode .courses-hero-title {
+  font-size: 2.5rem !important;
+}
+
+body.tv-mode .course-card {
+  min-height: 260px !important;
+}
+
+body.tv-mode .card-content {
+  padding: 28px 32px !important;
+}
+
+body.tv-mode .card-info h2 {
+  font-size: 1.75rem !important;
+}
+
+body.tv-mode .card-info .subtitle {
+  font-size: 1.125rem !important;
+}
+
+body.tv-mode .card-info .tagline {
+  font-size: 1rem !important;
+}
+
+body.tv-mode .session-count {
+  font-size: 0.875rem !important;
+  padding: 4px 14px !important;
+}
+
+body.tv-mode .book-cover {
+  width: 160px !important;
+}
+
+/* ── Vocabulary drawer ── */
+body.tv-mode .vocabulary-drawer .vocab-term {
+  font-size: 1.25rem !important;
+}
+
+body.tv-mode .vocabulary-drawer .vocab-definition {
+  font-size: 1.125rem !important;
+}
+
+/* ── Supporting scriptures ── */
+body.tv-mode .supporting-scripture .scripture-text {
+  font-size: 1.25rem !important;
+}
+
+/* ── Main content padding ── */
+body.tv-mode .landing-main,
+body.tv-mode .session-main {
+  padding: 0 48px !important;
+}
+
+/* ── Worksheet / Reveal table ── */
+body.tv-mode .reveal-table th,
+body.tv-mode .reveal-table td {
+  font-size: 1.125rem !important;
+  padding: 14px 18px !important;
+}
+
+body.tv-mode .worksheet-block input,
+body.tv-mode .worksheet-block textarea {
+  font-size: 1.25rem !important;
+}

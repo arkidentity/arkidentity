@@ -12,19 +12,20 @@ export function CourseLibrary() {
     <div className="course-library">
       <AppHeader />
 
-      {/* Hero Card */}
-      <div className="courses-hero">
-        <div className="courses-hero-overlay" />
-        <div className="courses-hero-content">
-          <h1 className="courses-hero-title">
-            Courses that build your<br />
-            <span className="courses-hero-accent">identity in Christ</span>
-          </h1>
-          <div className="courses-hero-line" />
+      <div className="courses-container">
+        {/* Hero Card */}
+        <div className="courses-hero">
+          <div className="courses-hero-overlay" />
+          <div className="courses-hero-content">
+            <h1 className="courses-hero-title">
+              Courses that build your<br />
+              <span className="courses-hero-accent">identity in Christ</span>
+            </h1>
+            <div className="courses-hero-line" />
+          </div>
         </div>
-      </div>
 
-      <div className="course-grid">
+        <div className="course-grid">
         {courses.map((course) => {
           const theme = getCourseTheme(course.id);
           const entry = getCourseRegistryEntry(course.id);
@@ -69,6 +70,7 @@ export function CourseLibrary() {
             </Link>
           );
         })}
+        </div>
       </div>
 
       <style jsx>{`
@@ -78,10 +80,16 @@ export function CourseLibrary() {
           padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px));
         }
 
+        .courses-container {
+          max-width: 900px;
+          margin: 0 auto;
+          padding: 0 20px;
+        }
+
         /* ── Hero Card ── */
         .courses-hero {
           position: relative;
-          margin: 0 16px 24px;
+          margin: 0 0 24px;
           border-radius: 20px;
           overflow: hidden;
           min-height: 180px;
@@ -155,7 +163,6 @@ export function CourseLibrary() {
           display: flex;
           flex-direction: column;
           gap: 16px;
-          padding: 0 20px;
         }
         .course-grid :global(.course-card) {
           position: relative;

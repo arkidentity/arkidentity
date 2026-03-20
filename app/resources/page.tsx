@@ -167,8 +167,9 @@ export default function ResourcesPage() {
           <div className="resources-section-card">
             <div className="flex items-center gap-3 mb-4">
               <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ background: 'rgba(232,181,98,0.15)' }}>
-                <svg viewBox="0 0 24 24" fill="none" stroke="var(--ark-gold)" strokeWidth="2" className="w-5 h-5">
-                  <path d="M1 1l22 22M16.72 11.06A10.94 10.94 0 0 1 19 12.55M5 12.55a10.94 10.94 0 0 1 5.17-2.39M10.71 5.05A16 16 0 0 1 22.56 9M1.42 9a15.91 15.91 0 0 1 4.7-2.88M8.53 16.11a6 6 0 0 1 6.95 0M12 20h.01" />
+                <svg viewBox="0 0 24 24" fill="none" stroke="var(--ark-gold)" strokeWidth="1.5" className="w-5 h-5" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="2" y="3" width="15" height="14" rx="2" ry="2" />
+                  <polygon points="23 7 16 12 23 17 23 7" />
                 </svg>
               </div>
               <div>
@@ -276,32 +277,33 @@ export default function ResourcesPage() {
 
         {/* ── ARK Books ── */}
         <section>
-          <div className="resources-section-card">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ background: 'rgba(232,181,98,0.15)' }}>
-                <svg viewBox="0 0 24 24" fill="none" stroke="var(--ark-gold)" strokeWidth="1.5" className="w-5 h-5" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
-                  <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
-                </svg>
-              </div>
-              <div>
-                <h2 className="text-lg font-bold text-white">ARK Books</h2>
-                <p className="text-white/50 text-sm">Identity-focused discipleship resources</p>
-              </div>
+          <div className="resources-section-card resources-books-card">
+            <div className="resources-books-image">
+              <Image
+                src="/images/ark books.jpg"
+                alt="ARK Identity Books"
+                width={140}
+                height={180}
+                className="rounded-lg object-cover w-full h-full"
+              />
             </div>
-            <a
-              href={AMAZON_BOOKS_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="resources-btn-gold w-full block text-center"
-            >
-              Browse on Amazon
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4 inline-block ml-2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
-                <polyline points="15 3 21 3 21 9" />
-                <line x1="10" y1="14" x2="21" y2="3" />
-              </svg>
-            </a>
+            <div className="resources-books-content">
+              <h2 className="text-lg font-bold text-white mb-1">ARK Books</h2>
+              <p className="text-white/50 text-sm mb-4">Identity-focused discipleship resources</p>
+              <a
+                href={AMAZON_BOOKS_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="resources-btn-gold-sm"
+              >
+                Amazon
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-3.5 h-3.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+                  <polyline points="15 3 21 3 21 9" />
+                  <line x1="10" y1="14" x2="21" y2="3" />
+                </svg>
+              </a>
+            </div>
           </div>
         </section>
 

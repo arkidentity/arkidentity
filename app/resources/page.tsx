@@ -266,12 +266,10 @@ export default function ResourcesPage() {
         <section>
           <div className="resources-section-card resources-books-card">
             <div className="resources-books-image">
-              <Image
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
                 src="/images/ark books.jpg"
                 alt="ARK Identity Books"
-                width={140}
-                height={180}
-                className="rounded-lg object-cover w-full h-full"
               />
             </div>
             <div className="resources-books-content">

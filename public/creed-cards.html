@@ -1,0 +1,2619 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#1f2937">
+  <meta name="description" content="Learn 50 core Christian doctrines through beautiful, interactive flashcards. Study the Trinity, Christ, Holy Spirit, Salvation, Scripture, Church, Christian Life, and Last Things.">
+  
+  <title>Creed Cards - ARK Identity Discipleship</title>
+  
+  <!-- PWA Meta Tags -->
+  <link rel="manifest" href="/manifest.json">
+  <link rel="apple-touch-icon" href="/icon-192.png">
+  
+  <!-- Google Analytics -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-XXXXXXXXXX"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-XXXXXXXXXX'); // Replace with actual GA4 ID
+  </script>
+  
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Fraunces:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <style>
+    body {
+      font-family: 'Inter', system-ui, sans-serif;
+    }
+    .font-display {
+      font-family: 'Inter', system-ui, sans-serif;
+      font-weight: 300;
+      letter-spacing: -0.02em;
+    }
+    .font-serif {
+      font-family: 'Fraunces', Georgia, serif;
+    }
+    
+    /* Card flip animation */
+    .card-container {
+      perspective: 1000px;
+    }
+    .card-inner {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      transition: transform 0.7s cubic-bezier(0.4, 0.0, 0.2, 1);
+      transform-style: preserve-3d;
+    }
+    .card-inner.flipped {
+      transform: rotateY(180deg);
+    }
+    .card-front, .card-back {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      backface-visibility: hidden;
+      -webkit-backface-visibility: hidden;
+    }
+    .card-back {
+      transform: rotateY(180deg);
+    }
+    
+    /* Swipe animations */
+    .card-slide-left {
+      animation: slideOutLeft 0.3s ease-out forwards;
+    }
+    .card-slide-right {
+      animation: slideOutRight 0.3s ease-out forwards;
+    }
+    .card-slide-in-left {
+      animation: slideInLeft 0.3s ease-out forwards;
+    }
+    .card-slide-in-right {
+      animation: slideInRight 0.3s ease-out forwards;
+    }
+    
+    @keyframes slideOutLeft {
+      from { transform: translateX(0); opacity: 1; }
+      to { transform: translateX(-100%); opacity: 0; }
+    }
+    @keyframes slideOutRight {
+      from { transform: translateX(0); opacity: 1; }
+      to { transform: translateX(100%); opacity: 0; }
+    }
+    @keyframes slideInLeft {
+      from { transform: translateX(-100%); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
+    }
+    @keyframes slideInRight {
+      from { transform: translateX(100%); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
+    }
+    
+    /* Custom scrollbar */
+    .custom-scrollbar::-webkit-scrollbar {
+      width: 6px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 3px;
+    }
+    
+    /* Bottom nav safe area */
+    .bottom-nav {
+      padding-bottom: env(safe-area-inset-bottom);
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <!-- React and Babel -->
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <script type="text/babel">
+    const { useState, useEffect, useRef } = React;
+
+    // ============================================
+    // CARD DATA - All 50 Cards
+    // ============================================
+    const CARD_DATA = [
+      // TRINITY CATEGORY (1-8)
+      {
+        id: 1,
+        category: 'Trinity & Nature of God',
+        categorySlug: 'trinity',
+        title: 'THE TRIUNE GOD',
+        shortDesc: 'Three Persons, One God',
+        greekTerm: 'Τριάς',
+        translation: 'Trias',
+        englishMeaning: 'Trinity',
+        definition: 'God exists eternally as three distinct Persons—Father, Son, and Holy Spirit—who are one in being, equal in power and glory. This is the eternal communion of holy love. God has always been, and will always be, the perfect unity of Three in One.',
+        scripture: 'Go therefore and make disciples of all the nations, baptizing them in the name of the Father and the Son and the Holy Spirit.',
+        reference: 'Matthew 28:19',
+        historicalContext: 'The doctrine of the Trinity was formally articulated at the Council of Nicaea (325 AD) and Constantinople (381 AD) in response to heresies that denied either Christ\'s divinity or the distinct personhood of the Holy Spirit.',
+        reflection: 'How does understanding God as an eternal family of Three Persons change the way you view relationships and community?',
+        colors: { dark: '#0f172a', accent: '#3b82f6', lightBg: '#f8fafc' }
+      },
+      {
+        id: 2,
+        category: 'Trinity & Nature of God',
+        categorySlug: 'trinity',
+        title: 'ONE GOD IN THREE PERSONS',
+        shortDesc: 'Unity in Diversity',
+        greekTerm: 'ὁμοούσιος',
+        translation: 'Homoousios',
+        englishMeaning: 'Same Being',
+        definition: 'The Father, Son, and Holy Spirit are not three gods but one God in three Persons. Each Person is fully God, sharing the same divine essence. They are eternally distinct yet completely united—three "whos" in one "what."',
+        scripture: 'Hear, O Israel! The Lord is our God, the Lord is one!',
+        reference: 'Deuteronomy 6:4',
+        historicalContext: 'The term "homoousios" (same being) was affirmed at Nicaea to counter Arianism, which taught that Jesus was a created being rather than eternally God.',
+        reflection: 'Why is it important that God is both one and three, rather than just one or just three?',
+        colors: { dark: '#0f172a', accent: '#3b82f6', lightBg: '#f8fafc' }
+      },
+      {
+        id: 3,
+        category: 'Trinity & Nature of God',
+        categorySlug: 'trinity',
+        title: 'GOD THE FATHER',
+        shortDesc: 'The Eternal Source',
+        greekTerm: 'Πατήρ',
+        translation: 'Patēr',
+        englishMeaning: 'Father',
+        definition: 'The First Person of the Trinity is God the Father, the eternal source of all being. He is Creator of all things, visible and invisible. The Father loves the Son and gives all things into His hands. In Christ, we are adopted as His beloved children.',
+        scripture: 'Blessed be the God and Father of our Lord Jesus Christ, who has blessed us with every spiritual blessing in the heavenly places in Christ.',
+        reference: 'Ephesians 1:3',
+        historicalContext: 'Jesus revealed God as "Father" in a unique and intimate way, teaching us to pray "Our Father" and showing that God\'s fatherhood is grounded in the eternal relationship within the Trinity.',
+        reflection: 'How does knowing God as Father through Jesus Christ change your understanding of your identity?',
+        colors: { dark: '#0f172a', accent: '#3b82f6', lightBg: '#f8fafc' }
+      },
+      {
+        id: 4,
+        category: 'Trinity & Nature of God',
+        categorySlug: 'trinity',
+        title: 'GOD THE SON',
+        shortDesc: 'The Eternal Word',
+        greekTerm: 'Υἱὸς τοῦ Θεοῦ',
+        translation: 'Huios tou Theou',
+        englishMeaning: 'Son of God',
+        definition: 'The Second Person of the Trinity is God the Son, eternally begotten of the Father. Jesus Christ is both fully God and fully human. He is the visible image of the invisible God, through whom all things were created and in whom all things hold together.',
+        scripture: 'He is the image of the invisible God, the firstborn of all creation. For by Him all things were created, both in the heavens and on earth.',
+        reference: 'Colossians 1:15-16',
+        historicalContext: 'The Council of Nicaea (325 AD) affirmed that the Son is "begotten, not made, being of one substance with the Father," refuting the claim that Jesus was a created being.',
+        reflection: 'What does it mean for your life that Jesus is both fully God and fully human?',
+        colors: { dark: '#0f172a', accent: '#3b82f6', lightBg: '#f8fafc' }
+      },
+      {
+        id: 5,
+        category: 'Trinity & Nature of God',
+        categorySlug: 'trinity',
+        title: 'GOD THE HOLY SPIRIT',
+        shortDesc: 'The Divine Presence',
+        greekTerm: 'Πνεῦμα Ἅγιον',
+        translation: 'Pneuma Hagion',
+        englishMeaning: 'Holy Spirit',
+        definition: 'The Third Person of the Trinity is God the Holy Spirit, who proceeds from the Father and the Son. The Spirit inspired Scripture, conceived Christ in Mary\'s womb, empowers believers, and unites us with Christ. The Spirit is God dwelling in us.',
+        scripture: 'The Helper, the Holy Spirit, whom the Father will send in My name, He will teach you all things, and bring to your remembrance all that I said to you.',
+        reference: 'John 14:26',
+        historicalContext: 'The Council of Constantinople (381 AD) affirmed the full deity of the Holy Spirit against those who denied the Spirit\'s personhood, declaring the Spirit is "worshiped and glorified together with the Father and the Son."',
+        reflection: 'How is the Holy Spirit active in your life today?',
+        colors: { dark: '#0f172a', accent: '#3b82f6', lightBg: '#f8fafc' }
+      },
+      {
+        id: 6,
+        category: 'Trinity & Nature of God',
+        categorySlug: 'trinity',
+        title: 'THE DIVINE DANCE',
+        shortDesc: 'Eternal Communion',
+        greekTerm: 'Περιχώρησις',
+        translation: 'Perichoresis',
+        englishMeaning: 'Mutual Indwelling',
+        definition: 'Perichoresis describes the mutual indwelling and interpenetration of the three Persons of the Trinity. They exist in an eternal dance of love, each giving to and receiving from the others. This divine fellowship is the pattern for all relationships.',
+        scripture: 'I am in the Father, and the Father is in Me.',
+        reference: 'John 14:11',
+        historicalContext: 'Early church fathers used perichoresis to explain how the three Persons are distinct yet inseparable, existing in eternal communion. This term comes from Greek words meaning "to dance around."',
+        reflection: 'How might viewing the Trinity as a "dance" of love shape how you relate to others in community?',
+        colors: { dark: '#0f172a', accent: '#3b82f6', lightBg: '#f8fafc' }
+      },
+      {
+        id: 7,
+        category: 'Trinity & Nature of God',
+        categorySlug: 'trinity',
+        title: 'THE CREATOR GOD',
+        shortDesc: 'Maker of All Things',
+        greekTerm: 'אֱלֹהִים בָּרָא',
+        translation: 'Elohim Bara',
+        englishMeaning: 'God Created',
+        definition: 'The Triune God created all things, visible and invisible, by His word and for His glory. Creation reveals God\'s power, wisdom, and goodness. All creation exists in and through and for Jesus Christ, who sustains all things by His powerful word.',
+        scripture: 'In the beginning God created the heavens and the earth.',
+        reference: 'Genesis 1:1',
+        historicalContext: 'Against Gnosticism\'s claim that matter is evil and created by a lesser god, the church affirmed that the one true God created all things good. The Nicene Creed states God is "maker of heaven and earth, of all things visible and invisible."',
+        reflection: 'How does knowing that God created you on purpose and for a purpose affect your daily life?',
+        colors: { dark: '#0f172a', accent: '#3b82f6', lightBg: '#f8fafc' }
+      },
+      {
+        id: 8,
+        category: 'Trinity & Nature of God',
+        categorySlug: 'trinity',
+        title: 'GOD\'S SOVEREIGNTY',
+        shortDesc: 'The Almighty Ruler',
+        greekTerm: 'Παντοκράτωρ',
+        translation: 'Pantokratōr',
+        englishMeaning: 'Almighty',
+        definition: 'God is sovereign over all creation, ruling with perfect wisdom, power, and love. Nothing happens outside His knowledge or control. His sovereignty gives us confidence that His good purposes will prevail, even when we don\'t understand His ways.',
+        scripture: 'Our God is in the heavens; He does whatever He pleases.',
+        reference: 'Psalm 115:3',
+        historicalContext: 'The Nicene Creed calls God "Pantokratōr" (Almighty), affirming God\'s absolute authority over all things. This gives believers confidence even in times of persecution or suffering.',
+        reflection: 'How does God\'s sovereignty give you peace in uncertain times?',
+        colors: { dark: '#0f172a', accent: '#3b82f6', lightBg: '#f8fafc' }
+      },
+      // CHRIST CATEGORY (9-16)
+      {
+        id: 9,
+        category: 'Jesus Christ',
+        categorySlug: 'christ',
+        title: 'THE INCARNATION',
+        shortDesc: 'God Became Flesh',
+        greekTerm: 'Ἐνσάρκωσις',
+        translation: 'Ensarkōsis',
+        englishMeaning: 'In Flesh',
+        definition: 'The eternal Son of God took on human nature, becoming fully human while remaining fully divine. Jesus Christ is one Person with two natures—divine and human—united without mixture or separation. God became one of us to save us.',
+        scripture: 'The Word became flesh, and dwelt among us, and we saw His glory, glory as of the only Son from the Father, full of grace and truth.',
+        reference: 'John 1:14',
+        historicalContext: 'The Council of Chalcedon (451 AD) defined the Incarnation, teaching that Christ is "truly God and truly man," with two complete natures in one person, "without confusion, without change, without division, without separation."',
+        reflection: 'What difference does it make that God didn\'t just send a message but came Himself?',
+        colors: { dark: '#7f1d1d', accent: '#fca5a5', lightBg: '#fef2f2' }
+      },
+      {
+        id: 10,
+        category: 'Jesus Christ',
+        categorySlug: 'christ',
+        title: 'THE VIRGIN BIRTH',
+        shortDesc: 'Conceived by the Spirit',
+        greekTerm: 'Παρθένος',
+        translation: 'Parthenos',
+        englishMeaning: 'Virgin',
+        definition: 'Jesus was conceived by the Holy Spirit in the virgin Mary. He had no human father. This miraculous conception shows that Jesus\' origin is divine, while being born of Mary shows His genuine humanity. He is God\'s Son entering our world.',
+        scripture: 'The angel said to her, "The Holy Spirit will come upon you, and the power of the Most High will overshadow you; and for that reason the holy Child shall be called the Son of God."',
+        reference: 'Luke 1:35',
+        historicalContext: 'The virgin birth has been affirmed from the earliest creeds (Apostles\' Creed, Nicene Creed) as essential to Christ\'s identity. It demonstrates that Jesus\' coming was God\'s sovereign act, not human achievement.',
+        reflection: 'How does Jesus\' unique entrance into the world shape your understanding of who He is?',
+        colors: { dark: '#7f1d1d', accent: '#fca5a5', lightBg: '#fef2f2' }
+      },
+      {
+        id: 11,
+        category: 'Jesus Christ',
+        categorySlug: 'christ',
+        title: 'FULLY GOD AND FULLY HUMAN',
+        shortDesc: 'Two Natures, One Person',
+        greekTerm: 'Ἕνωσις Ὑποστατική',
+        translation: 'Henōsis Hypostatikē',
+        englishMeaning: 'Hypostatic Union',
+        definition: 'Jesus Christ is completely God and completely human in one Person. He is not half-God and half-human, nor does He alternate between being God and being human. Both natures exist fully and permanently united in one Person.',
+        scripture: 'For in Him all the fullness of Deity dwells in bodily form.',
+        reference: 'Colossians 2:9',
+        historicalContext: 'Chalcedon (451 AD) condemned both Nestorianism (which divided Christ into two persons) and Eutychianism (which mixed the natures into one confused nature), affirming the perfect union of two distinct natures in one Person.',
+        reflection: 'Why must Jesus be both fully God and fully human to be our Savior?',
+        colors: { dark: '#7f1d1d', accent: '#fca5a5', lightBg: '#fef2f2' }
+      },
+      {
+        id: 12,
+        category: 'Jesus Christ',
+        categorySlug: 'christ',
+        title: 'CHRIST\'S SACRIFICE',
+        shortDesc: 'The Perfect Offering',
+        greekTerm: 'Ἱλασμός',
+        translation: 'Hilasmos',
+        englishMeaning: 'Propitiation',
+        definition: 'Jesus\' death on the cross was the perfect sacrifice for sin. He died in our place, bearing the punishment we deserve. His blood satisfies God\'s justice and demonstrates God\'s love. Through His sacrifice, we are forgiven and reconciled to God.',
+        scripture: 'He Himself is the propitiation for our sins; and not for ours only, but also for those of the whole world.',
+        reference: '1 John 2:2',
+        historicalContext: 'The cross has been the center of Christian faith from the beginning. Early Christians understood Jesus\' death as the fulfillment of Old Testament sacrifices, the final and complete offering for sin.',
+        reflection: 'How does Christ\'s sacrifice on your behalf change your relationship with God?',
+        colors: { dark: '#7f1d1d', accent: '#fca5a5', lightBg: '#fef2f2' }
+      },
+      {
+        id: 13,
+        category: 'Jesus Christ',
+        categorySlug: 'christ',
+        title: 'THE RESURRECTION',
+        shortDesc: 'Victory Over Death',
+        greekTerm: 'Ἀνάστασις',
+        translation: 'Anastasis',
+        englishMeaning: 'Rising Again',
+        definition: 'On the third day after His crucifixion, Jesus rose bodily from the dead, conquering sin and death. His resurrection proves He is the Son of God and guarantees our own resurrection. Death no longer has the final word.',
+        scripture: 'But now Christ has been raised from the dead, the first fruits of those who are asleep. For since by a man came death, by a man also came the resurrection of the dead.',
+        reference: '1 Corinthians 15:20-21',
+        historicalContext: 'The resurrection was the core apostolic proclamation from the beginning. Paul states that without Christ\'s resurrection, Christian faith is futile. Every Sunday is a "little Easter," celebrating Jesus\' victory over death.',
+        reflection: 'How does the reality of Christ\'s resurrection give you hope today?',
+        colors: { dark: '#7f1d1d', accent: '#fca5a5', lightBg: '#fef2f2' }
+      },
+      {
+        id: 14,
+        category: 'Jesus Christ',
+        categorySlug: 'christ',
+        title: 'THE ASCENSION',
+        shortDesc: 'Seated at God\'s Right Hand',
+        greekTerm: 'Ἀνάληψις',
+        translation: 'Analēpsis',
+        englishMeaning: 'Taking Up',
+        definition: 'Forty days after His resurrection, Jesus ascended bodily into heaven. He sits at the Father\'s right hand, ruling over all creation. Though absent in body, He is present with us by His Spirit. Our humanity now reigns in heaven.',
+        scripture: 'He who descended is Himself also He who ascended far above all the heavens, so that He might fill all things.',
+        reference: 'Ephesians 4:10',
+        historicalContext: 'The Nicene Creed affirms Christ "ascended into heaven and is seated at the right hand of the Father." This position of authority demonstrates Christ\'s ongoing rule and His role as our advocate before God.',
+        reflection: 'What does it mean that Jesus, in His human body, now rules all creation?',
+        colors: { dark: '#7f1d1d', accent: '#fca5a5', lightBg: '#fef2f2' }
+      },
+      {
+        id: 15,
+        category: 'Jesus Christ',
+        categorySlug: 'christ',
+        title: 'CHRIST OUR HIGH PRIEST',
+        shortDesc: 'Our Mediator and Advocate',
+        greekTerm: 'Ἀρχιερεύς',
+        translation: 'Archiereus',
+        englishMeaning: 'Chief Priest',
+        definition: 'Jesus is our eternal High Priest who represents us before God. He offered Himself as the perfect sacrifice and now intercedes for us continually. Because He understands our weaknesses, having been tempted as we are, He sympathizes with us and helps us.',
+        scripture: 'Therefore, since we have a great high priest who has passed through the heavens, Jesus the Son of God, let us hold fast our confession.',
+        reference: 'Hebrews 4:14',
+        historicalContext: 'The book of Hebrews develops the theme of Christ as High Priest, showing how He fulfills and surpasses the Old Testament priesthood. Unlike earthly priests, Christ\'s priesthood is eternal and His sacrifice is once-for-all.',
+        reflection: 'How does knowing Christ is praying for you right now affect your approach to God?',
+        colors: { dark: '#7f1d1d', accent: '#fca5a5', lightBg: '#fef2f2' }
+      },
+      {
+        id: 16,
+        category: 'Jesus Christ',
+        categorySlug: 'christ',
+        title: 'CHRIST THE HEAD',
+        shortDesc: 'Lord of the Church',
+        greekTerm: 'Κεφαλή',
+        translation: 'Kephalē',
+        englishMeaning: 'Head',
+        definition: 'Christ is the head of the Church, His body. He directs, nourishes, and protects the Church. Every believer is united to Christ and to one another in Him. He is our supreme authority and the source of all our spiritual life and growth.',
+        scripture: 'He is also head of the body, the church; and He is the beginning, the firstborn from the dead, so that He Himself will come to have first place in everything.',
+        reference: 'Colossians 1:18',
+        historicalContext: 'Paul\'s letters emphasize Christ\'s headship over the Church, countering any attempt to give another human leader Christ\'s unique authority. The Church exists in complete dependence on and submission to Christ.',
+        reflection: 'In what practical ways can you submit to Christ\'s headship today?',
+        colors: { dark: '#7f1d1d', accent: '#fca5a5', lightBg: '#fef2f2' }
+      },
+      // HOLY SPIRIT CATEGORY (17-22)
+      {
+        id: 17,
+        category: 'Holy Spirit',
+        categorySlug: 'spirit',
+        title: 'THE COMFORTER',
+        shortDesc: 'Our Helper and Guide',
+        greekTerm: 'Παράκλητος',
+        translation: 'Paraklētos',
+        englishMeaning: 'Helper',
+        definition: 'Jesus promised to send "another Comforter" who would be with us forever. The Holy Spirit is our Helper, Advocate, and Counselor. He comforts us in sorrow, guides us in truth, and strengthens us for service. He is God\'s presence with us.',
+        scripture: 'I will ask the Father, and He will give you another Helper, that He may be with you forever; that is the Spirit of truth.',
+        reference: 'John 14:16-17',
+        historicalContext: 'Jesus used the term "Paraklētos," which means one called alongside to help. Unlike Jesus\' physical presence which was limited to one location, the Spirit dwells in all believers everywhere simultaneously.',
+        reflection: 'How have you experienced the Holy Spirit\'s comfort or guidance?',
+        colors: { dark: '#713f12', accent: '#fbbf24', lightBg: '#fefce8' }
+      },
+      {
+        id: 18,
+        category: 'Holy Spirit',
+        categorySlug: 'spirit',
+        title: 'REGENERATION',
+        shortDesc: 'Born Again by the Spirit',
+        greekTerm: 'Παλιγγενεσία',
+        translation: 'Palingenesia',
+        englishMeaning: 'New Birth',
+        definition: 'The Holy Spirit gives us new life in Christ. We are born again, not by our own effort, but by God\'s power. The Spirit transforms our hearts, making us new creations. What was dead in sin is made alive in Christ.',
+        scripture: 'He saved us, not on the basis of deeds which we have done in righteousness, but according to His mercy, by the washing of regeneration and renewing by the Holy Spirit.',
+        reference: 'Titus 3:5',
+        historicalContext: 'Jesus taught Nicodemus that entrance into God\'s kingdom requires being "born again" by the Spirit (John 3). This spiritual rebirth is the beginning of new life in Christ.',
+        reflection: 'What evidence of spiritual rebirth do you see in your own life?',
+        colors: { dark: '#713f12', accent: '#fbbf24', lightBg: '#fefce8' }
+      },
+      {
+        id: 19,
+        category: 'Holy Spirit',
+        categorySlug: 'spirit',
+        title: 'SANCTIFICATION',
+        shortDesc: 'Growing in Holiness',
+        greekTerm: 'Ἁγιασμός',
+        translation: 'Hagiasmos',
+        englishMeaning: 'Making Holy',
+        definition: 'The Holy Spirit progressively transforms believers into the likeness of Christ. This lifelong process makes us holy—set apart for God and increasingly free from sin\'s power. We cooperate with the Spirit, but He provides the power for real change.',
+        scripture: 'But we all, with unveiled face, beholding as in a mirror the glory of the Lord, are being transformed into the same image from glory to glory, just as from the Lord, the Spirit.',
+        reference: '2 Corinthians 3:18',
+        historicalContext: 'Protestant Reformers distinguished between justification (being declared righteous) and sanctification (becoming righteous in practice). Both are gifts of grace, but sanctification is the Spirit\'s ongoing work in believers.',
+        reflection: 'What area of your life is the Spirit currently transforming?',
+        colors: { dark: '#713f12', accent: '#fbbf24', lightBg: '#fefce8' }
+      },
+      {
+        id: 20,
+        category: 'Holy Spirit',
+        categorySlug: 'spirit',
+        title: 'THE FRUIT OF THE SPIRIT',
+        shortDesc: 'Christ-Like Character',
+        greekTerm: 'Καρπὸς τοῦ Πνεύματος',
+        translation: 'Karpos tou Pneumatos',
+        englishMeaning: 'Fruit of the Spirit',
+        definition: 'The Holy Spirit produces Christlike character in believers. This fruit—love, joy, peace, patience, kindness, goodness, faithfulness, gentleness, and self-control—is evidence of the Spirit\'s presence and work. We don\'t manufacture this fruit; the Spirit grows it in us.',
+        scripture: 'But the fruit of the Spirit is love, joy, peace, patience, kindness, goodness, faithfulness, gentleness, self-control; against such things there is no law.',
+        reference: 'Galatians 5:22-23',
+        historicalContext: 'Paul contrasts the Spirit\'s fruit with the "deeds of the flesh," showing that life in the Spirit produces a completely different kind of character than life controlled by sin.',
+        reflection: 'Which fruit of the Spirit do you most need in your life right now?',
+        colors: { dark: '#713f12', accent: '#fbbf24', lightBg: '#fefce8' }
+      },
+      {
+        id: 21,
+        category: 'Holy Spirit',
+        categorySlug: 'spirit',
+        title: 'GIFTS OF THE SPIRIT',
+        shortDesc: 'Empowered for Service',
+        greekTerm: 'Χαρίσματα',
+        translation: 'Charismata',
+        englishMeaning: 'Grace Gifts',
+        definition: 'The Holy Spirit distributes spiritual gifts to believers for the common good of the Church. These gifts—including teaching, service, healing, prophecy, and others—are tools for building up the body of Christ. Every believer has gifts to use for God\'s glory.',
+        scripture: 'But to each one is given the manifestation of the Spirit for the common good.',
+        reference: '1 Corinthians 12:7',
+        historicalContext: 'The early church understood spiritual gifts as evidence of the Spirit\'s presence and empowerment. Paul emphasizes that gifts are for service, not status, and love is greater than any gift.',
+        reflection: 'What spiritual gifts has God given you, and how are you using them to serve others?',
+        colors: { dark: '#713f12', accent: '#fbbf24', lightBg: '#fefce8' }
+      },
+      {
+        id: 22,
+        category: 'Holy Spirit',
+        categorySlug: 'spirit',
+        title: 'THE SPIRIT\'S INDWELLING',
+        shortDesc: 'God Living Within Us',
+        greekTerm: 'Ἐνοίκησις',
+        translation: 'Enoikēsis',
+        englishMeaning: 'Dwelling Within',
+        definition: 'Every believer is a temple where the Holy Spirit dwells. God\'s presence is not distant but intimately near. The Spirit lives in us, making our bodies sacred spaces. This indwelling presence guarantees our inheritance and empowers holy living.',
+        scripture: 'Do you not know that you are a temple of God and that the Spirit of God dwells in you?',
+        reference: '1 Corinthians 3:16',
+        historicalContext: 'In the Old Testament, God\'s presence dwelt in the tabernacle and temple. Now, through Christ, believers individually and collectively are God\'s dwelling place through the Spirit.',
+        reflection: 'How does knowing the Spirit dwells in you change how you view yourself and your body?',
+        colors: { dark: '#713f12', accent: '#fbbf24', lightBg: '#fefce8' }
+      },
+      // SALVATION CATEGORY (23-28)
+      {
+        id: 23,
+        category: 'Salvation & Gospel',
+        categorySlug: 'salvation',
+        title: 'THE GOSPEL',
+        shortDesc: 'The Good News of Jesus',
+        greekTerm: 'Εὐαγγέλιον',
+        translation: 'Euangelion',
+        englishMeaning: 'Good News',
+        definition: 'The gospel is the good news that Jesus Christ died for our sins and rose from the dead, according to the Scriptures. Through faith in Him, we receive forgiveness, reconciliation with God, and eternal life. This is God\'s free gift, not something we earn.',
+        scripture: 'For I delivered to you as of first importance what I also received, that Christ died for our sins according to the Scriptures, and that He was buried, and that He was raised on the third day.',
+        reference: '1 Corinthians 15:3-4',
+        historicalContext: 'Paul presents the gospel as the message he "received" and passed on, showing it\'s not human invention but divine revelation. This is the same gospel the apostles preached from the beginning.',
+        reflection: 'How would you explain the gospel to someone who has never heard it?',
+        colors: { dark: '#14532d', accent: '#86efac', lightBg: '#f0fdf4' }
+      },
+      {
+        id: 24,
+        category: 'Salvation & Gospel',
+        categorySlug: 'salvation',
+        title: 'GRACE',
+        shortDesc: 'Unmerited Favor',
+        greekTerm: 'Χάρις',
+        translation: 'Charis',
+        englishMeaning: 'Grace',
+        definition: 'Grace is God\'s unmerited favor toward sinners. We cannot earn or deserve it. God freely gives us what we don\'t deserve—forgiveness, adoption, eternal life—based on Christ\'s merit, not our own. Salvation is by grace alone, through faith alone.',
+        scripture: 'For by grace you have been saved through faith; and that not of yourselves, it is the gift of God; not as a result of works, so that no one may boast.',
+        reference: 'Ephesians 2:8-9',
+        historicalContext: 'Augustine defended grace against Pelagius, who taught salvation could be earned. The Protestant Reformation emphasized "sola gratia"—grace alone—as essential to the gospel, opposing any teaching that salvation depends on human merit.',
+        reflection: 'How does understanding grace as a completely free gift change your relationship with God?',
+        colors: { dark: '#14532d', accent: '#86efac', lightBg: '#f0fdf4' }
+      },
+      {
+        id: 25,
+        category: 'Salvation & Gospel',
+        categorySlug: 'salvation',
+        title: 'FAITH',
+        shortDesc: 'Trusting in Christ Alone',
+        greekTerm: 'Πίστις',
+        translation: 'Pistis',
+        englishMeaning: 'Faith',
+        definition: 'Faith is trusting in Jesus Christ for salvation. It\'s not mere intellectual agreement but wholehearted reliance on Christ and His finished work. Faith looks away from ourselves to Christ, resting in His righteousness rather than our own. Even faith itself is God\'s gift.',
+        scripture: 'Therefore, having been justified by faith, we have peace with God through our Lord Jesus Christ.',
+        reference: 'Romans 5:1',
+        historicalContext: 'The Reformers emphasized "sola fide"—faith alone—teaching that we are justified by faith in Christ without works of the law. Faith is the empty hand that receives what God freely offers in Christ.',
+        reflection: 'What does it look like for you to trust Christ completely rather than relying on your own efforts?',
+        colors: { dark: '#14532d', accent: '#86efac', lightBg: '#f0fdf4' }
+      },
+      {
+        id: 26,
+        category: 'Salvation & Gospel',
+        categorySlug: 'salvation',
+        title: 'JUSTIFICATION',
+        shortDesc: 'Declared Righteous',
+        greekTerm: 'Δικαίωσις',
+        translation: 'Dikaiōsis',
+        englishMeaning: 'Declaring Righteous',
+        definition: 'Justification is God\'s act of declaring sinners righteous based on Christ\'s righteousness, received by faith. It\'s a legal verdict: "not guilty." God credits Christ\'s perfect obedience to our account. We stand before God as if we had never sinned and perfectly obeyed.',
+        scripture: 'But to the one who does not work, but believes in Him who justifies the ungodly, his faith is credited as righteousness.',
+        reference: 'Romans 4:5',
+        historicalContext: 'Martin Luther\'s discovery of justification by faith alone sparked the Protestant Reformation. This doctrine assures believers that their acceptance with God rests entirely on Christ\'s merit, not their own performance.',
+        reflection: 'How does knowing you are declared righteous in Christ affect your daily struggles with sin and guilt?',
+        colors: { dark: '#14532d', accent: '#86efac', lightBg: '#f0fdf4' }
+      },
+      {
+        id: 27,
+        category: 'Salvation & Gospel',
+        categorySlug: 'salvation',
+        title: 'REPENTANCE',
+        shortDesc: 'Turning from Sin to God',
+        greekTerm: 'Μετάνοια',
+        translation: 'Metanoia',
+        englishMeaning: 'Change of Mind',
+        definition: 'Repentance is a change of mind and heart that turns from sin and turns to God. It\'s not just feeling sorry but a radical reorientation of life. True repentance is a gift from God that leads to life. It accompanies genuine faith and continues throughout the Christian life.',
+        scripture: 'Repent and return, so that your sins may be wiped away, in order that times of refreshing may come from the presence of the Lord.',
+        reference: 'Acts 3:19',
+        historicalContext: 'John the Baptist, Jesus, and the apostles all preached repentance. Luther\'s first of 95 Theses stated that the entire Christian life should be one of repentance—continual turning from sin to Christ.',
+        reflection: 'What sin is God calling you to turn away from right now?',
+        colors: { dark: '#14532d', accent: '#86efac', lightBg: '#f0fdf4' }
+      },
+      {
+        id: 28,
+        category: 'Salvation & Gospel',
+        categorySlug: 'salvation',
+        title: 'ADOPTION',
+        shortDesc: 'Children of God',
+        greekTerm: 'Υἱοθεσία',
+        translation: 'Huiothesia',
+        englishMeaning: 'Placing as Sons',
+        definition: 'Through faith in Christ, God adopts us as His children. We receive the full legal rights and privileges of sons and daughters. We belong to God\'s family, with Christ as our elder brother. The Spirit witnesses to our hearts that we are God\'s beloved children.',
+        scripture: 'For you have not received a spirit of slavery leading to fear again, but you have received a spirit of adoption as sons by which we cry out, "Abba! Father!"',
+        reference: 'Romans 8:15',
+        historicalContext: 'Roman adoption was an irrevocable legal act that gave adopted children full rights as heirs. Paul uses this image to show that believers are permanently God\'s children with full inheritance rights in Christ.',
+        reflection: 'How does knowing you are God\'s adopted child change your sense of identity and security?',
+        colors: { dark: '#14532d', accent: '#86efac', lightBg: '#f0fdf4' }
+      },
+      
+      // HOLY SCRIPTURE CATEGORY (29-32)
+      {
+        id: 29,
+        category: 'Holy Scripture',
+        categorySlug: 'scripture',
+        title: 'INSPIRATION OF SCRIPTURE',
+        shortDesc: 'God-Breathed Word',
+        greekTerm: 'Θεόπνευστος',
+        translation: 'Theopneustos',
+        englishMeaning: 'God-Breathed',
+        definition: 'All Scripture is inspired by God—literally "breathed out" by Him. The Bible is not merely human words about God, but God\'s own Word to humanity. Through human authors, the Holy Spirit guided the writing of Scripture, making it fully trustworthy and authoritative for faith and life.',
+        scripture: 'All Scripture is inspired by God and profitable for teaching, for reproof, for correction, for training in righteousness.',
+        reference: '2 Timothy 3:16',
+        historicalContext: 'The early church recognized that Scripture was uniquely authoritative because it came from God Himself. The doctrine of inspiration affirms both divine origin and human authorship working together.',
+        reflection: 'How does believing the Bible is God-breathed change how you read and apply it?',
+        colors: { dark: '#4c1d95', accent: '#c084fc', lightBg: '#faf5ff' }
+      },
+      {
+        id: 30,
+        category: 'Holy Scripture',
+        categorySlug: 'scripture',
+        title: 'AUTHORITY OF SCRIPTURE',
+        shortDesc: 'Our Final Standard',
+        greekTerm: 'Ἐξουσία',
+        translation: 'Exousia',
+        englishMeaning: 'Authority',
+        definition: 'Scripture is the final authority for Christian faith and practice. When God speaks in His Word, He speaks with absolute authority. The Bible judges all human traditions, experiences, and teachings. We submit to Scripture because we submit to Christ, who affirmed the Scriptures.',
+        scripture: 'But know this first of all, that no prophecy of Scripture is a matter of one\'s own interpretation, for no prophecy was ever made by an act of human will, but men moved by the Holy Spirit spoke from God.',
+        reference: '2 Peter 1:20-21',
+        historicalContext: 'The Protestant Reformation emphasized "sola scriptura"—Scripture alone as the final authority, over against church tradition or papal decree. This doesn\'t deny tradition\'s value but affirms Scripture\'s supreme authority.',
+        reflection: 'What areas of your life need to come under Scripture\'s authority?',
+        colors: { dark: '#4c1d95', accent: '#c084fc', lightBg: '#faf5ff' }
+      },
+      {
+        id: 31,
+        category: 'Holy Scripture',
+        categorySlug: 'scripture',
+        title: 'CHRIST IN SCRIPTURE',
+        shortDesc: 'The Word Made Flesh',
+        greekTerm: 'Λόγος',
+        translation: 'Logos',
+        englishMeaning: 'The Word',
+        definition: 'Jesus Christ is the living Word of God, and all Scripture points to Him. The Old Testament prepares for His coming; the Gospels proclaim His life, death, and resurrection; the Epistles explain His work; Revelation reveals His return. To read Scripture rightly is to see Christ on every page.',
+        scripture: 'You search the Scriptures because you think that in them you have eternal life; it is these that testify about Me.',
+        reference: 'John 5:39',
+        historicalContext: 'After His resurrection, Jesus explained to His disciples "beginning with Moses and with all the prophets" how all Scripture spoke of Him (Luke 24:27). The early church read the Old Testament as a Christian book, pointing to Christ.',
+        reflection: 'As you read Scripture, do you look for how it reveals Christ and His gospel?',
+        colors: { dark: '#4c1d95', accent: '#c084fc', lightBg: '#faf5ff' }
+      },
+      {
+        id: 32,
+        category: 'Holy Scripture',
+        categorySlug: 'scripture',
+        title: 'THE LIVING WORD',
+        shortDesc: 'Active and Powerful',
+        hebrewTerm: 'דְּבַר חַי',
+        translation: 'Davar Chai',
+        englishMeaning: 'Living Word',
+        definition: 'Scripture is not a dead letter but a living and active Word. The same Spirit who inspired Scripture illuminates it, making God\'s ancient words fresh and powerful today. Through Scripture, God speaks directly to our hearts, bringing conviction, comfort, and transformation.',
+        scripture: 'For the word of God is living and active and sharper than any two-edged sword, and piercing as far as the division of soul and spirit, of both joints and marrow, and able to judge the thoughts and intentions of the heart.',
+        reference: 'Hebrews 4:12',
+        historicalContext: 'Unlike dead religious texts, Scripture has power because the Holy Spirit works through it. Throughout church history, believers have encountered God personally through the Bible, experiencing its life-giving power.',
+        reflection: 'When has Scripture felt "living and active" in your own experience?',
+        colors: { dark: '#4c1d95', accent: '#c084fc', lightBg: '#faf5ff' }
+      },
+      
+      // CHURCH & SACRAMENTS CATEGORY (33-38)
+      {
+        id: 33,
+        category: 'Church & Sacraments',
+        categorySlug: 'church',
+        title: 'THE CHURCH',
+        shortDesc: 'Called-Out Assembly',
+        greekTerm: 'Ἐκκλησία',
+        translation: 'Ekklēsia',
+        englishMeaning: 'Called-Out Assembly',
+        definition: 'The Church is the community of all believers in Jesus Christ—those called out from the world to belong to God. We are one body with Christ as our Head, united by the Spirit across time and space. The Church is both local (gathered congregations) and universal (all believers everywhere).',
+        scripture: 'For even as the body is one and yet has many members, and all the members of the body, though they are many, are one body, so also is Christ.',
+        reference: '1 Corinthians 12:12',
+        historicalContext: 'The Nicene Creed describes the Church as "one, holy, catholic, and apostolic." These four marks identify the true Church: unified in Christ, set apart for God, universal in scope, and built on apostolic teaching.',
+        reflection: 'How does your local church reflect the universal Church of all believers?',
+        colors: { dark: '#7c2d12', accent: '#fdba74', lightBg: '#fff7ed' }
+      },
+      {
+        id: 34,
+        category: 'Church & Sacraments',
+        categorySlug: 'church',
+        title: 'THE BODY OF CHRIST',
+        shortDesc: 'Many Members, One Body',
+        greekTerm: 'Σῶμα Χριστοῦ',
+        translation: 'Sōma Christou',
+        englishMeaning: 'Body of Christ',
+        definition: 'The Church is Christ\'s body on earth—He is the Head, and believers are the members. Each person has a unique role, gifted by the Spirit for the common good. We are interdependent; what affects one member affects all. Together we make Christ\'s presence visible in the world.',
+        scripture: 'Now you are Christ\'s body, and individually members of it.',
+        reference: '1 Corinthians 12:27',
+        historicalContext: 'Paul\'s body metaphor shows that the Church is not an organization but an organism—a living body animated by Christ and empowered by the Spirit. Every member is essential and valuable.',
+        reflection: 'What is your unique role in Christ\'s body, and how are you using your gifts to serve?',
+        colors: { dark: '#7c2d12', accent: '#fdba74', lightBg: '#fff7ed' }
+      },
+      {
+        id: 35,
+        category: 'Church & Sacraments',
+        categorySlug: 'church',
+        title: 'BAPTISM',
+        shortDesc: 'Washed and Sealed',
+        greekTerm: 'Βάπτισμα',
+        translation: 'Baptisma',
+        englishMeaning: 'Immersion',
+        definition: 'Baptism is the sacrament of initiation into the Christian faith. Through baptism, we are united with Christ in His death and resurrection, washed clean from sin, and marked as God\'s children. It is both an act of obedience and a visible sign of invisible grace.',
+        scripture: 'Or do you not know that all of us who have been baptized into Christ Jesus have been baptized into His death? Therefore we have been buried with Him through baptism into death.',
+        reference: 'Romans 6:3-4',
+        historicalContext: 'Jesus commanded baptism as a sign of discipleship (Matthew 28:19). The early church baptized new converts as their public profession of faith and entrance into the church community.',
+        reflection: 'If you\'ve been baptized, what does it mean to you? If not, what holds you back?',
+        colors: { dark: '#7c2d12', accent: '#fdba74', lightBg: '#fff7ed' }
+      },
+      {
+        id: 36,
+        category: 'Church & Sacraments',
+        categorySlug: 'church',
+        title: 'THE LORD\'S SUPPER',
+        shortDesc: 'Communion with Christ',
+        greekTerm: 'Κυριακὸν Δεῖπνον',
+        translation: 'Kyriakon Deipnon',
+        englishMeaning: 'Lord\'s Supper',
+        definition: 'The Lord\'s Supper (Communion, Eucharist) is the sacrament where we remember Christ\'s sacrifice and experience His presence. Through bread and wine, we proclaim His death until He returns. In this meal, we commune with Christ and with one another as His body.',
+        scripture: 'For as often as you eat this bread and drink the cup, you proclaim the Lord\'s death until He comes.',
+        reference: '1 Corinthians 11:26',
+        historicalContext: 'Jesus instituted this meal at the Last Supper, commanding His followers to "do this in remembrance of Me" (Luke 22:19). The early church gathered regularly to break bread together.',
+        reflection: 'When you take Communion, do you recognize Christ\'s presence and remember His sacrifice?',
+        colors: { dark: '#7c2d12', accent: '#fdba74', lightBg: '#fff7ed' }
+      },
+      {
+        id: 37,
+        category: 'Church & Sacraments',
+        categorySlug: 'church',
+        title: 'COMMUNION OF SAINTS',
+        shortDesc: 'Fellowship in Christ',
+        latinTerm: 'Communio Sanctorum',
+        translation: 'Communio Sanctorum',
+        englishMeaning: 'Fellowship of Saints',
+        definition: 'All believers are united in Christ, forming one holy fellowship that transcends time and space. We are connected not only to other Christians alive today but also to all who have gone before us. This communion means we share in one another\'s joys, sorrows, and prayers.',
+        scripture: 'If one member suffers, all the members suffer with it; if one member is honored, all the members rejoice with it.',
+        reference: '1 Corinthians 12:26',
+        historicalContext: 'The Apostles\' Creed confesses belief in "the communion of saints," affirming our spiritual unity with all believers. The early church practiced radical sharing and mutual care as a visible sign of this communion.',
+        reflection: 'How do you experience fellowship with believers beyond your local congregation?',
+        colors: { dark: '#7c2d12', accent: '#fdba74', lightBg: '#fff7ed' }
+      },
+      {
+        id: 38,
+        category: 'Church & Sacraments',
+        categorySlug: 'church',
+        title: 'ONE, HOLY, CATHOLIC, APOSTOLIC',
+        shortDesc: 'Marks of the Church',
+        greekTerm: 'Μία, Ἁγία, Καθολική, Ἀποστολική',
+        translation: 'Mia, Hagia, Katholikē, Apostolikē',
+        englishMeaning: 'One, Holy, Universal, Apostolic',
+        definition: 'The Nicene Creed identifies four essential marks of the Church: One (united in Christ), Holy (set apart for God), Catholic/Universal (for all people everywhere), and Apostolic (built on the apostles\' teaching). These marks help us recognize the true Church.',
+        scripture: 'There is one body and one Spirit, just as also you were called in one hope of your calling; one Lord, one faith, one baptism, one God and Father of all.',
+        reference: 'Ephesians 4:4-6',
+        historicalContext: 'The Council of Constantinople (381 AD) added these four marks to the Nicene Creed to combat heresies and define the true Church against false teachers and schismatic groups.',
+        reflection: 'How does your church embody these four marks?',
+        colors: { dark: '#7c2d12', accent: '#fdba74', lightBg: '#fff7ed' }
+      },
+      
+      // CHRISTIAN LIFE CATEGORY (39-46)
+      {
+        id: 39,
+        category: 'Christian Life',
+        categorySlug: 'life',
+        title: 'DISCIPLESHIP',
+        shortDesc: 'Following Jesus',
+        greekTerm: 'Μαθητεία',
+        translation: 'Mathēteia',
+        englishMeaning: 'Being a Student',
+        definition: 'Discipleship is the lifelong journey of following Jesus, learning from Him, and becoming like Him. A disciple is not just someone who believes in Jesus but someone who walks with Him daily, obeys His teaching, and makes following Him the central priority of life.',
+        scripture: 'Then Jesus said to His disciples, "If anyone wishes to come after Me, he must deny himself, and take up his cross and follow Me."',
+        reference: 'Matthew 16:24',
+        historicalContext: 'In Jesus\' time, disciples literally followed their rabbi everywhere, learning by watching and imitating. Jesus calls His followers to the same radical commitment—not just intellectual assent but whole-life transformation.',
+        reflection: 'What does it mean for you to "take up your cross" and follow Jesus daily?',
+        colors: { dark: '#134e4a', accent: '#5eead4', lightBg: '#f0fdfa' }
+      },
+      {
+        id: 40,
+        category: 'Christian Life',
+        categorySlug: 'life',
+        title: 'LOVE',
+        shortDesc: 'The Greatest Commandment',
+        greekTerm: 'Ἀγάπη',
+        translation: 'Agapē',
+        englishMeaning: 'Self-Giving Love',
+        definition: 'Love is the defining mark of Christian discipleship. This is not mere sentiment but self-giving love modeled on Christ\'s sacrifice. We love God with our whole being and love our neighbors—even enemies—as ourselves. Love fulfills the law and bears witness to Christ.',
+        scripture: 'A new commandment I give to you, that you love one another, even as I have loved you, that you also love one another. By this all men will know that you are My disciples.',
+        reference: 'John 13:34-35',
+        historicalContext: 'Jesus identified love as the greatest commandment and the distinguishing mark of His followers. The early church\'s sacrificial love for one another and even for enemies was a powerful witness that attracted many to Christianity.',
+        reflection: 'Who in your life is hardest to love, and how can you show them Christ\'s love?',
+        colors: { dark: '#134e4a', accent: '#5eead4', lightBg: '#f0fdfa' }
+      },
+      {
+        id: 41,
+        category: 'Christian Life',
+        categorySlug: 'life',
+        title: 'PRAYER',
+        shortDesc: 'Communion with God',
+        greekTerm: 'Προσευχή',
+        translation: 'Proseuchē',
+        englishMeaning: 'Prayer',
+        definition: 'Prayer is intimate conversation with God—speaking and listening, asking and adoring, confessing and thanking. Through prayer we draw near to God and He draws near to us. Jesus modeled a life of constant prayer, teaching us to pray "Our Father" and to persist in asking, seeking, and knocking.',
+        scripture: 'Rejoice always; pray without ceasing; in everything give thanks; for this is God\'s will for you in Christ Jesus.',
+        reference: '1 Thessalonians 5:16-18',
+        historicalContext: 'The Lord\'s Prayer (Matthew 6:9-13) has served as the model prayer for Christians throughout history. The early church practiced set hours of prayer, following Jewish traditions but now directed to God through Christ.',
+        reflection: 'Is prayer more like a duty or a delight in your life? Why?',
+        colors: { dark: '#134e4a', accent: '#5eead4', lightBg: '#f0fdfa' }
+      },
+      {
+        id: 42,
+        category: 'Christian Life',
+        categorySlug: 'life',
+        title: 'SPIRITUAL WARFARE',
+        shortDesc: 'Standing Firm',
+        greekTerm: 'Πάλη',
+        translation: 'Palē',
+        englishMeaning: 'Wrestling',
+        definition: 'Believers face real spiritual opposition from Satan and demonic forces. Our struggle is not against flesh and blood but against spiritual powers. Yet we are not defenseless—God provides spiritual armor, and Christ has already won the victory. We stand firm in His strength, not our own.',
+        scripture: 'For our struggle is not against flesh and blood, but against the rulers, against the powers, against the world forces of this darkness, against the spiritual forces of wickedness in the heavenly places.',
+        reference: 'Ephesians 6:12',
+        historicalContext: 'The Desert Fathers wrote extensively about spiritual warfare, recognizing that the Christian life involves real battle against temptation and evil. The armor of God (Ephesians 6:10-18) equips us for this fight.',
+        reflection: 'What spiritual battles are you currently facing, and are you relying on God\'s armor?',
+        colors: { dark: '#134e4a', accent: '#5eead4', lightBg: '#f0fdfa' }
+      },
+      {
+        id: 43,
+        category: 'Christian Life',
+        categorySlug: 'life',
+        title: 'PERSEVERANCE',
+        shortDesc: 'Enduring to the End',
+        greekTerm: 'Ὑπομονή',
+        translation: 'Hypomonē',
+        englishMeaning: 'Patient Endurance',
+        definition: 'True disciples persevere in faith through trials, suffering, and doubt. This endurance is not stoic resignation but confident hope in God\'s faithfulness. God preserves His children, and those who are truly born again will continue in faith to the end. The one who endures to the end will be saved.',
+        scripture: 'For you have need of endurance, so that when you have done the will of God, you may receive what was promised.',
+        reference: 'Hebrews 10:36',
+        historicalContext: 'The doctrine of perseverance (often called "eternal security") teaches that God will bring to completion the work He began in believers (Philippians 1:6). True faith endures, though it may grow weak at times.',
+        reflection: 'What helps you persevere when your faith feels weak or tested?',
+        colors: { dark: '#134e4a', accent: '#5eead4', lightBg: '#f0fdfa' }
+      },
+      {
+        id: 44,
+        category: 'Christian Life',
+        categorySlug: 'life',
+        title: 'GOOD WORKS',
+        shortDesc: 'Faith in Action',
+        greekTerm: 'Ἔργα Ἀγαθά',
+        translation: 'Erga Agatha',
+        englishMeaning: 'Good Works',
+        definition: 'We are saved by grace through faith, not by works—but we are saved for good works. Faith without works is dead. True faith inevitably produces obedience and love in action. Good works don\'t earn salvation but demonstrate its reality and bring glory to God.',
+        scripture: 'For we are His workmanship, created in Christ Jesus for good works, which God prepared beforehand so that we would walk in them.',
+        reference: 'Ephesians 2:10',
+        historicalContext: 'The Reformation clarified that works are the fruit, not the root, of salvation. James and Paul, when read together, show that genuine faith necessarily produces good works as evidence of new life in Christ.',
+        reflection: 'What good works is God preparing you to do in response to His grace?',
+        colors: { dark: '#134e4a', accent: '#5eead4', lightBg: '#f0fdfa' }
+      },
+      {
+        id: 45,
+        category: 'Christian Life',
+        categorySlug: 'life',
+        title: 'SUFFERING',
+        shortDesc: 'Sharing Christ\'s Afflictions',
+        greekTerm: 'Πάθημα',
+        translation: 'Pathēma',
+        englishMeaning: 'Suffering',
+        definition: 'Suffering is part of following Christ in a fallen world. Yet God uses our trials to refine faith, build character, and conform us to Christ\'s image. We are not promised escape from suffering but God\'s presence in it. Our momentary afflictions are producing eternal glory.',
+        scripture: 'Consider it all joy, my brethren, when you encounter various trials, knowing that the testing of your faith produces endurance.',
+        reference: 'James 1:2-3',
+        historicalContext: 'Christian martyrs throughout history have shown that suffering for Christ is a privilege, not merely a burden. The early church rejoiced to suffer for Christ\'s name, following their Lord who suffered first.',
+        reflection: 'How has God used suffering or trials to shape your faith and character?',
+        colors: { dark: '#134e4a', accent: '#5eead4', lightBg: '#f0fdfa' }
+      },
+      {
+        id: 46,
+        category: 'Christian Life',
+        categorySlug: 'life',
+        title: 'WITNESS',
+        shortDesc: 'Testifying to Christ',
+        greekTerm: 'Μαρτυρία',
+        translation: 'Martyria',
+        englishMeaning: 'Testimony',
+        definition: 'Every Christian is called to be a witness—to testify about Jesus through both words and actions. We share the gospel message and live it out, making Christ visible to a watching world. Our witness flows from what we have seen and experienced of Christ\'s love and transformation.',
+        scripture: 'But you will receive power when the Holy Spirit has come upon you; and you shall be My witnesses both in Jerusalem, and in all Judea and Samaria, and even to the remotest part of the earth.',
+        reference: 'Acts 1:8',
+        historicalContext: 'The Greek word "martyria" (witness) became associated with martyrdom because many early Christians sealed their testimony with their blood. True witness is costly but powerful, empowered by the Holy Spirit.',
+        reflection: 'Who in your life needs to hear your witness about what Christ has done for you?',
+        colors: { dark: '#134e4a', accent: '#5eead4', lightBg: '#f0fdfa' }
+      },
+      
+      // LAST THINGS CATEGORY (47-50)
+      {
+        id: 47,
+        category: 'Last Things',
+        categorySlug: 'eschatology',
+        title: 'THE SECOND COMING',
+        shortDesc: 'Christ Will Return',
+        greekTerm: 'Παρουσία',
+        translation: 'Parousia',
+        englishMeaning: 'Arrival',
+        definition: 'Jesus Christ will return visibly and gloriously to judge the living and the dead and establish His eternal kingdom. This is the "blessed hope" that motivates holy living and faithful service. We do not know the day or hour, but we watch and wait with eager expectation.',
+        scripture: 'For the Lord Himself will descend from heaven with a shout, with the voice of the archangel and with the trumpet of God, and the dead in Christ will rise first.',
+        reference: '1 Thessalonians 4:16',
+        historicalContext: 'The earliest Christian prayer "Maranatha" (Come, Lord!) expressed the church\'s longing for Christ\'s return. Every generation has lived in light of His promised coming, though He tarries so that more might be saved.',
+        reflection: 'How would you live differently if you knew Christ would return tomorrow?',
+        colors: { dark: '#1e293b', accent: '#94a3b8', lightBg: '#f8fafc' }
+      },
+      {
+        id: 48,
+        category: 'Last Things',
+        categorySlug: 'eschatology',
+        title: 'RESURRECTION OF THE DEAD',
+        shortDesc: 'All Will Rise',
+        greekTerm: 'Ἀνάστασις Νεκρῶν',
+        translation: 'Anastasis Nekrōn',
+        englishMeaning: 'Rising of the Dead',
+        definition: 'At Christ\'s return, all people will be raised bodily from death. Believers will receive glorified, imperishable bodies like Christ\'s resurrection body. Unbelievers will also be raised to face judgment. Death will not have the final word—resurrection is God\'s promise to all humanity.',
+        scripture: 'Do not marvel at this; for an hour is coming, in which all who are in the tombs will hear His voice, and will come forth.',
+        reference: 'John 5:28-29',
+        historicalContext: 'Belief in bodily resurrection distinguished early Christianity from Greek philosophy, which viewed the body as a prison. Christians confess resurrection of the body, not merely immortality of the soul.',
+        reflection: 'What difference does belief in bodily resurrection make for how you view death and suffering?',
+        colors: { dark: '#1e293b', accent: '#94a3b8', lightBg: '#f8fafc' }
+      },
+      {
+        id: 49,
+        category: 'Last Things',
+        categorySlug: 'eschatology',
+        title: 'FINAL JUDGMENT',
+        shortDesc: 'Every Knee Will Bow',
+        greekTerm: 'Κρίσις',
+        translation: 'Krisis',
+        englishMeaning: 'Judgment',
+        definition: 'Christ will judge all people, separating the sheep from the goats. Those who trust in Christ are declared righteous by grace and enter eternal life. Those who reject Him face eternal separation from God. This judgment is both sobering and hopeful—justice will be done, and God\'s people will be vindicated.',
+        scripture: 'For we must all appear before the judgment seat of Christ, so that each one may be recompensed for his deeds in the body, according to what he has done, whether good or bad.',
+        reference: '2 Corinthians 5:10',
+        historicalContext: 'The reality of judgment motivated the early church to evangelism and holy living. Revelation 20 describes the "Great White Throne" judgment where God\'s perfect justice will be displayed and every wrong will be made right.',
+        reflection: 'How does the certainty of final judgment affect how you live today?',
+        colors: { dark: '#1e293b', accent: '#94a3b8', lightBg: '#f8fafc' }
+      },
+      {
+        id: 50,
+        category: 'Last Things',
+        categorySlug: 'eschatology',
+        title: 'NEW HEAVEN AND NEW EARTH',
+        shortDesc: 'All Things New',
+        greekTerm: 'Οὐρανὸς Καινός, Γῆ Καινή',
+        translation: 'Ouranos Kainos, Gē Kainē',
+        englishMeaning: 'New Heaven, New Earth',
+        definition: 'God will create a new heaven and new earth where righteousness dwells. This is not a destruction but a renewal—all creation will be liberated from sin and death. God will dwell with His people forever, wiping away every tear. Paradise lost in Genesis is restored in Revelation.',
+        scripture: 'Then I saw a new heaven and a new earth; for the first heaven and the first earth passed away... and He will wipe away every tear from their eyes; and there will no longer be any death.',
+        reference: 'Revelation 21:1,4',
+        historicalContext: 'God\'s ultimate plan is not to evacuate earth for heaven but to renew all creation. The biblical vision is of a restored earth where heaven and earth merge, and God\'s kingdom comes in fullness.',
+        reflection: 'How does the promise of a renewed creation shape your hope and purpose now?',
+        colors: { dark: '#1e293b', accent: '#94a3b8', lightBg: '#f8fafc' }
+      }
+    ];
+
+    // ============================================
+    // ICON RENDERING FUNCTION
+    // ============================================
+    
+    const renderIcon = (cardId, colors) => {
+      const stroke = colors.textLight || '#ffffff';
+      const accentColor = colors.accent;
+      
+      switch(cardId) {
+        // TRINITY CATEGORY (1-8)
+        case 1: // The Triune God
+          return `
+            <svg viewBox="0 0 120 120" class="w-full h-full">
+              <circle cx="60" cy="40" r="25" fill="none" stroke="${stroke}" stroke-width="2" opacity="0.9" />
+              <circle cx="45" cy="65" r="25" fill="none" stroke="${stroke}" stroke-width="2" opacity="0.7" />
+              <circle cx="75" cy="65" r="25" fill="none" stroke="${stroke}" stroke-width="2" opacity="0.5" />
+              <circle cx="60" cy="55" r="5" fill="${accentColor}" />
+            </svg>
+          `;
+        case 2: // One God in Three Persons
+          return `
+            <svg viewBox="0 0 120 120" class="w-full h-full">
+              <path d="M60 30 L90 80 L30 80 Z" fill="none" stroke="${stroke}" stroke-width="2" />
+              <circle cx="60" cy="30" r="4" fill="${accentColor}" />
+              <circle cx="30" cy="80" r="4" fill="${accentColor}" />
+              <circle cx="90" cy="80" r="4" fill="${accentColor}" />
+              <circle cx="60" cy="63" r="3" fill="${stroke}" opacity="0.6" />
+            </svg>
+          `;
+        case 3: // God the Father
+          return `
+            <svg viewBox="0 0 120 120" class="w-full h-full">
+              <path d="M30 70 L30 50 L40 60 L60 40 L80 60 L90 50 L90 70 Z" fill="none" stroke="${stroke}" stroke-width="2" />
+              <rect x="30" y="70" width="60" height="15" fill="none" stroke="${stroke}" stroke-width="2" />
+              <circle cx="40" cy="60" r="3" fill="${accentColor}" />
+              <circle cx="60" cy="40" r="3" fill="${accentColor}" />
+              <circle cx="80" cy="60" r="3" fill="${accentColor}" />
+            </svg>
+          `;
+        case 4: // God the Son
+          return `
+            <svg viewBox="0 0 120 120" class="w-full h-full">
+              <line x1="60" y1="30" x2="60" y2="90" stroke="${stroke}" stroke-width="2.5" />
+              <line x1="35" y1="55" x2="85" y2="55" stroke="${stroke}" stroke-width="2.5" />
+              <circle cx="60" cy="60" r="20" fill="none" stroke="${accentColor}" stroke-width="1.5" opacity="0.5" />
+              <circle cx="60" cy="30" r="3" fill="${accentColor}" />
+            </svg>
+          `;
+        case 5: // God the Holy Spirit
+          return `
+            <svg viewBox="0 0 120 120" class="w-full h-full">
+              <path d="M60 25 Q70 40, 65 55 Q75 65, 70 80 Q65 90, 60 95 Q55 90, 50 80 Q45 65, 55 55 Q50 40, 60 25 Z" 
+                fill="none" stroke="${stroke}" stroke-width="2" />
+              <path d="M60 45 Q65 55, 62 65 Q60 72, 58 65 Q55 55, 60 45 Z" 
+                fill="${accentColor}" opacity="0.6" />
+              <circle cx="60" cy="70" r="3" fill="${accentColor}" />
+            </svg>
+          `;
+        case 6: // The Divine Dance
+          return `
+            <svg viewBox="0 0 120 120" class="w-full h-full">
+              <circle cx="60" cy="60" r="35" fill="none" stroke="${stroke}" stroke-width="1.5" opacity="0.3" />
+              <path d="M60 25 A35 35 0 0 1 84 75" fill="none" stroke="${stroke}" stroke-width="2" />
+              <path d="M84 75 A35 35 0 0 1 36 75" fill="none" stroke="${stroke}" stroke-width="2" />
+              <path d="M36 75 A35 35 0 0 1 60 25" fill="none" stroke="${stroke}" stroke-width="2" />
+              <circle cx="60" cy="60" r="5" fill="${accentColor}" />
+              <polygon points="82,73 87,75 84,80" fill="${stroke}" />
+              <polygon points="38,73 33,75 36,80" fill="${stroke}" />
+              <polygon points="58,27 60,22 62,27" fill="${stroke}" />
+            </svg>
+          `;
+        case 7: // The Creator God
+          return `
+            <svg viewBox="0 0 120 120" class="w-full h-full">
+              <path d="M25 60 Q30 45, 40 40 L50 50 Q45 60, 40 70 Z" fill="none" stroke="${stroke}" stroke-width="2" />
+              <path d="M95 60 Q90 45, 80 40 L70 50 Q75 60, 80 70 Z" fill="none" stroke="${stroke}" stroke-width="2" />
+              <circle cx="60" cy="50" r="2" fill="${accentColor}" />
+              <circle cx="55" cy="60" r="1.5" fill="${stroke}" opacity="0.7" />
+              <circle cx="65" cy="60" r="1.5" fill="${stroke}" opacity="0.7" />
+              <circle cx="60" cy="65" r="2.5" fill="${accentColor}" />
+            </svg>
+          `;
+        case 8: // God's Sovereignty
+          return `
+            <svg viewBox="0 0 120 120" class="w-full h-full">
+              <circle cx="60" cy="65" r="30" fill="none" stroke="${stroke}" stroke-width="2" />
+              <ellipse cx="60" cy="65" rx="30" ry="12" fill="none" stroke="${stroke}" stroke-width="1.5" opacity="0.5" />
+              <ellipse cx="60" cy="65" rx="12" ry="30" fill="none" stroke="${stroke}" stroke-width="1.5" opacity="0.5" />
+              <line x1="60" y1="25" x2="60" y2="42" stroke="${accentColor}" stroke-width="2" />
+              <line x1="52" y1="33" x2="68" y2="33" stroke="${accentColor}" stroke-width="2" />
+              <circle cx="60" cy="65" r="4" fill="${accentColor}" />
+            </svg>
+          `;
+          
+        // CHRIST CATEGORY (9-16)
+        case 9: // The Incarnation
+          return `
+            <svg viewBox="0 0 120 120" class="w-full h-full">
+              <circle cx="60" cy="35" r="20" fill="none" stroke="${stroke}" stroke-width="2" opacity="0.9" />
+              <rect x="40" y="60" width="40" height="40" fill="none" stroke="${stroke}" stroke-width="2" />
+              <line x1="60" y1="55" x2="60" y2="60" stroke="${stroke}" stroke-width="2" stroke-dasharray="2,2" />
+              <circle cx="60" cy="75" r="3" fill="${accentColor}" />
+            </svg>
+          `;
+        case 10: // The Virgin Birth
+          return `
+            <svg viewBox="0 0 120 120" class="w-full h-full">
+              <polygon points="60,25 63,35 73,35 65,42 68,52 60,45 52,52 55,42 47,35 57,35" fill="${accentColor}" />
+              <path d="M40 70 L40 90 L80 90 L80 70" fill="none" stroke="${stroke}" stroke-width="2" />
+              <line x1="40" y1="70" x2="80" y2="70" stroke="${stroke}" stroke-width="2" />
+              <line x1="60" y1="70" x2="60" y2="90" stroke="${stroke}" stroke-width="1.5" opacity="0.5" />
+            </svg>
+          `;
+        case 11: // Fully God and Fully Human
+          return `
+            <svg viewBox="0 0 120 120" class="w-full h-full">
+              <circle cx="50" cy="60" r="28" fill="none" stroke="${stroke}" stroke-width="2" opacity="0.7" />
+              <rect x="42" y="52" width="36" height="36" fill="none" stroke="${stroke}" stroke-width="2" opacity="0.7" />
+              <circle cx="60" cy="68" r="4" fill="${accentColor}" />
+            </svg>
+          `;
+        case 12: // Christ's Sacrifice
+          return `
+            <svg viewBox="0 0 120 120" class="w-full h-full">
+              <line x1="60" y1="30" x2="60" y2="95" stroke="${stroke}" stroke-width="2.5" />
+              <line x1="35" y1="55" x2="85" y2="55" stroke="${stroke}" stroke-width="2.5" />
+              <circle cx="60" cy="55" r="25" fill="none" stroke="${accentColor}" stroke-width="1.5" opacity="0.3" stroke-dasharray="3,3" />
+              <circle cx="60" cy="30" r="3" fill="${accentColor}" />
+            </svg>
+          `;
+        case 13: // The Resurrection
+          return `
+            <svg viewBox="0 0 120 120" class="w-full h-full">
+              <rect x="35" y="60" width="50" height="35" fill="none" stroke="${stroke}" stroke-width="2" />
+              <rect x="50" y="55" width="20" height="25" fill="none" stroke="${stroke}" stroke-width="2" />
+              <circle cx="78" cy="70" r="8" fill="none" stroke="${stroke}" stroke-width="2" />
+              <circle cx="60" cy="35" r="15" fill="none" stroke="${accentColor}" stroke-width="2" opacity="0.7" />
+              <line x1="52" y1="28" x2="48" y2="20" stroke="${accentColor}" stroke-width="1.5" />
+              <line x1="68" y1="28" x2="72" y2="20" stroke="${accentColor}" stroke-width="1.5" />
+              <line x1="60" y1="20" x2="60" y2="15" stroke="${accentColor}" stroke-width="1.5" />
+            </svg>
+          `;
+        case 14: // The Ascension
+          return `
+            <svg viewBox="0 0 120 120" class="w-full h-full">
+              <ellipse cx="60" cy="35" rx="25" ry="8" fill="none" stroke="${stroke}" stroke-width="1.5" opacity="0.5" />
+              <path d="M60 50 L60 90" stroke="${stroke}" stroke-width="2" stroke-dasharray="3,3" />
+              <path d="M60 25 L60 35" stroke="${accentColor}" stroke-width="2" />
+              <polygon points="56,29 60,25 64,29" fill="${accentColor}" />
+              <path d="M50 25 L50 20 L55 23 L60 18 L65 23 L70 20 L70 25 Z" fill="none" stroke="${accentColor}" stroke-width="1.5" />
+            </svg>
+          `;
+        case 15: // Christ Our High Priest
+          return `
+            <svg viewBox="0 0 120 120" class="w-full h-full">
+              <rect x="50" y="40" width="20" height="35" fill="none" stroke="${stroke}" stroke-width="2" />
+              <circle cx="60" cy="30" r="8" fill="none" stroke="${stroke}" stroke-width="2" />
+              <rect x="40" y="75" width="40" height="10" fill="none" stroke="${stroke}" stroke-width="2" />
+              <path d="M55 85 Q60 80, 65 85" stroke="${accentColor}" stroke-width="1.5" />
+              <line x1="60" y1="65" x2="60" y2="75" stroke="${accentColor}" stroke-width="1.5" stroke-dasharray="2,2" />
+            </svg>
+          `;
+        case 16: // Christ the Head
+          return `
+            <svg viewBox="0 0 120 120" class="w-full h-full">
+              <circle cx="60" cy="35" r="15" fill="none" stroke="${accentColor}" stroke-width="2" />
+              <path d="M60 50 L60 70" stroke="${stroke}" stroke-width="2.5" />
+              <ellipse cx="60" cy="80" rx="25" ry="15" fill="none" stroke="${stroke}" stroke-width="2" />
+              <line x1="40" y1="75" x2="35" y2="90" stroke="${stroke}" stroke-width="2" />
+              <line x1="80" y1="75" x2="85" y2="90" stroke="${stroke}" stroke-width="2" />
+            </svg>
+          `;
+          
+        // HOLY SPIRIT CATEGORY (17-22)
+        case 17: // The Comforter
+          return `
+            <svg viewBox="0 0 120 120" class="w-full h-full">
+              <ellipse cx="60" cy="50" rx="18" ry="8" fill="none" stroke="${stroke}" stroke-width="2" />
+              <path d="M42 50 L35 45 Q30 42, 35 38" fill="none" stroke="${stroke}" stroke-width="2" />
+              <path d="M78 50 L85 45 Q90 42, 85 38" fill="none" stroke="${stroke}" stroke-width="2" />
+              <path d="M60 58 L60 75" stroke="${stroke}" stroke-width="2" />
+              <circle cx="60" cy="78" r="4" fill="${accentColor}" />
+              <circle cx="57" cy="48" r="2" fill="${accentColor}" />
+            </svg>
+          `;
+        case 18: // Regeneration
+          return `
+            <svg viewBox="0 0 120 120" class="w-full h-full">
+              <ellipse cx="60" cy="80" rx="8" ry="5" fill="none" stroke="${stroke}" stroke-width="2" />
+              <path d="M60 80 L60 50 Q60 40, 50 35" fill="none" stroke="${accentColor}" stroke-width="2" />
+              <path d="M60 55 Q60 45, 70 40" fill="none" stroke="${accentColor}" stroke-width="2" />
+              <ellipse cx="50" cy="35" rx="5" ry="8" fill="none" stroke="${accentColor}" stroke-width="1.5" />
+              <ellipse cx="70" cy="40" rx="5" ry="8" fill="none" stroke="${accentColor}" stroke-width="1.5" />
+              <path d="M55 80 L55 90 M60 85 L60 92 M65 80 L65 90" stroke="${stroke}" stroke-width="1.5" opacity="0.5" />
+            </svg>
+          `;
+        case 19: // Sanctification
+          return `
+            <svg viewBox="0 0 120 120" class="w-full h-full">
+              <circle cx="60" cy="45" r="12" fill="none" stroke="${stroke}" stroke-width="2" />
+              <rect x="50" y="57" width="20" height="30" fill="none" stroke="${stroke}" stroke-width="2" />
+              <path d="M45 65 L35 80" stroke="${accentColor}" stroke-width="2" />
+              <polygon points="32,78 35,80 37,77" fill="${accentColor}" />
+              <path d="M60 35 L60 25" stroke="${accentColor}" stroke-width="2" />
+              <polygon points="58,27 60,25 62,27" fill="${accentColor}" />
+              <path d="M75 65 L85 55" stroke="${accentColor}" stroke-width="2" />
+              <polygon points="83,57 85,55 87,57" fill="${accentColor}" />
+            </svg>
+          `;
+        case 20: // The Fruit of the Spirit
+          return `
+            <svg viewBox="0 0 120 120" class="w-full h-full">
+              <path d="M60 90 L60 55" stroke="${stroke}" stroke-width="2.5" />
+              <path d="M45 70 L45 55 L60 55" stroke="${stroke}" stroke-width="2" />
+              <path d="M75 70 L75 55 L60 55" stroke="${stroke}" stroke-width="2" />
+              <circle cx="45" cy="45" r="8" fill="none" stroke="${accentColor}" stroke-width="2" />
+              <circle cx="60" cy="40" r="8" fill="none" stroke="${accentColor}" stroke-width="2" />
+              <circle cx="75" cy="45" r="8" fill="none" stroke="${accentColor}" stroke-width="2" />
+              <path d="M55 88 L65 88" stroke="${stroke}" stroke-width="2" />
+            </svg>
+          `;
+        case 21: // Gifts of the Spirit
+          return `
+            <svg viewBox="0 0 120 120" class="w-full h-full">
+              <rect x="35" y="55" width="20" height="20" fill="none" stroke="${stroke}" stroke-width="2" />
+              <path d="M35 65 L55 65" stroke="${accentColor}" stroke-width="2" />
+              <path d="M45 55 L45 75" stroke="${accentColor}" stroke-width="2" />
+              <rect x="65" y="55" width="20" height="20" fill="none" stroke="${stroke}" stroke-width="2" />
+              <path d="M65 65 L85 65" stroke="${accentColor}" stroke-width="2" />
+              <path d="M75 55 L75 75" stroke="${accentColor}" stroke-width="2" />
+              <rect x="50" y="35" width="20" height="20" fill="none" stroke="${stroke}" stroke-width="2" />
+              <path d="M50 45 L70 45" stroke="${accentColor}" stroke-width="2" />
+              <path d="M60 35 L60 55" stroke="${accentColor}" stroke-width="2" />
+            </svg>
+          `;
+        case 22: // The Spirit's Indwelling
+          return `
+            <svg viewBox="0 0 120 120" class="w-full h-full">
+              <circle cx="60" cy="45" r="12" fill="none" stroke="${stroke}" stroke-width="2" />
+              <path d="M50 57 L50 85 L70 85 L70 57" fill="none" stroke="${stroke}" stroke-width="2" />
+              <path d="M60 60 Q65 68, 63 75 Q60 80, 57 75 Q55 68, 60 60 Z" fill="${accentColor}" opacity="0.6" />
+              <circle cx="60" cy="70" r="3" fill="${accentColor}" />
+            </svg>
+          `;
+          
+        // SALVATION & GOSPEL CATEGORY (23-28)
+        case 23: // The Gospel
+          return `
+            <svg viewBox="0 0 120 120" class="w-full h-full">
+              <path d="M30 40 Q30 35, 35 35 L85 35 Q90 35, 90 40 L90 80 Q90 85, 85 85 L35 85 Q30 85, 30 80 Z" 
+                fill="none" stroke="${stroke}" stroke-width="2" />
+              <line x1="35" y1="35" x2="35" y2="85" stroke="${stroke}" stroke-width="1.5" opacity="0.5" />
+              <line x1="85" y1="35" x2="85" y2="85" stroke="${stroke}" stroke-width="1.5" opacity="0.5" />
+              <line x1="45" y1="50" x2="75" y2="50" stroke="${stroke}" stroke-width="1" opacity="0.6" />
+              <line x1="45" y1="60" x2="75" y2="60" stroke="${stroke}" stroke-width="1" opacity="0.6" />
+              <line x1="45" y1="70" x2="75" y2="70" stroke="${stroke}" stroke-width="1" opacity="0.6" />
+              <circle cx="60" cy="60" r="4" fill="${accentColor}" />
+            </svg>
+          `;
+        case 24: // Grace
+          return `
+            <svg viewBox="0 0 120 120" class="w-full h-full">
+              <path d="M50 35 Q55 30, 60 35 Q65 30, 70 35 L70 50 Q70 55, 65 55 L55 55 Q50 55, 50 50 Z" 
+                fill="none" stroke="${stroke}" stroke-width="2" />
+              <circle cx="52" cy="60" r="2" fill="${accentColor}" />
+              <circle cx="60" cy="65" r="2.5" fill="${accentColor}" />
+              <circle cx="68" cy="60" r="2" fill="${accentColor}" />
+              <circle cx="57" cy="72" r="2" fill="${accentColor}" opacity="0.7" />
+              <circle cx="63" cy="72" r="2" fill="${accentColor}" opacity="0.7" />
+              <path d="M60 75 L60 85" stroke="${accentColor}" stroke-width="2" stroke-dasharray="2,2" />
+            </svg>
+          `;
+        case 25: // Faith
+          return `
+            <svg viewBox="0 0 120 120" class="w-full h-full">
+              <path d="M40 75 L40 65 Q40 60, 45 58 L50 56" fill="none" stroke="${stroke}" stroke-width="2" />
+              <path d="M80 75 L80 65 Q80 60, 75 58 L70 56" fill="none" stroke="${stroke}" stroke-width="2" />
+              <circle cx="60" cy="35" r="15" fill="none" stroke="${accentColor}" stroke-width="2" />
+              <line x1="52" y1="28" x2="48" y2="20" stroke="${accentColor}" stroke-width="1.5" />
+              <line x1="68" y1="28" x2="72" y2="20" stroke="${accentColor}" stroke-width="1.5" />
+              <line x1="60" y1="20" x2="60" y2="15" stroke="${accentColor}" stroke-width="1.5" />
+              <path d="M50 56 L60 50 L70 56" stroke="${stroke}" stroke-width="2" stroke-dasharray="2,2" />
+            </svg>
+          `;
+        case 26: // Justification
+          return `
+            <svg viewBox="0 0 120 120" class="w-full h-full">
+              <line x1="60" y1="30" x2="60" y2="90" stroke="${stroke}" stroke-width="2" />
+              <circle cx="45" cy="50" r="10" fill="none" stroke="${stroke}" stroke-width="2" />
+              <circle cx="75" cy="50" r="10" fill="none" stroke="${stroke}" stroke-width="2" />
+              <line x1="40" y1="70" x2="50" y2="70" stroke="${stroke}" stroke-width="2" />
+              <line x1="70" y1="70" x2="80" y2="70" stroke="${stroke}" stroke-width="2" />
+              <circle cx="60" cy="50" r="4" fill="${accentColor}" />
+            </svg>
+          `;
+        case 27: // Repentance
+          return `
+            <svg viewBox="0 0 120 120" class="w-full h-full">
+              <path d="M80 40 L80 60 Q80 75, 60 75 Q40 75, 40 60" fill="none" stroke="${stroke}" stroke-width="2.5" />
+              <polygon points="35,65 40,60 45,65" fill="${stroke}" />
+              <circle cx="60" cy="40" r="4" fill="${accentColor}" />
+              <circle cx="40" cy="60" r="4" fill="${accentColor}" />
+            </svg>
+          `;
+        case 28: // Adoption
+          return `
+            <svg viewBox="0 0 120 120" class="w-full h-full">
+              <path d="M40 50 L40 85 L80 85 L80 50 L60 40 Z" fill="none" stroke="${stroke}" stroke-width="2" />
+              <rect x="54" y="70" width="12" height="15" fill="none" stroke="${stroke}" stroke-width="1.5" />
+              <circle cx="50" cy="62" r="5" fill="${accentColor}" opacity="0.7" />
+              <circle cx="70" cy="62" r="5" fill="${accentColor}" opacity="0.7" />
+              <circle cx="60" cy="58" r="6" fill="${accentColor}" />
+              <line x1="60" y1="40" x2="60" y2="30" stroke="${accentColor}" stroke-width="2" />
+              <line x1="56" y1="34" x2="64" y2="34" stroke="${accentColor}" stroke-width="2" />
+            </svg>
+          `;
+          
+        // HOLY SCRIPTURE CATEGORY (29-32)
+        case 29: // Inspiration of Scripture
+          return `
+            <svg viewBox="0 0 120 120" class="w-full h-full">
+              <path d="M30 40 Q30 35, 35 35 L85 35 Q90 35, 90 40 L90 80 Q90 85, 85 85 L35 85 Q30 85, 30 80 Z" 
+                fill="none" stroke="${stroke}" stroke-width="2" />
+              <line x1="35" y1="35" x2="35" y2="85" stroke="${stroke}" stroke-width="1.5" opacity="0.5" />
+              <line x1="85" y1="35" x2="85" y2="85" stroke="${stroke}" stroke-width="1.5" opacity="0.5" />
+              <line x1="45" y1="50" x2="75" y2="50" stroke="${stroke}" stroke-width="1" opacity="0.6" />
+              <line x1="45" y1="60" x2="75" y2="60" stroke="${stroke}" stroke-width="1" opacity="0.6" />
+              <line x1="45" y1="70" x2="75" y2="70" stroke="${stroke}" stroke-width="1" opacity="0.6" />
+              <circle cx="60" cy="60" r="4" fill="${accentColor}" />
+            </svg>
+          `;
+        case 30: // Authority of Scripture
+          return `
+            <svg viewBox="0 0 120 120" class="w-full h-full">
+              <rect x="35" y="70" width="50" height="20" fill="none" stroke="${stroke}" stroke-width="2" />
+              <path d="M35 70 L60 45 L85 70" fill="none" stroke="${stroke}" stroke-width="2" />
+              <rect x="52" y="30" width="16" height="40" fill="none" stroke="${stroke}" stroke-width="2" opacity="0.7" />
+              <line x1="60" y1="35" x2="60" y2="45" stroke="${accentColor}" stroke-width="2" />
+              <line x1="55" y1="40" x2="65" y2="40" stroke="${accentColor}" stroke-width="2" />
+            </svg>
+          `;
+        case 31: // Christ in Scripture
+          return `
+            <svg viewBox="0 0 120 120" class="w-full h-full">
+              <rect x="30" y="40" width="25" height="45" rx="3" fill="none" stroke="${stroke}" stroke-width="2" />
+              <rect x="65" y="40" width="25" height="45" rx="3" fill="none" stroke="${stroke}" stroke-width="2" />
+              <line x1="35" y1="50" x2="50" y2="50" stroke="${stroke}" stroke-width="1" opacity="0.5" />
+              <line x1="35" y1="58" x2="50" y2="58" stroke="${stroke}" stroke-width="1" opacity="0.5" />
+              <line x1="35" y1="66" x2="50" y2="66" stroke="${stroke}" stroke-width="1" opacity="0.5" />
+              <line x1="70" y1="50" x2="85" y2="50" stroke="${stroke}" stroke-width="1" opacity="0.5" />
+              <line x1="70" y1="58" x2="85" y2="58" stroke="${stroke}" stroke-width="1" opacity="0.5" />
+              <line x1="70" y1="66" x2="85" y2="66" stroke="${stroke}" stroke-width="1" opacity="0.5" />
+              <circle cx="60" cy="32" r="3" fill="${accentColor}" />
+            </svg>
+          `;
+        case 32: // The Living Word
+          return `
+            <svg viewBox="0 0 120 120" class="w-full h-full">
+              <path d="M40 50 L40 85 L80 85 L80 50 L60 55 L40 50" fill="none" stroke="${stroke}" stroke-width="2" />
+              <line x1="60" y1="55" x2="60" y2="85" stroke="${stroke}" stroke-width="1.5" />
+              <line x1="60" y1="30" x2="60" y2="55" stroke="${accentColor}" stroke-width="2.5" />
+              <line x1="50" y1="37" x2="70" y2="37" stroke="${accentColor}" stroke-width="2.5" />
+              <circle cx="60" cy="30" r="3" fill="${accentColor}" />
+            </svg>
+          `;
+          
+        // CHURCH & SACRAMENTS CATEGORY (33-38)
+        case 33: // The Church
+          return `
+            <svg viewBox="0 0 120 120" class="w-full h-full">
+              <path d="M35 75 L35 90 L85 90 L85 75 L60 55 Z" fill="none" stroke="${stroke}" stroke-width="2" />
+              <rect x="55" y="75" width="10" height="15" fill="none" stroke="${stroke}" stroke-width="1.5" />
+              <path d="M52 55 L60 35 L68 55" fill="none" stroke="${stroke}" stroke-width="2" />
+              <line x1="60" y1="28" x2="60" y2="38" stroke="${accentColor}" stroke-width="2" />
+              <line x1="56" y1="32" x2="64" y2="32" stroke="${accentColor}" stroke-width="2" />
+            </svg>
+          `;
+        case 34: // The Body of Christ
+          return `
+            <svg viewBox="0 0 120 120" class="w-full h-full">
+              <circle cx="60" cy="60" r="12" fill="none" stroke="${accentColor}" stroke-width="2" />
+              <circle cx="60" cy="35" r="8" fill="none" stroke="${stroke}" stroke-width="1.5" opacity="0.8" />
+              <circle cx="85" cy="60" r="8" fill="none" stroke="${stroke}" stroke-width="1.5" opacity="0.8" />
+              <circle cx="60" cy="85" r="8" fill="none" stroke="${stroke}" stroke-width="1.5" opacity="0.8" />
+              <circle cx="35" cy="60" r="8" fill="none" stroke="${stroke}" stroke-width="1.5" opacity="0.8" />
+              <line x1="60" y1="48" x2="60" y2="43" stroke="${stroke}" stroke-width="1" opacity="0.4" />
+              <line x1="72" y1="60" x2="77" y2="60" stroke="${stroke}" stroke-width="1" opacity="0.4" />
+              <line x1="60" y1="72" x2="60" y2="77" stroke="${stroke}" stroke-width="1" opacity="0.4" />
+              <line x1="48" y1="60" x2="43" y2="60" stroke="${stroke}" stroke-width="1" opacity="0.4" />
+            </svg>
+          `;
+        case 35: // Baptism
+          return `
+            <svg viewBox="0 0 120 120" class="w-full h-full">
+              <path d="M30 70 Q40 65, 50 70 T70 70 T90 70" fill="none" stroke="${stroke}" stroke-width="2" />
+              <path d="M30 78 Q40 73, 50 78 T70 78 T90 78" fill="none" stroke="${stroke}" stroke-width="2" opacity="0.6" />
+              <path d="M30 85 Q40 80, 50 85 T70 85 T90 85" fill="none" stroke="${stroke}" stroke-width="2" opacity="0.3" />
+              <circle cx="55" cy="55" r="2" fill="${accentColor}" />
+              <circle cx="60" cy="48" r="2.5" fill="${accentColor}" />
+              <circle cx="65" cy="58" r="2" fill="${accentColor}" />
+              <path d="M60 30 L60 45" stroke="${stroke}" stroke-width="2" />
+              <path d="M56 41 L60 45 L64 41" fill="none" stroke="${stroke}" stroke-width="2" />
+            </svg>
+          `;
+        case 36: // The Lord's Supper
+          return `
+            <svg viewBox="0 0 120 120" class="w-full h-full">
+              <ellipse cx="45" cy="65" rx="18" ry="12" fill="none" stroke="${stroke}" stroke-width="2" />
+              <path d="M30 65 L60 65" stroke="${stroke}" stroke-width="1.5" stroke-dasharray="2,2" />
+              <path d="M70 55 L70 75 Q70 78, 75 78 L85 78 Q90 78, 90 75 L90 55 Z" 
+                fill="none" stroke="${stroke}" stroke-width="2" />
+              <ellipse cx="80" cy="55" rx="10" ry="3" fill="none" stroke="${stroke}" stroke-width="2" />
+              <circle cx="80" cy="65" r="3" fill="${accentColor}" />
+            </svg>
+          `;
+        case 37: // Communion of Saints
+          return `
+            <svg viewBox="0 0 120 120" class="w-full h-full">
+              <path d="M35 70 L35 55 Q35 50, 40 50 Q45 50, 45 55 L45 65" 
+                fill="none" stroke="${stroke}" stroke-width="2" />
+              <path d="M85 70 L85 55 Q85 50, 80 50 Q75 50, 75 55 L75 65" 
+                fill="none" stroke="${stroke}" stroke-width="2" />
+              <circle cx="60" cy="45" r="5" fill="none" stroke="${accentColor}" stroke-width="2" />
+              <line x1="65" y1="45" x2="65" y2="28" stroke="${accentColor}" stroke-width="2" />
+              <line x1="60" y1="28" x2="60" y2="20" stroke="${stroke}" stroke-width="1" opacity="0.5" />
+              <line x1="52" y1="30" x2="48" y2="22" stroke="${stroke}" stroke-width="1" opacity="0.5" />
+              <line x1="68" y1="30" x2="72" y2="22" stroke="${stroke}" stroke-width="1" opacity="0.5" />
+            </svg>
+          `;
+        case 38: // One, Holy, Catholic, Apostolic
+          return `
+            <svg viewBox="0 0 120 120" class="w-full h-full">
+              <circle cx="60" cy="60" r="25" fill="none" stroke="${stroke}" stroke-width="2" />
+              <ellipse cx="60" cy="60" rx="25" ry="10" fill="none" stroke="${stroke}" stroke-width="1.5" opacity="0.5" />
+              <ellipse cx="60" cy="60" rx="10" ry="25" fill="none" stroke="${stroke}" stroke-width="1.5" opacity="0.5" />
+              <circle cx="60" cy="60" r="4" fill="${accentColor}" />
+              <path d="M60 30 L60 25 M57 28 L60 25 L63 28" stroke="${accentColor}" stroke-width="1.5" />
+              <path d="M85 60 L90 60 M87 57 L90 60 L87 63" stroke="${accentColor}" stroke-width="1.5" />
+              <path d="M60 90 L60 95 M57 92 L60 95 L63 92" stroke="${accentColor}" stroke-width="1.5" />
+              <path d="M35 60 L30 60 M33 57 L30 60 L33 63" stroke="${accentColor}" stroke-width="1.5" />
+            </svg>
+          `;
+          
+        // CHRISTIAN LIFE CATEGORY (39-46)
+        case 39: // Discipleship
+          return `
+            <svg viewBox="0 0 120 120" class="w-full h-full">
+              <path d="M30 90 L60 30" stroke="${stroke}" stroke-width="2" stroke-dasharray="4,4" opacity="0.5" />
+              <ellipse cx="40" cy="75" rx="4" ry="6" fill="${stroke}" opacity="0.6" transform="rotate(-25 40 75)" />
+              <ellipse cx="48" cy="75" rx="4" ry="6" fill="${stroke}" opacity="0.6" transform="rotate(-25 48 75)" />
+              <ellipse cx="48" cy="60" rx="4" ry="6" fill="${stroke}" opacity="0.7" transform="rotate(-25 48 60)" />
+              <ellipse cx="56" cy="60" rx="4" ry="6" fill="${stroke}" opacity="0.7" transform="rotate(-25 56 60)" />
+              <line x1="60" y1="30" x2="60" y2="42" stroke="${accentColor}" stroke-width="2" />
+              <line x1="54" y1="36" x2="66" y2="36" stroke="${accentColor}" stroke-width="2" />
+              <circle cx="60" cy="30" r="3" fill="${accentColor}" />
+            </svg>
+          `;
+        case 40: // Love
+          return `
+            <svg viewBox="0 0 120 120" class="w-full h-full">
+              <path d="M60 45 L50 35 Q45 30, 40 35 Q35 40, 40 48 L60 70 L80 48 Q85 40, 80 35 Q75 30, 70 35 Z" 
+                fill="none" stroke="${stroke}" stroke-width="2" />
+              <line x1="60" y1="50" x2="60" y2="58" stroke="${accentColor}" stroke-width="1.5" />
+              <line x1="56" y1="54" x2="64" y2="54" stroke="${accentColor}" stroke-width="1.5" />
+              <line x1="45" y1="45" x2="38" y2="38" stroke="${stroke}" stroke-width="1" opacity="0.5" />
+              <line x1="75" y1="45" x2="82" y2="38" stroke="${stroke}" stroke-width="1" opacity="0.5" />
+              <line x1="60" y1="35" x2="60" y2="25" stroke="${stroke}" stroke-width="1" opacity="0.5" />
+            </svg>
+          `;
+        case 41: // Prayer
+          return `
+            <svg viewBox="0 0 120 120" class="w-full h-full">
+              <path d="M48 45 L48 75 Q48 80, 53 80 L60 80" fill="none" stroke="${stroke}" stroke-width="2" />
+              <path d="M72 45 L72 75 Q72 80, 67 80 L60 80" fill="none" stroke="${stroke}" stroke-width="2" />
+              <line x1="48" y1="45" x2="72" y2="45" stroke="${stroke}" stroke-width="2" />
+              <line x1="60" y1="40" x2="60" y2="25" stroke="${accentColor}" stroke-width="2" stroke-dasharray="3,3" />
+              <circle cx="60" cy="25" r="4" fill="${accentColor}" />
+              <line x1="52" y1="27" x2="48" y2="20" stroke="${stroke}" stroke-width="1" opacity="0.5" />
+              <line x1="68" y1="27" x2="72" y2="20" stroke="${stroke}" stroke-width="1" opacity="0.5" />
+            </svg>
+          `;
+        case 42: // Spiritual Warfare
+          return `
+            <svg viewBox="0 0 120 120" class="w-full h-full">
+              <path d="M40 35 L40 65 Q40 75, 50 80 L60 85 L70 80 Q80 75, 80 65 L80 35 Z" 
+                fill="none" stroke="${stroke}" stroke-width="2" />
+              <line x1="60" y1="45" x2="60" y2="65" stroke="${accentColor}" stroke-width="2" />
+              <line x1="50" y1="55" x2="70" y2="55" stroke="${accentColor}" stroke-width="2" />
+              <line x1="75" y1="40" x2="90" y2="25" stroke="${stroke}" stroke-width="2" opacity="0.6" />
+              <rect x="87" y="22" width="6" height="4" fill="${stroke}" opacity="0.6" />
+            </svg>
+          `;
+        case 43: // Perseverance
+          return `
+            <svg viewBox="0 0 120 120" class="w-full h-full">
+              <line x1="75" y1="35" x2="75" y2="85" stroke="${stroke}" stroke-width="2" stroke-dasharray="5,5" />
+              <circle cx="50" cy="50" r="6" fill="none" stroke="${stroke}" stroke-width="2" />
+              <line x1="50" y1="56" x2="50" y2="72" stroke="${stroke}" stroke-width="2" />
+              <line x1="50" y1="60" x2="42" y2="66" stroke="${stroke}" stroke-width="2" />
+              <line x1="50" y1="60" x2="58" y2="66" stroke="${stroke}" stroke-width="2" />
+              <line x1="50" y1="72" x2="45" y2="85" stroke="${stroke}" stroke-width="2" />
+              <line x1="50" y1="72" x2="60" y2="80" stroke="${stroke}" stroke-width="2" />
+              <circle cx="80" cy="45" r="4" fill="${accentColor}" />
+            </svg>
+          `;
+        case 44: // Good Works
+          return `
+            <svg viewBox="0 0 120 120" class="w-full h-full">
+              <path d="M35 60 L35 75 L40 75 L40 65 L45 65 L45 70 L50 70 L50 65 L55 65 L55 70 L60 70 L60 55" 
+                fill="none" stroke="${stroke}" stroke-width="2" />
+              <circle cx="70" cy="45" r="3" fill="${accentColor}" />
+              <circle cx="78" cy="40" r="2.5" fill="${accentColor}" opacity="0.7" />
+              <circle cx="75" cy="52" r="2" fill="${accentColor}" opacity="0.7" />
+              <line x1="62" y1="47" x2="68" y2="44" stroke="${stroke}" stroke-width="1" opacity="0.4" />
+            </svg>
+          `;
+        case 45: // Suffering
+          return `
+            <svg viewBox="0 0 120 120" class="w-full h-full">
+              <path d="M40 60 L40 75 Q40 80, 45 82 L75 82 Q80 80, 80 75 L80 60 Z" 
+                fill="none" stroke="${stroke}" stroke-width="2" />
+              <path d="M50 45 Q48 50, 50 55 Q52 50, 50 45" fill="${accentColor}" opacity="0.7" />
+              <path d="M60 40 Q58 48, 60 55 Q62 48, 60 40" fill="${accentColor}" opacity="0.8" />
+              <path d="M70 45 Q68 50, 70 55 Q72 50, 70 45" fill="${accentColor}" opacity="0.7" />
+              <path d="M35 50 Q37 48, 39 50 T43 50" stroke="${stroke}" stroke-width="1" opacity="0.4" />
+            </svg>
+          `;
+        case 46: // Witness
+          return `
+            <svg viewBox="0 0 120 120" class="w-full h-full">
+              <line x1="60" y1="35" x2="60" y2="75" stroke="${stroke}" stroke-width="2" />
+              <path d="M45 75 Q45 85, 60 85 Q75 85, 75 75" fill="none" stroke="${stroke}" stroke-width="2" />
+              <circle cx="45" cy="75" r="5" fill="none" stroke="${stroke}" stroke-width="2" />
+              <circle cx="75" cy="75" r="5" fill="none" stroke="${stroke}" stroke-width="2" />
+              <line x1="50" y1="45" x2="70" y2="45" stroke="${stroke}" stroke-width="2" />
+              <path d="M60 25 L60 35" stroke="${accentColor}" stroke-width="2" />
+              <path d="M56 29 L60 25 L64 29" fill="none" stroke="${accentColor}" stroke-width="2" />
+              <circle cx="60" cy="25" r="3" fill="${accentColor}" />
+            </svg>
+          `;
+          
+        // LAST THINGS CATEGORY (47-50)
+        case 47: // The Second Coming
+          return `
+            <svg viewBox="0 0 120 120" class="w-full h-full">
+              <path d="M30 55 Q35 50, 42 52 Q45 48, 50 52" fill="none" stroke="${stroke}" stroke-width="2" />
+              <path d="M90 55 Q85 50, 78 52 Q75 48, 70 52" fill="none" stroke="${stroke}" stroke-width="2" />
+              <path d="M60 30 L60 70" stroke="${accentColor}" stroke-width="3" opacity="0.8" />
+              <path d="M55 35 L50 40" stroke="${accentColor}" stroke-width="1.5" opacity="0.5" />
+              <path d="M65 35 L70 40" stroke="${accentColor}" stroke-width="1.5" opacity="0.5" />
+              <path d="M50 25 L50 20 L55 23 L60 18 L65 23 L70 20 L70 25 Z" 
+                fill="none" stroke="${stroke}" stroke-width="1.5" />
+              <circle cx="60" cy="18" r="3" fill="${accentColor}" />
+            </svg>
+          `;
+        case 48: // Resurrection of the Dead
+          return `
+            <svg viewBox="0 0 120 120" class="w-full h-full">
+              <rect x="40" y="65" width="40" height="25" fill="none" stroke="${stroke}" stroke-width="2" />
+              <rect x="50" y="60" width="20" height="20" fill="none" stroke="${stroke}" stroke-width="2" />
+              <circle cx="85" cy="75" r="8" fill="none" stroke="${stroke}" stroke-width="2" />
+              <line x1="81" y1="75" x2="89" y2="75" stroke="${stroke}" stroke-width="1" opacity="0.5" />
+              <circle cx="55" cy="45" r="4" fill="${accentColor}" />
+              <line x1="55" y1="49" x2="55" y2="60" stroke="${accentColor}" stroke-width="2" />
+              <circle cx="65" cy="40" r="4" fill="${accentColor}" />
+              <line x1="65" y1="44" x2="65" y2="60" stroke="${accentColor}" stroke-width="2" />
+            </svg>
+          `;
+        case 49: // Final Judgment
+          return `
+            <svg viewBox="0 0 120 120" class="w-full h-full">
+              <rect x="45" y="55" width="30" height="30" fill="none" stroke="${stroke}" stroke-width="2" />
+              <path d="M40 55 L40 50 L80 50 L80 55" fill="none" stroke="${stroke}" stroke-width="2" />
+              <line x1="50" y1="85" x2="50" y2="90" stroke="${stroke}" stroke-width="2" />
+              <line x1="70" y1="85" x2="70" y2="90" stroke="${stroke}" stroke-width="2" />
+              <path d="M50 45 L50 40 L55 43 L60 38 L65 43 L70 40 L70 45 Z" 
+                fill="none" stroke="${accentColor}" stroke-width="1.5" />
+              <line x1="35" y1="65" x2="85" y2="65" stroke="${stroke}" stroke-width="1.5" opacity="0.5" />
+            </svg>
+          `;
+        case 50: // New Heaven and New Earth
+          return `
+            <svg viewBox="0 0 120 120" class="w-full h-full">
+              <path d="M20 70 Q35 60, 50 70 T80 70 T100 70" fill="none" stroke="${stroke}" stroke-width="2" />
+              <path d="M20 78 Q35 68, 50 78 T80 78 T100 78" fill="none" stroke="${stroke}" stroke-width="2" opacity="0.6" />
+              <circle cx="60" cy="55" r="15" fill="none" stroke="${accentColor}" stroke-width="2" />
+              <line x1="60" y1="35" x2="60" y2="25" stroke="${accentColor}" stroke-width="1.5" />
+              <line x1="75" y1="40" x2="83" y2="32" stroke="${accentColor}" stroke-width="1.5" />
+              <line x1="78" y1="55" x2="88" y2="55" stroke="${accentColor}" stroke-width="1.5" />
+              <line x1="45" y1="40" x2="37" y2="32" stroke="${accentColor}" stroke-width="1.5" />
+              <line x1="42" y1="55" x2="32" y2="55" stroke="${accentColor}" stroke-width="1.5" />
+              <line x1="85" y1="65" x2="85" y2="78" stroke="${stroke}" stroke-width="2" opacity="0.6" />
+              <circle cx="85" cy="62" r="5" fill="none" stroke="${stroke}" stroke-width="1.5" opacity="0.6" />
+            </svg>
+          `;
+          
+        default:
+          return '';
+      }
+    };
+
+    // ============================================
+    // UTILITY FUNCTIONS
+    // ============================================
+    
+    // Get card of the day (deterministic based on date)
+    const getCardOfTheDay = () => {
+      const today = new Date();
+      const dayOfYear = Math.floor((today - new Date(today.getFullYear(), 0, 0)) / 1000 / 60 / 60 / 24);
+      const cardIndex = dayOfYear % CARD_DATA.length;
+      return CARD_DATA[cardIndex];
+    };
+
+    // LocalStorage helpers
+    const STORAGE_KEYS = {
+      LEARNED: 'creedcards_learned',
+      LAST_STUDIED: 'creedcards_last_studied',
+      STUDY_MODE: 'creedcards_study_mode',
+      WELCOME_SEEN: 'creedcards_welcome_seen',
+      CURRENT_INDEX: 'creedcards_current_index',
+      TAP_HINT_COUNT: 'creedcards_tap_hint_count',
+      SESSION_DATE: 'creedcards_session_date',
+      SESSION_COUNT: 'creedcards_session_count',
+      SOUND_ENABLED: 'creedcards_sound_enabled',
+      LAST_UNDO: 'creedcards_last_undo'
+    };
+
+    const getLearnedCards = () => {
+      const learned = localStorage.getItem(STORAGE_KEYS.LEARNED);
+      return learned ? JSON.parse(learned) : [];
+    };
+
+    const toggleCardLearned = (cardId) => {
+      const learned = getLearnedCards();
+      const index = learned.indexOf(cardId);
+      const wasLearned = index > -1;
+      
+      if (wasLearned) {
+        learned.splice(index, 1);
+      } else {
+        learned.push(cardId);
+      }
+      
+      localStorage.setItem(STORAGE_KEYS.LEARNED, JSON.stringify(learned));
+      
+      // Store for undo
+      localStorage.setItem(STORAGE_KEYS.LAST_UNDO, JSON.stringify({
+        cardId,
+        action: wasLearned ? 'unmarked' : 'marked',
+        timestamp: Date.now()
+      }));
+      
+      return !wasLearned;
+    };
+
+    const isCardLearned = (cardId) => {
+      return getLearnedCards().includes(cardId);
+    };
+
+    const getTodayString = () => {
+      const today = new Date();
+      return today.toISOString().split('T')[0];
+    };
+
+    const getLastStudiedCard = () => {
+      const cardId = localStorage.getItem(STORAGE_KEYS.LAST_STUDIED);
+      return cardId ? parseInt(cardId) : null;
+    };
+
+    const setLastStudiedCard = (cardId) => {
+      localStorage.setItem(STORAGE_KEYS.LAST_STUDIED, cardId.toString());
+      
+      // Track session
+      const today = getTodayString();
+      const lastSession = localStorage.getItem(STORAGE_KEYS.SESSION_DATE);
+      
+      if (lastSession !== today) {
+        localStorage.setItem(STORAGE_KEYS.SESSION_DATE, today);
+        localStorage.setItem(STORAGE_KEYS.SESSION_COUNT, '1');
+      } else {
+        const count = parseInt(localStorage.getItem(STORAGE_KEYS.SESSION_COUNT) || '0');
+        localStorage.setItem(STORAGE_KEYS.SESSION_COUNT, (count + 1).toString());
+      }
+    };
+
+    const getTodaySessionCount = () => {
+      const today = getTodayString();
+      const lastSession = localStorage.getItem(STORAGE_KEYS.SESSION_DATE);
+      
+      if (lastSession !== today) return 0;
+      return parseInt(localStorage.getItem(STORAGE_KEYS.SESSION_COUNT) || '0');
+    };
+    
+    const undoLastAction = () => {
+      const lastUndo = localStorage.getItem(STORAGE_KEYS.LAST_UNDO);
+      if (!lastUndo) return null;
+      
+      const { cardId, action, timestamp } = JSON.parse(lastUndo);
+      
+      // Only allow undo within 10 seconds
+      if (Date.now() - timestamp > 10000) return null;
+      
+      toggleCardLearned(cardId);
+      localStorage.removeItem(STORAGE_KEYS.LAST_UNDO);
+      
+      return { cardId, action };
+    };
+
+    const getTapHintCount = () => {
+      return parseInt(localStorage.getItem(STORAGE_KEYS.TAP_HINT_COUNT) || '0');
+    };
+
+    const incrementTapHintCount = () => {
+      const count = getTapHintCount();
+      localStorage.setItem(STORAGE_KEYS.TAP_HINT_COUNT, (count + 1).toString());
+    };
+
+    const getSoundEnabled = () => {
+      const enabled = localStorage.getItem(STORAGE_KEYS.SOUND_ENABLED);
+      return enabled === null ? true : enabled === 'true';
+    };
+
+    const toggleSound = () => {
+      const enabled = getSoundEnabled();
+      localStorage.setItem(STORAGE_KEYS.SOUND_ENABLED, (!enabled).toString());
+      return !enabled;
+    };
+
+    const resetAllProgress = () => {
+      if (confirm('Are you sure you want to reset all progress? This cannot be undone.')) {
+        localStorage.removeItem(STORAGE_KEYS.LEARNED);
+        localStorage.removeItem(STORAGE_KEYS.LAST_STUDIED);
+        localStorage.removeItem(STORAGE_KEYS.SESSION_DATE);
+        localStorage.removeItem(STORAGE_KEYS.SESSION_COUNT);
+        localStorage.removeItem(STORAGE_KEYS.LAST_UNDO);
+        return true;
+      }
+      return false;
+    };
+
+    const playFlipSound = () => {
+      if (!getSoundEnabled()) return;
+      
+      const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      const oscillator = audioContext.createOscillator();
+      const gainNode = audioContext.createGain();
+      
+      oscillator.connect(gainNode);
+      gainNode.connect(audioContext.destination);
+      
+      oscillator.frequency.value = 800;
+      oscillator.type = 'sine';
+      
+      gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.1);
+      
+      oscillator.start(audioContext.currentTime);
+      oscillator.stop(audioContext.currentTime + 0.1);
+    };
+
+    const getWelcomeSeen = () => {
+      return localStorage.getItem(STORAGE_KEYS.WELCOME_SEEN) === 'true';
+    };
+
+    const setWelcomeSeen = () => {
+      localStorage.setItem(STORAGE_KEYS.WELCOME_SEEN, 'true');
+    };
+
+    // Share functionality
+    const shareCard = async (card) => {
+      const shareText = `${card.title}\n\n${card.greekTerm} (${card.translation}) - "${card.englishMeaning}"\n\n${card.definition}\n\nStudy more at creedcards.com`;
+      
+      if (navigator.share) {
+        try {
+          await navigator.share({
+            title: card.title,
+            text: shareText,
+            url: 'https://creedcards.com'
+          });
+        } catch (err) {
+          console.log('Share cancelled');
+        }
+      } else {
+        // Fallback: copy to clipboard
+        navigator.clipboard.writeText(shareText);
+        alert('Card text copied to clipboard!');
+      }
+    };
+
+    const shareApp = async () => {
+      const shareText = 'Check out Creed Cards - learn core Christian doctrine through beautiful flashcards!';
+      
+      if (navigator.share) {
+        try {
+          await navigator.share({
+            title: 'Creed Cards',
+            text: shareText,
+            url: 'https://creedcards.com'
+          });
+        } catch (err) {
+          console.log('Share cancelled');
+        }
+      } else {
+        navigator.clipboard.writeText('https://creedcards.com');
+        alert('Link copied to clipboard!');
+      }
+    };
+
+    // ============================================
+    // COMPONENTS
+    // ============================================
+
+    // Card Component
+    function Card({ card, onFlip, isFlipped, onLearnedToggle, isLearned, currentIndex, totalCards, showTapHint }) {
+      return (
+        <div className="card-container w-full h-full">
+          <div className={`card-inner ${isFlipped ? 'flipped' : ''}`}>
+            {/* FRONT */}
+            <div 
+              className="card-front rounded-2xl shadow-2xl overflow-hidden cursor-pointer"
+              style={{ backgroundColor: card.colors.dark }}
+              onClick={onFlip}
+            >
+              <div className="h-full flex flex-col p-8 md:p-12">
+                {/* Category badge */}
+                <div className="mb-auto">
+                  <div 
+                    className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium uppercase tracking-wider"
+                    style={{ 
+                      backgroundColor: `${card.colors.accent}30`,
+                      color: '#ffffff'
+                    }}
+                  >
+                    <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: card.colors.accent }} />
+                    {card.category}
+                  </div>
+                </div>
+
+                {/* Main content */}
+                <div className="flex-1 flex flex-col items-center justify-center text-center">
+                  {/* Icon */}
+                  <div 
+                    className="w-24 h-24 md:w-32 md:h-32 mb-6"
+                    dangerouslySetInnerHTML={{ 
+                      __html: renderIcon(card.id, { 
+                        textLight: '#ffffff', 
+                        accent: card.colors.accent 
+                      }) 
+                    }}
+                  />
+                  
+                  <h2 
+                    className="text-3xl md:text-5xl font-display mb-4 leading-tight text-white"
+                  >
+                    {card.title}
+                  </h2>
+                  
+                  <p className="text-sm text-white opacity-80 mb-8">
+                    {card.shortDesc}
+                  </p>
+
+                  <div className="space-y-2">
+                    <p 
+                      className="text-xl font-serif italic tracking-wide"
+                      style={{ color: card.colors.accent }}
+                    >
+                      {card.greekTerm || card.hebrewTerm || card.latinTerm} · {card.translation}
+                    </p>
+                    <p className="text-sm text-white opacity-75">
+                      "{card.englishMeaning}"
+                    </p>
+                  </div>
+                </div>
+
+                {/* Card number and hint */}
+                <div className="mt-auto flex flex-col items-center">
+                  {showTapHint && (
+                    <p className="text-xs text-white opacity-60 mb-2">
+                      Tap to flip
+                    </p>
+                  )}
+                  <div className="flex items-center justify-center">
+                    <div className="h-px w-8 bg-white opacity-30" />
+                    <div className="mx-3 text-xs tracking-wider text-white opacity-50">
+                      {currentIndex !== undefined && totalCards ? `Card ${currentIndex + 1} of ${totalCards}` : `1:${String(card.id).padStart(2, '0')}`}
+                    </div>
+                    <div className="h-px w-8 bg-white opacity-30" />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* BACK */}
+            <div 
+              className="card-back rounded-2xl shadow-2xl overflow-hidden cursor-pointer"
+              style={{ backgroundColor: card.colors.lightBg }}
+              onClick={onFlip}
+            >
+              <div className="h-full overflow-y-auto custom-scrollbar p-8 md:p-12">
+                {/* Definition */}
+                <div className="mb-6">
+                  <div className="flex items-center gap-2 mb-3">
+                    <div className="w-1 h-1 rounded-full" style={{ backgroundColor: card.colors.accent }} />
+                    <h3 className="text-xs uppercase tracking-widest font-semibold text-gray-900">
+                      Core Definition
+                    </h3>
+                  </div>
+                  <div className="p-4 rounded border border-gray-200 bg-white">
+                    <p className="leading-relaxed text-gray-900" style={{ fontSize: '15px' }}>
+                      {card.definition}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Scripture - Dark Box */}
+                <div 
+                  className="mb-6 p-5 rounded-lg"
+                  style={{ backgroundColor: card.colors.dark }}
+                >
+                  <div className="flex items-center gap-2 mb-3">
+                    <div className="w-1 h-1 rounded-full" style={{ backgroundColor: card.colors.accent }} />
+                    <h3 className="text-xs uppercase tracking-widest font-semibold text-white">
+                      Key Scripture
+                    </h3>
+                  </div>
+                  <p className="mb-3 leading-relaxed font-serif italic text-white opacity-95" style={{ fontSize: '15px' }}>
+                    "{card.scripture}"
+                  </p>
+                  <p className="text-sm text-white opacity-75">
+                    — {card.reference} <span style={{ color: card.colors.accent }}>NASB</span>
+                  </p>
+                </div>
+
+                {/* Historical Context */}
+                <div className="mb-6">
+                  <div className="flex items-center gap-2 mb-3">
+                    <div className="w-1 h-1 rounded-full" style={{ backgroundColor: card.colors.accent }} />
+                    <h3 className="text-xs uppercase tracking-widest font-semibold text-gray-900">
+                      Historical Context
+                    </h3>
+                  </div>
+                  <p className="leading-relaxed text-gray-700" style={{ fontSize: '14px' }}>
+                    {card.historicalContext}
+                  </p>
+                </div>
+
+                {/* Reflection */}
+                <div>
+                  <div className="flex items-center gap-2 mb-3">
+                    <div className="w-1 h-1 rounded-full" style={{ backgroundColor: card.colors.accent }} />
+                    <h3 className="text-xs uppercase tracking-widest font-semibold text-gray-900">
+                      Reflection
+                    </h3>
+                  </div>
+                  <p className="leading-relaxed font-medium text-gray-900" style={{ fontSize: '14px' }}>
+                    {card.reflection}
+                  </p>
+                </div>
+
+                {/* Learned toggle */}
+                <div className="mt-8 pt-6 border-t border-gray-200">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onLearnedToggle();
+                    }}
+                    className={`w-full py-3 px-4 rounded-lg font-medium transition-all ${
+                      isLearned 
+                        ? 'bg-green-500 text-white' 
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    }`}
+                  >
+                    {isLearned ? '✓ Learned' : 'Mark as Learned'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // Welcome Screen
+    function WelcomeScreen({ onClose }) {
+      return (
+        <div className="fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-8">
+            <h2 className="text-3xl font-display text-gray-900 mb-4">
+              Welcome to Creed Cards
+            </h2>
+            <p className="text-gray-700 mb-6">
+              Learn core Christian doctrine through 50 beautifully designed flashcards covering Trinity, Christ, Holy Spirit, Salvation, Scripture, Church, Christian Life, and Last Things.
+            </p>
+            <div className="space-y-3 mb-6">
+              <div className="flex items-start gap-3">
+                <div className="w-6 h-6 rounded-full bg-blue-500 flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <span className="text-white text-xs">✓</span>
+                </div>
+                <div>
+                  <p className="font-medium text-gray-900">Tap to flip cards</p>
+                  <p className="text-sm text-gray-600">Explore definitions, scriptures, and history</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-3">
+                <div className="w-6 h-6 rounded-full bg-blue-500 flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <span className="text-white text-xs">✓</span>
+                </div>
+                <div>
+                  <p className="font-medium text-gray-900">Track your progress</p>
+                  <p className="text-sm text-gray-600">Mark cards as learned and see stats</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-3">
+                <div className="w-6 h-6 rounded-full bg-blue-500 flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <span className="text-white text-xs">✓</span>
+                </div>
+                <div>
+                  <p className="font-medium text-gray-900">Study your way</p>
+                  <p className="text-sm text-gray-600">Sequential, random, or daily card</p>
+                </div>
+              </div>
+            </div>
+            <button
+              onClick={onClose}
+              className="w-full bg-blue-500 text-white py-3 px-6 rounded-lg font-medium hover:bg-blue-600 transition-colors"
+            >
+              Get Started
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    // Home Screen
+    function HomeScreen({ onNavigate }) {
+      const cardOfTheDay = getCardOfTheDay();
+      const lastStudiedId = getLastStudiedCard();
+      const learnedCards = getLearnedCards();
+      const progress = Math.round((learnedCards.length / CARD_DATA.length) * 100);
+      const sessionCount = getTodaySessionCount();
+
+      const categories = [
+        { name: 'Trinity & Nature of God', slug: 'trinity', color: '#0f172a', count: 8 },
+        { name: 'Jesus Christ', slug: 'christ', color: '#7f1d1d', count: 8 },
+        { name: 'Holy Spirit', slug: 'spirit', color: '#713f12', count: 6 },
+        { name: 'Salvation & Gospel', slug: 'salvation', color: '#14532d', count: 6 },
+        { name: 'Holy Scripture', slug: 'scripture', color: '#4c1d95', count: 4 },
+        { name: 'Church & Sacraments', slug: 'church', color: '#7c2d12', count: 6 },
+        { name: 'Christian Life', slug: 'life', color: '#134e4a', count: 8 },
+        { name: 'Last Things', slug: 'eschatology', color: '#1e293b', count: 4 }
+      ];
+
+      return (
+        <div className="flex-1 overflow-y-auto custom-scrollbar pb-24">
+          <div className="max-w-4xl mx-auto p-6">
+            {/* Header - subtitle only, title now in nav */}
+            <div className="mb-6">
+              <p className="text-gray-600">Learn core Christian doctrine</p>
+              {sessionCount > 0 && (
+                <p className="text-sm text-blue-600 mt-1">
+                  {sessionCount} {sessionCount === 1 ? 'card' : 'cards'} studied today
+                </p>
+              )}
+            </div>
+
+            {/* Card of the Day */}
+            <div className="mb-8 bg-gradient-to-r from-blue-500 to-purple-600 rounded-2xl shadow-lg overflow-hidden">
+              <div className="p-6">
+                <div className="flex items-center gap-2 mb-4">
+                  <i data-lucide="star" className="w-5 h-5 text-yellow-300"></i>
+                  <h2 className="text-white font-semibold uppercase tracking-wide text-sm">Card of the Day</h2>
+                </div>
+                <h3 className="text-2xl font-display text-white mb-2">{cardOfTheDay.title}</h3>
+                <p className="text-blue-100 mb-4 text-sm">{cardOfTheDay.category}</p>
+                <button
+                  onClick={() => onNavigate('study', { mode: 'random' })}
+                  className="bg-white text-blue-600 px-6 py-2 rounded-lg font-medium hover:bg-blue-50 transition-colors"
+                >
+                  Study Now
+                </button>
+              </div>
+            </div>
+
+            {/* Continue Studying */}
+            {lastStudiedId && (
+              <button
+                onClick={() => onNavigate('study', { mode: 'continue' })}
+                className="w-full mb-8 bg-white border-2 border-gray-200 rounded-xl p-6 hover:border-blue-500 transition-colors text-left"
+              >
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="flex items-center gap-2 mb-2">
+                      <i data-lucide="book-open" className="w-5 h-5 text-blue-500"></i>
+                      <h3 className="font-semibold text-gray-900">Continue Where You Left Off</h3>
+                    </div>
+                    <p className="text-gray-600 text-sm">Card {lastStudiedId} of {CARD_DATA.length}</p>
+                  </div>
+                  <i data-lucide="chevron-right" className="w-6 h-6 text-gray-400"></i>
+                </div>
+              </button>
+            )}
+
+            {/* Progress */}
+            <div className="mb-8 bg-white rounded-xl p-6 shadow-sm border border-gray-200">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="font-semibold text-gray-900">Your Progress</h3>
+                <span className="text-2xl font-bold text-blue-500">{progress}%</span>
+              </div>
+              <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+                <div 
+                  className="h-full bg-blue-500 transition-all duration-500"
+                  style={{ width: `${progress}%` }}
+                />
+              </div>
+              <p className="text-sm text-gray-600 mt-2">
+                {learnedCards.length} of {CARD_DATA.length} cards learned
+              </p>
+            </div>
+
+            {/* Study Modes */}
+            <div className="mb-8">
+              <h3 className="font-semibold text-gray-900 mb-4">Study Modes</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <button
+                  onClick={() => onNavigate('study', { mode: 'random' })}
+                  className="bg-white border-2 border-gray-200 rounded-xl p-6 hover:border-blue-500 transition-colors"
+                >
+                  <i data-lucide="shuffle" className="w-8 h-8 text-purple-500 mb-3"></i>
+                  <h4 className="font-semibold text-gray-900 mb-1">Random</h4>
+                  <p className="text-sm text-gray-600">Shuffle cards for variety</p>
+                </button>
+                
+                <button
+                  onClick={() => onNavigate('study', { mode: 'sequential' })}
+                  className="bg-white border-2 border-gray-200 rounded-xl p-6 hover:border-blue-500 transition-colors"
+                >
+                  <i data-lucide="list-ordered" className="w-8 h-8 text-blue-500 mb-3"></i>
+                  <h4 className="font-semibold text-gray-900 mb-1">Sequential</h4>
+                  <p className="text-sm text-gray-600">Study cards in order, 1-50</p>
+                </button>
+              </div>
+            </div>
+
+            {/* Categories */}
+            <div>
+              <h3 className="font-semibold text-gray-900 mb-4">Browse by Category</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {categories.map(cat => (
+                  <button
+                    key={cat.slug}
+                    onClick={() => onNavigate('study', { mode: 'category', category: cat.slug })}
+                    className="bg-white border-2 border-gray-200 rounded-xl p-6 hover:border-blue-500 transition-colors text-left"
+                  >
+                    <div className="flex items-center gap-4">
+                      <div 
+                        className="w-12 h-12 rounded-lg"
+                        style={{ backgroundColor: cat.color }}
+                      />
+                      <div className="flex-1">
+                        <h4 className="font-semibold text-gray-900 mb-1">{cat.name}</h4>
+                        <p className="text-sm text-gray-600">{cat.count} cards</p>
+                      </div>
+                      <i data-lucide="chevron-right" className="w-6 h-6 text-gray-400"></i>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // Study Screen with swipe navigation
+    function StudyScreen({ mode, category, onNavigate, startCard }) {
+      const [cards, setCards] = useState([]);
+      const [currentIndex, setCurrentIndex] = useState(0);
+      const [isFlipped, setIsFlipped] = useState(false);
+      const [learnedCards, setLearnedCards] = useState(getLearnedCards());
+      const [filter, setFilter] = useState('all'); // 'all', 'unlearned', 'learned'
+      const [showTapHint, setShowTapHint] = useState(getTapHintCount() < 3);
+      const [showUndo, setShowUndo] = useState(false);
+      const containerRef = useRef(null);
+      const touchStartX = useRef(0);
+      const touchStartY = useRef(0);
+
+      useEffect(() => {
+        let studyCards = [...CARD_DATA];
+
+        if (mode === 'daily') {
+          studyCards = [getCardOfTheDay()];
+        } else if (mode === 'category' && category) {
+          studyCards = CARD_DATA.filter(c => c.categorySlug === category);
+        } else if (mode === 'random') {
+          // Start with card of the day, then shuffle the rest
+          const dailyCard = getCardOfTheDay();
+          const otherCards = CARD_DATA.filter(c => c.id !== dailyCard.id).sort(() => Math.random() - 0.5);
+          studyCards = [dailyCard, ...otherCards];
+        } else if (mode === 'continue') {
+          const lastId = getLastStudiedCard();
+          const lastIndex = CARD_DATA.findIndex(c => c.id === lastId);
+          setCurrentIndex(lastIndex >= 0 ? lastIndex : 0);
+        }
+
+        // Apply filter
+        if (filter === 'unlearned') {
+          studyCards = studyCards.filter(c => !learnedCards.includes(c.id));
+        } else if (filter === 'learned') {
+          studyCards = studyCards.filter(c => learnedCards.includes(c.id));
+        }
+
+        setCards(studyCards);
+        setIsFlipped(false);
+
+        // Deep link: jump to specific card by ID
+        if (startCard && mode === 'sequential') {
+          const idx = studyCards.findIndex(c => c.id === startCard);
+          if (idx >= 0) setCurrentIndex(idx);
+        }
+      }, [mode, category, filter, learnedCards, startCard]);
+
+      // Keyboard navigation
+      useEffect(() => {
+        const handleKeyPress = (e) => {
+          if (e.code === 'ArrowLeft') {
+            handlePrevious();
+          } else if (e.code === 'ArrowRight') {
+            handleNext();
+          } else if (e.code === 'Space') {
+            e.preventDefault();
+            handleFlip();
+          }
+        };
+
+        window.addEventListener('keydown', handleKeyPress);
+        return () => window.removeEventListener('keydown', handleKeyPress);
+      }, [currentIndex, cards.length]);
+
+      // Touch swipe handlers
+      const handleTouchStart = (e) => {
+        touchStartX.current = e.touches[0].clientX;
+        touchStartY.current = e.touches[0].clientY;
+      };
+
+      const handleTouchEnd = (e) => {
+        const touchEndX = e.changedTouches[0].clientX;
+        const touchEndY = e.changedTouches[0].clientY;
+        const deltaX = touchEndX - touchStartX.current;
+        const deltaY = touchEndY - touchStartY.current;
+
+        // Check if swipe is horizontal (not vertical scroll)
+        if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 50) {
+          if (deltaX > 0) {
+            handlePrevious();
+          } else {
+            handleNext();
+          }
+        }
+      };
+
+      const currentCard = cards[currentIndex];
+
+      const handleNext = () => {
+        if (currentIndex < cards.length - 1) {
+          setCurrentIndex(currentIndex + 1);
+          setIsFlipped(false);
+          if (currentCard) {
+            setLastStudiedCard(currentCard.id);
+          }
+        }
+      };
+
+      const handlePrevious = () => {
+        if (currentIndex > 0) {
+          setCurrentIndex(currentIndex - 1);
+          setIsFlipped(false);
+        }
+      };
+
+      const handleFlip = () => {
+        playFlipSound();
+        setIsFlipped(!isFlipped);
+        
+        // Increment tap hint count
+        if (showTapHint) {
+          incrementTapHintCount();
+          if (getTapHintCount() >= 3) {
+            setShowTapHint(false);
+          }
+        }
+      };
+
+      const handleLearnedToggle = () => {
+        if (currentCard) {
+          toggleCardLearned(currentCard.id);
+          setLearnedCards(getLearnedCards());
+          setShowUndo(true);
+          setTimeout(() => setShowUndo(false), 3000);
+        }
+      };
+
+      const handleUndo = () => {
+        const result = undoLastAction();
+        if (result) {
+          setLearnedCards(getLearnedCards());
+          setShowUndo(false);
+        }
+      };
+
+      if (!currentCard) {
+        return (
+          <div className="flex-1 flex flex-col items-center justify-center p-8">
+            <p className="text-gray-600 mb-4">No cards match your filter.</p>
+            <button
+              onClick={() => setFilter('all')}
+              className="px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
+            >
+              Show All Cards
+            </button>
+          </div>
+        );
+      }
+
+      const isLearned = isCardLearned(currentCard.id);
+
+      return (
+        <div className="flex-1 flex flex-col pb-20">
+          {/* Header with filter */}
+          <div className="p-4 border-b border-gray-200 flex items-center justify-between">
+            <button
+              onClick={() => onNavigate('home')}
+              className="p-2 hover:bg-gray-100 rounded-lg"
+            >
+              <i data-lucide="arrow-left" className="w-6 h-6 text-gray-600"></i>
+            </button>
+            
+            {/* Filter Toggle */}
+            <div className="flex gap-1 bg-gray-100 rounded-lg p-1">
+              <button
+                onClick={() => setFilter('all')}
+                className={`px-3 py-1 rounded text-xs font-medium transition-colors ${
+                  filter === 'all' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600'
+                }`}
+              >
+                All
+              </button>
+              <button
+                onClick={() => setFilter('unlearned')}
+                className={`px-3 py-1 rounded text-xs font-medium transition-colors ${
+                  filter === 'unlearned' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600'
+                }`}
+              >
+                Unlearned
+              </button>
+              <button
+                onClick={() => setFilter('learned')}
+                className={`px-3 py-1 rounded text-xs font-medium transition-colors ${
+                  filter === 'learned' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600'
+                }`}
+              >
+                Learned
+              </button>
+            </div>
+
+            <button
+              onClick={() => shareCard(currentCard)}
+              className="p-2 hover:bg-gray-100 rounded-lg"
+            >
+              <i data-lucide="share-2" className="w-6 h-6 text-gray-600"></i>
+            </button>
+          </div>
+
+          {/* Card Display */}
+          <div 
+            className="flex-1 p-4 md:p-8 flex items-center justify-center"
+            ref={containerRef}
+            onTouchStart={handleTouchStart}
+            onTouchEnd={handleTouchEnd}
+          >
+            <div className="w-full max-w-2xl" style={{ aspectRatio: '2/3', maxHeight: '80vh' }}>
+              <Card
+                card={currentCard}
+                onFlip={handleFlip}
+                isFlipped={isFlipped}
+                onLearnedToggle={handleLearnedToggle}
+                isLearned={isLearned}
+                currentIndex={currentIndex}
+                totalCards={cards.length}
+                showTapHint={showTapHint}
+              />
+            </div>
+          </div>
+
+          {/* Undo button */}
+          {showUndo && (
+            <div className="fixed bottom-24 left-0 right-0 flex justify-center z-50 fade-in">
+              <button
+                onClick={handleUndo}
+                className="bg-gray-900 text-white px-6 py-3 rounded-lg shadow-lg flex items-center gap-2 hover:bg-gray-800 transition-colors"
+              >
+                <i data-lucide="undo-2" className="w-5 h-5"></i>
+                <span>Undo</span>
+              </button>
+            </div>
+          )}
+
+          {/* Swipe hint for desktop */}
+          <div className="p-4 text-center">
+            <p className="text-xs text-gray-500">
+              Swipe or use arrow keys to navigate &bull; Spacebar to flip
+            </p>
+          </div>
+        </div>
+      );
+    }
+    // Progress Screen
+    function ProgressScreen() {
+      const [learnedCards, setLearnedCards] = useState(getLearnedCards());
+      const [soundEnabled, setSoundEnabled] = useState(getSoundEnabled());
+      const totalCards = CARD_DATA.length;
+      const progress = Math.round((learnedCards.length / totalCards) * 100);
+      const sessionCount = getTodaySessionCount();
+
+      const categories = [
+        { name: 'Trinity', slug: 'trinity', total: 8 },
+        { name: 'Christ', slug: 'christ', total: 8 },
+        { name: 'Holy Spirit', slug: 'spirit', total: 6 },
+        { name: 'Salvation', slug: 'salvation', total: 6 },
+        { name: 'Scripture', slug: 'scripture', total: 4 },
+        { name: 'Church', slug: 'church', total: 6 },
+        { name: 'Christian Life', slug: 'life', total: 8 },
+        { name: 'Last Things', slug: 'eschatology', total: 4 }
+      ];
+
+      const getCategoryProgress = (slug, total) => {
+        const categoryCards = CARD_DATA.filter(c => c.categorySlug === slug);
+        const learned = categoryCards.filter(c => learnedCards.includes(c.id)).length;
+        return { learned, total, percent: Math.round((learned / total) * 100) };
+      };
+
+      const handleReset = () => {
+        if (resetAllProgress()) {
+          setLearnedCards([]);
+        }
+      };
+
+      const handleToggleSound = () => {
+        const newState = toggleSound();
+        setSoundEnabled(newState);
+      };
+
+      return (
+        <div className="flex-1 overflow-y-auto custom-scrollbar pb-24">
+          <div className="max-w-4xl mx-auto p-6">
+            <h1 className="text-3xl font-display text-gray-900 mb-8">Your Progress</h1>
+
+            {/* Overall Progress */}
+            <div className="bg-gradient-to-r from-blue-500 to-purple-600 rounded-2xl shadow-lg p-8 mb-8 text-white">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h2 className="text-lg font-semibold">Overall Progress</h2>
+                  {sessionCount > 0 && (
+                    <p className="text-blue-100 text-sm mt-1">
+                      {sessionCount} {sessionCount === 1 ? 'card' : 'cards'} studied today
+                    </p>
+                  )}
+                </div>
+                <span className="text-4xl font-bold">{progress}%</span>
+              </div>
+              <div className="h-3 bg-white bg-opacity-30 rounded-full overflow-hidden mb-2">
+                <div 
+                  className="h-full bg-white transition-all duration-500"
+                  style={{ width: `${progress}%` }}
+                />
+              </div>
+              <p className="text-blue-100">
+                {learnedCards.length} of {totalCards} cards learned
+              </p>
+            </div>
+
+            {/* Category Progress */}
+            <div className="space-y-4">
+              <h2 className="text-xl font-semibold text-gray-900">By Category</h2>
+              {categories.map(cat => {
+                const prog = getCategoryProgress(cat.slug, cat.total);
+                return (
+                  <div key={cat.slug} className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
+                    <div className="flex items-center justify-between mb-3">
+                      <h3 className="font-semibold text-gray-900">{cat.name}</h3>
+                      <span className="text-lg font-bold text-blue-500">{prog.percent}%</span>
+                    </div>
+                    <div className="h-2 bg-gray-200 rounded-full overflow-hidden mb-2">
+                      <div 
+                        className="h-full bg-blue-500 transition-all duration-500"
+                        style={{ width: `${prog.percent}%` }}
+                      />
+                    </div>
+                    <p className="text-sm text-gray-600">
+                      {prog.learned} of {prog.total} cards
+                    </p>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Stats */}
+            <div className="mt-8 grid grid-cols-2 gap-4">
+              <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200 text-center">
+                <div className="text-3xl font-bold text-blue-500 mb-2">{totalCards}</div>
+                <div className="text-sm text-gray-600">Total Cards</div>
+              </div>
+              <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200 text-center">
+                <div className="text-3xl font-bold text-green-500 mb-2">{learnedCards.length}</div>
+                <div className="text-sm text-gray-600">Learned</div>
+              </div>
+            </div>
+
+            {/* Settings */}
+            <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200 mb-4">
+              <h2 className="text-xl font-semibold text-gray-900 mb-4">Settings</h2>
+              
+              {/* Sound toggle */}
+              <div className="flex items-center justify-between mb-4 pb-4 border-b border-gray-200">
+                <div>
+                  <h3 className="font-medium text-gray-900">Flip Sound</h3>
+                  <p className="text-sm text-gray-600">Play sound when flipping cards</p>
+                </div>
+                <button
+                  onClick={handleToggleSound}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                    soundEnabled ? 'bg-blue-500' : 'bg-gray-300'
+                  }`}
+                >
+                  <span
+                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                      soundEnabled ? 'translate-x-6' : 'translate-x-1'
+                    }`}
+                  />
+                </button>
+              </div>
+
+              {/* Reset button */}
+              <button
+                onClick={handleReset}
+                className="w-full bg-red-50 text-red-600 px-4 py-3 rounded-lg font-medium hover:bg-red-100 transition-colors"
+              >
+                Reset All Progress
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // Top Navigation (replaces Bottom Nav)
+    function TopNav({ currentView, onNavigate }) {
+      const navItems = [
+        { id: 'progress', icon: 'trending-up', label: 'Progress' },
+        { id: 'home', icon: 'home', label: 'Home' }
+      ];
+
+      return (
+        <div className="sticky top-0 left-0 right-0 bg-white border-b border-gray-200 z-40">
+          <div className="max-w-4xl mx-auto px-4 py-3">
+            <div className="flex items-center justify-between">
+              
+{/* Left-aligned Title as Home button */}
+<button
+  onClick={() => onNavigate('home')}
+  className={`text-xl font-bold transition-colors ${
+    currentView === 'home' 
+      ? 'text-gray-900' 
+      : 'text-gray-800 hover:text-blue-600'
+  }`}
+>
+  Creed Cards
+</button>
+              
+              {/* Nav Items */}
+              <div className="flex items-center gap-1">
+                {navItems.map(item => (
+                  <button
+                    key={item.id}
+                    onClick={() => onNavigate(item.id)}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-colors text-sm ${
+                      currentView === item.id 
+                        ? 'text-blue-600 bg-blue-50' 
+                        : 'text-gray-600 hover:bg-gray-50'
+                    }`}
+                  >
+                    <i data-lucide={item.icon} className="w-5 h-5"></i>
+                    <span className="font-medium hidden sm:inline">{item.label}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // Main App
+    function App() {
+      const [currentView, setCurrentView] = useState('home');
+      const [studyParams, setStudyParams] = useState({});
+      const [showWelcome, setShowWelcome] = useState(!getWelcomeSeen());
+
+      const handleNavigate = (view, params = {}) => {
+        setCurrentView(view);
+        setStudyParams(params);
+      };
+
+      const handleCloseWelcome = () => {
+        setWelcomeSeen();
+        setShowWelcome(false);
+      };
+
+      // Deep link: ?card=N navigates directly to that card
+      useEffect(() => {
+        const params = new URLSearchParams(window.location.search);
+        const cardId = parseInt(params.get('card'), 10);
+        if (cardId >= 1 && cardId <= 50) {
+          setCurrentView('study');
+          setStudyParams({ mode: 'sequential', startCard: cardId });
+        }
+      }, []);
+
+      useEffect(() => {
+        // Initialize Lucide icons
+        if (window.lucide) {
+          lucide.createIcons();
+        }
+      }, [currentView]);
+
+      return (
+        <div className="min-h-screen flex flex-col bg-gray-50">
+          {showWelcome && <WelcomeScreen onClose={handleCloseWelcome} />}
+          
+          <TopNav currentView={currentView} onNavigate={handleNavigate} />
+          
+          <div className="flex-1 overflow-auto">
+            {currentView === 'home' && <HomeScreen onNavigate={handleNavigate} />}
+            {currentView === 'study' && (
+              <StudyScreen
+                mode={studyParams.mode || 'sequential'}
+                category={studyParams.category}
+                startCard={studyParams.startCard}
+                onNavigate={handleNavigate}
+              />
+            )}
+            {currentView === 'progress' && <ProgressScreen />}
+          </div>
+        </div>
+      );
+    }
+
+    // Render App
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<App />);
+
+    // Register Service Worker
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js').catch(err => {
+        console.log('SW registration failed:', err);
+      });
+    }
+  </script>
+</body>
+</html>

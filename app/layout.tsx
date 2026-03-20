@@ -1,18 +1,10 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
-import { AuthProvider } from "@/components/auth/AuthProvider";
 import { ToastProvider } from "@/components/ui/Toast";
+import { ThemeProvider } from "@/components/ThemeProvider";
 import { BottomTabBar } from "@/components/navigation/BottomTabBar";
 import { BrochureShell } from "@/components/layout/BrochureShell";
-import { CreedCardsFAB } from "@/components/CreedCardsFAB";
-import { EncouragementToast } from "@/components/EncouragementToast";
-import { ChallengeNudge } from "@/components/ChallengeNudge";
 import "./globals.css";
-import "../styles/prayer.css";
-import "../styles/community.css";
-import "../styles/creed-cards.css";
-import "../styles/encouragements.css";
-import "../styles/tv-mode.css";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -26,7 +18,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "ARK Identity",
-  description: "Discipleship tools that naturally multiply — courses, journal, prayer, and community.",
+  description: "Discipleship courses, resources, and training from ARK Identity.",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
@@ -61,17 +53,14 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <AuthProvider>
+        <ThemeProvider>
           <ToastProvider>
             <BrochureShell>
               {children}
             </BrochureShell>
             <BottomTabBar />
-            <CreedCardsFAB />
-            <EncouragementToast />
-            <ChallengeNudge />
           </ToastProvider>
-        </AuthProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

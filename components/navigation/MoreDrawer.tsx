@@ -57,13 +57,26 @@ const MORE_LINKS = [
     ),
   },
   {
-    id: 'dna',
-    label: 'DNA Discipleship',
-    href: 'https://dnadiscipleship.com',
-    external: true,
+    id: 'team',
+    label: 'Our Team',
+    href: '/team',
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+        <circle cx="9" cy="7" r="4" />
+        <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+        <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+      </svg>
+    ),
+  },
+  {
+    id: 'get-involved',
+    label: 'Get Involved',
+    href: '/get-involved',
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
       </svg>
     ),
   },
@@ -110,37 +123,18 @@ export function MoreDrawer({ isOpen, onClose }: MoreDrawerProps) {
         </div>
 
         <div className="settings-menu-items">
-          {MORE_LINKS.map((link) => {
-            const isExternal = 'external' in link && link.external;
-            if (isExternal) {
-              return (
-                <a
-                  key={link.id}
-                  href={link.href}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="links-drawer-item"
-                  onClick={onClose}
-                >
-                  <span className="links-drawer-item-icon">{link.icon}</span>
-                  <span className="links-drawer-item-label">{link.label}</span>
-                  <span className="links-drawer-item-chevron">{CHEVRON_RIGHT}</span>
-                </a>
-              );
-            }
-            return (
-              <Link
-                key={link.id}
-                href={link.href}
-                className="links-drawer-item"
-                onClick={onClose}
-              >
-                <span className="links-drawer-item-icon">{link.icon}</span>
-                <span className="links-drawer-item-label">{link.label}</span>
-                <span className="links-drawer-item-chevron">{CHEVRON_RIGHT}</span>
-              </Link>
-            );
-          })}
+          {MORE_LINKS.map((link) => (
+            <Link
+              key={link.id}
+              href={link.href}
+              className="links-drawer-item"
+              onClick={onClose}
+            >
+              <span className="links-drawer-item-icon">{link.icon}</span>
+              <span className="links-drawer-item-label">{link.label}</span>
+              <span className="links-drawer-item-chevron">{CHEVRON_RIGHT}</span>
+            </Link>
+          ))}
         </div>
 
         <div className="more-drawer-footer">

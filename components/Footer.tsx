@@ -61,14 +61,12 @@ export default function Footer() {
             </h4>
             <ul className="space-y-2 text-sm">
               <li>
-                <a
-                  href="https://app.arkidentity.com"
-                  target="_blank"
-                  rel="noopener noreferrer"
+                <Link
+                  href="/courses"
                   className="text-gray-300 hover:text-gold transition"
                 >
-                  ARK App
-                </a>
+                  ARK Courses
+                </Link>
               </li>
               <li>
                 <a

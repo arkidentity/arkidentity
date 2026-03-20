@@ -108,12 +108,6 @@ function shareEvent(title: string, meetingLink: string | null) {
   }
 }
 
-function MeetingTypeIcon({ type }: { type: string | null }) {
-  if (type === 'in_person') return <span className="text-xl">👥</span>;
-  if (type === 'zoom') return <span className="text-xl">💻</span>;
-  return <span className="text-xl">📹</span>;
-}
-
 export default function ResourcesPage() {
   const [events, setEvents] = useState<ArkOnlineEvent[]>([]);
   const [eventsLoading, setEventsLoading] = useState(true);
@@ -187,23 +181,19 @@ export default function ResourcesPage() {
                 {/* Weekly Schedule */}
                 {recurringEvents.length > 0 && (
                   <div className="mb-4">
-                    <h3 className="text-xs font-semibold uppercase tracking-wider text-white/40 mb-3">Weekly Schedule</h3>
                     <div className="space-y-3">
                       {recurringEvents.map(event => (
-                        <div key={event.id} className="resources-event-card">
-                          <div className="flex items-start gap-3 flex-1">
-                            <MeetingTypeIcon type={event.meeting_type} />
-                            <div className="flex-1 min-w-0">
-                              <h4 className="font-semibold text-white text-sm">{event.title}</h4>
-                              <p className="text-white/50 text-xs mt-0.5">
-                                Every {DAYS[event.day_of_week]} at {formatEventTime(event)}
-                              </p>
-                              {event.description && (
-                                <p className="text-white/40 text-xs mt-1">{event.description}</p>
-                              )}
-                            </div>
+                        <div key={event.id} className="resources-event-card resources-event-row">
+                          <div className="flex-1 min-w-0">
+                            <h4 className="font-semibold text-white text-sm">{event.title}</h4>
+                            <p className="text-white/50 text-xs mt-0.5">
+                              Every {DAYS[event.day_of_week]} at {formatEventTime(event)}
+                            </p>
+                            {event.description && (
+                              <p className="text-white/40 text-xs mt-1">{event.description}</p>
+                            )}
                           </div>
-                          <div className="flex gap-2 mt-3">
+                          <div className="flex gap-2 shrink-0">
                             {event.meeting_link && (
                               <a
                                 href={event.meeting_link}
@@ -233,21 +223,18 @@ export default function ResourcesPage() {
                     <h3 className="text-xs font-semibold uppercase tracking-wider text-white/40 mb-3">Upcoming Events</h3>
                     <div className="space-y-3">
                       {oneTimeEvents.map(event => (
-                        <div key={event.id} className="resources-event-card">
-                          <div className="flex items-start gap-3 flex-1">
-                            <MeetingTypeIcon type={event.meeting_type} />
-                            <div className="flex-1 min-w-0">
-                              <h4 className="font-semibold text-white text-sm">{event.title}</h4>
-                              <p className="text-white/50 text-xs mt-0.5">
-                                {event.specific_date && new Date(event.specific_date).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
-                                {' at '}{formatEventTime(event)}
-                              </p>
-                              {event.description && (
-                                <p className="text-white/40 text-xs mt-1">{event.description}</p>
-                              )}
-                            </div>
+                        <div key={event.id} className="resources-event-card resources-event-row">
+                          <div className="flex-1 min-w-0">
+                            <h4 className="font-semibold text-white text-sm">{event.title}</h4>
+                            <p className="text-white/50 text-xs mt-0.5">
+                              {event.specific_date && new Date(event.specific_date).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
+                              {' at '}{formatEventTime(event)}
+                            </p>
+                            {event.description && (
+                              <p className="text-white/40 text-xs mt-1">{event.description}</p>
+                            )}
                           </div>
-                          <div className="flex gap-2 mt-3">
+                          <div className="flex gap-2 shrink-0">
                             {event.meeting_link && (
                               <a
                                 href={event.meeting_link}
@@ -288,8 +275,8 @@ export default function ResourcesPage() {
               />
             </div>
             <div className="resources-books-content">
-              <h2 className="text-lg font-bold text-white mb-1">ARK Books</h2>
-              <p className="text-white/50 text-sm mb-4">Identity-focused discipleship resources</p>
+              <h2 className="text-lg font-bold mb-1">ARK Books</h2>
+              <p className="text-sm mb-4">Identity-focused discipleship resources</p>
               <a
                 href={AMAZON_BOOKS_URL}
                 target="_blank"

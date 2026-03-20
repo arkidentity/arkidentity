@@ -19,7 +19,8 @@
       }
     ],
     "paths": {
-      "@/*": ["./*"]
+      "@/*": ["./*"],
+      "@courses/*": ["./shared/ark-courses/*"]
     }
   },
   "include": [

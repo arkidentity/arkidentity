@@ -1,0 +1,3 @@
+[submodule "shared/ark-courses"]
+	path = shared/ark-courses
+	url = https://github.com/arkidentity/ark-courses.git

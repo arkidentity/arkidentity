@@ -5,6 +5,14 @@ import { supabase } from '@/lib/supabase';
 export type PostStatus = 'draft' | 'approved' | 'published';
 export type MediaType = 'photo' | 'audio' | 'video';
 
+export interface MediaItem {
+  url: string;
+  type: MediaType;
+  // Set for embedded video links (YouTube/Vimeo). When absent, a `video` item is
+  // an uploaded file served by <video>. When present, it's an embedded player.
+  provider?: 'youtube' | 'vimeo';
+}
+
 export interface Post {
   id: string;
   status: PostStatus;
@@ -14,9 +22,11 @@ export interface Post {
   draft_text: string | null;
   final_text: string | null;
   display_media_url: string | null;
+  media: MediaItem[];
   created_at: string;
   approved_at: string | null;
   published_at: string | null;
+  drive_file_id?: string | null;
 }
 
 // Public feed: published posts, newest first. Reads via the anon key; RLS

@@ -1,4 +1,5 @@
-import type { Post } from '@/lib/feed';
+import type { Post, MediaItem } from '@/lib/feed';
+import { parseVideoLink } from '@/lib/videoLinks';
 
 function formatDate(iso: string | null): string {
   if (!iso) return '';
@@ -9,32 +10,52 @@ function formatDate(iso: string | null): string {
   });
 }
 
-function PostMedia({ post }: { post: Post }) {
-  const url = post.display_media_url || post.raw_media_url;
-  if (!url) return null;
-
-  if (post.media_type === 'video') {
-    return (
-      <video
-        controls
-        preload="metadata"
-        className="w-full rounded-lg mb-5 bg-black"
-        src={url}
-      />
-    );
+function MediaBlock({ item }: { item: MediaItem }) {
+  // Embedded YouTube/Vimeo link → responsive iframe player.
+  if (item.provider) {
+    const parsed = parseVideoLink(item.url);
+    if (parsed) {
+      return (
+        <div className="relative w-full overflow-hidden rounded-lg" style={{ paddingTop: '56.25%' }}>
+          <iframe
+            className="absolute inset-0 h-full w-full"
+            src={parsed.embedUrl}
+            title="Video"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowFullScreen
+          />
+        </div>
+      );
+    }
   }
-  if (post.media_type === 'audio') {
-    return <audio controls preload="metadata" className="w-full mb-5" src={url} />;
+  if (item.type === 'video') {
+    return <video controls preload="metadata" className="w-full rounded-lg bg-black" src={item.url} />;
   }
-  // photo (default)
+  if (item.type === 'audio') {
+    return <audio controls preload="metadata" className="w-full" src={item.url} />;
+  }
   // eslint-disable-next-line @next/next/no-img-element
+  return <img src={item.url} alt="" className="w-full rounded-lg object-cover" loading="lazy" />;
+}
+
+function PostGallery({ post }: { post: Post }) {
+  // Prefer the multi-item media list; fall back to the legacy single-media
+  // columns for seed rows.
+  const items: MediaItem[] =
+    post.media && post.media.length > 0
+      ? post.media
+      : post.display_media_url || post.raw_media_url
+        ? [{ url: (post.display_media_url || post.raw_media_url)!, type: post.media_type ?? 'photo' }]
+        : [];
+
+  if (items.length === 0) return null;
+
   return (
-    <img
-      src={url}
-      alt=""
-      className="w-full rounded-lg mb-5 object-cover"
-      loading="lazy"
-    />
+    <div className={`mb-5 grid gap-3 ${items.length > 1 ? 'sm:grid-cols-2' : 'grid-cols-1'}`}>
+      {items.map((item, i) => (
+        <MediaBlock key={i} item={item} />
+      ))}
+    </div>
   );
 }
 
@@ -55,7 +76,7 @@ export function PostCard({ post }: { post: Post }) {
         {formatDate(post.published_at)}
       </time>
 
-      <PostMedia post={post} />
+      <PostGallery post={post} />
 
       <div className="space-y-4">
         {paragraphs.map((p, i) => (

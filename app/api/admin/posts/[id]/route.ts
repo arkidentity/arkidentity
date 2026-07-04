@@ -1,21 +1,27 @@
 import { NextResponse } from 'next/server';
-import { editPost, approvePost, publishPost } from '@/lib/feedAdmin';
+import { editPost, approvePost, publishPost, draftPost } from '@/lib/feedAdmin';
+
+// AI drafting calls Claude, which can run longer than the default limit.
+export const maxDuration = 60;
 
 // PATCH /api/admin/posts/:id — advance a post through the pipeline.
-// body: { action: 'edit' | 'approve' | 'publish', final_text?: string }
+// body: { action: 'draft' | 'edit' | 'approve' | 'publish', final_text?: string }
 export async function PATCH(
   req: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
   const body = (await req.json().catch(() => ({}))) as {
-    action?: 'edit' | 'approve' | 'publish';
+    action?: 'draft' | 'edit' | 'approve' | 'publish';
     final_text?: string;
   };
 
   try {
     let post;
     switch (body.action) {
+      case 'draft':
+        post = await draftPost(id);
+        break;
       case 'edit':
         if (!body.final_text?.trim()) {
           return NextResponse.json({ error: 'Text is required.' }, { status: 400 });

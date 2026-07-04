@@ -139,9 +139,28 @@ export function AdminQueue({ initialPosts }: { initialPosts: Post[] }) {
     if (res.ok) {
       const { post } = await res.json();
       setPosts((p) => p.map((x) => (x.id === id ? post : x)));
-      if (action === 'publish') refresh();
+      // Edits to a published post change the live feed; refresh so the public
+      // page reflects it (and publish, which adds it to the feed).
+      if (action === 'publish' || action === 'edit') refresh();
     } else {
       setError((await res.json().catch(() => ({}))).error || 'Action failed.');
+    }
+  }
+
+  async function del(id: string, published: boolean) {
+    const msg = published
+      ? 'Delete this published update? It will be removed from the public feed.'
+      : 'Delete this draft?';
+    if (!window.confirm(msg)) return;
+    setBusy(id);
+    setError('');
+    const res = await fetch(`/api/admin/posts/${id}`, { method: 'DELETE' });
+    setBusy(null);
+    if (res.ok) {
+      setPosts((p) => p.filter((x) => x.id !== id));
+      if (published) refresh();
+    } else {
+      setError((await res.json().catch(() => ({}))).error || 'Delete failed.');
     }
   }
 
@@ -224,7 +243,7 @@ export function AdminQueue({ initialPosts }: { initialPosts: Post[] }) {
               <p className="text-sm" style={{ color: '#8a8378' }}>Nothing here.</p>
             ) : (
               group.map((post) => (
-                <AdminCard key={post.id} post={post} busy={busy === post.id} onAct={act} />
+                <AdminCard key={post.id} post={post} busy={busy === post.id} onAct={act} onDelete={del} />
               ))
             )}
           </section>
@@ -238,6 +257,7 @@ function AdminCard({
   post,
   busy,
   onAct,
+  onDelete,
 }: {
   post: Post;
   busy: boolean;
@@ -246,6 +266,7 @@ function AdminCard({
     action: 'draft' | 'edit' | 'approve' | 'publish',
     final_text?: string
   ) => void;
+  onDelete: (id: string, published: boolean) => void;
 }) {
   const [editing, setEditing] = useState(false);
   const [text, setText] = useState(post.final_text ?? post.draft_text ?? '');
@@ -314,7 +335,7 @@ function AdminCard({
                 onClick={() => onAct(post.id, 'draft')}
               />
             )}
-            {post.status !== 'published' && hasBody && (
+            {hasBody && (
               <ActionBtn label="Edit" ghost disabled={busy} onClick={() => { setText(post.final_text ?? post.draft_text ?? ''); setEditing(true); }} />
             )}
             {post.status === 'draft' && hasBody && (
@@ -323,6 +344,12 @@ function AdminCard({
             {post.status === 'approved' && (
               <ActionBtn label="Publish" disabled={busy} onClick={() => onAct(post.id, 'publish')} />
             )}
+            <ActionBtn
+              label="Delete"
+              danger
+              disabled={busy}
+              onClick={() => onDelete(post.id, post.status === 'published')}
+            />
           </>
         )}
       </div>
@@ -335,22 +362,25 @@ function ActionBtn({
   onClick,
   disabled,
   ghost,
+  danger,
 }: {
   label: string;
   onClick: () => void;
   disabled?: boolean;
   ghost?: boolean;
+  danger?: boolean;
 }) {
+  const style = danger
+    ? { backgroundColor: 'transparent', color: '#b91c1c', border: '1px solid #f0c8c8' }
+    : ghost
+      ? { backgroundColor: 'transparent', color: 'var(--navy)', border: '1px solid #d1d5db' }
+      : { backgroundColor: 'var(--navy)', color: 'white' };
   return (
     <button
       onClick={onClick}
       disabled={disabled}
       className="px-4 py-2 rounded-lg text-sm font-semibold transition hover:opacity-90 disabled:opacity-50"
-      style={
-        ghost
-          ? { backgroundColor: 'transparent', color: 'var(--navy)', border: '1px solid #d1d5db' }
-          : { backgroundColor: 'var(--navy)', color: 'white' }
-      }
+      style={style}
     >
       {label}
     </button>

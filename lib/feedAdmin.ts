@@ -103,6 +103,33 @@ export async function approvePost(id: string, final_text?: string): Promise<Post
   return data as Post;
 }
 
+const BUCKET = process.env.FEED_MEDIA_BUCKET || 'feed-media';
+
+// Delete a post and best-effort remove any media it uploaded to Storage.
+// Embedded video links (YouTube/Vimeo) have no stored object to clean up.
+export async function deletePost(id: string): Promise<void> {
+  const supabase = getSupabaseAdmin();
+  const post = await getPost(id);
+
+  const marker = `/object/public/${BUCKET}/`;
+  const paths = (post.media ?? [])
+    .filter((m) => !m.provider && m.url.includes(marker))
+    .map((m) => decodeURIComponent(m.url.split(marker)[1] || ''))
+    .filter(Boolean);
+
+  if (paths.length > 0) {
+    // Best effort — don't block the delete if storage cleanup fails.
+    try {
+      await supabase.storage.from(BUCKET).remove(paths);
+    } catch {
+      // ignore — orphaned objects are harmless
+    }
+  }
+
+  const { error } = await supabase.from('posts').delete().eq('id', id);
+  if (error) throw new Error(error.message);
+}
+
 export async function publishPost(id: string): Promise<Post> {
   const { data, error } = await getSupabaseAdmin()
     .from('posts')

@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { editPost, approvePost, publishPost, draftPost } from '@/lib/feedAdmin';
+import { editPost, approvePost, publishPost, draftPost, deletePost } from '@/lib/feedAdmin';
 
 // AI drafting calls Claude, which can run longer than the default limit.
 export const maxDuration = 60;
@@ -38,6 +38,21 @@ export async function PATCH(
         return NextResponse.json({ error: 'Unknown action.' }, { status: 400 });
     }
     return NextResponse.json({ post });
+  } catch (e) {
+    return NextResponse.json({ error: (e as Error).message }, { status: 500 });
+  }
+}
+
+// DELETE /api/admin/posts/:id — permanently remove a post (any status) and its
+// uploaded media.
+export async function DELETE(
+  _req: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const { id } = await params;
+  try {
+    await deletePost(id);
+    return NextResponse.json({ ok: true });
   } catch (e) {
     return NextResponse.json({ error: (e as Error).message }, { status: 500 });
   }

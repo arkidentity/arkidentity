@@ -86,14 +86,14 @@ arkidentity-website/
 - **Subhead:** "We help believers experience God daily and churches multiply disciples naturally."
 - **Two equal CTAs:**
   - Button: "For Individuals" → https://app.arkidentity.com
-  - Button: "For Churches" → https://dna.arkidentity.com
+  - Button: "For Churches" → https://dnadiscipleship.com
 
 ### What We Offer (2 Cards)
 **Card 1: Daily Discipleship Tools**
 - Link to: https://app.arkidentity.com
 
 **Card 2: DNA Multiplication System**
-- Link to: https://dna.arkidentity.com
+- Link to: https://dnadiscipleship.com
 
 ### Campus Callout (Below Cards)
 - Smaller section, different background color

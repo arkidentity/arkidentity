@@ -31,7 +31,7 @@
 
 1. **arkidentity.com** - Brand hub/landing page (THIS BUILD)
 2. **app.arkidentity.com** - Daily tools for individuals (LIVE)
-3. **dna.arkidentity.com** - Church multiplication system (LIVE)
+3. **dnadiscipleship.com** - Church multiplication system (LIVE)
 4. **campus.arkidentity.com** - Campus ministry model (PROOF OF CONCEPT - build later)
 
 ---

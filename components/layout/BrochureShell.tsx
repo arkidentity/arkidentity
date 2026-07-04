@@ -11,6 +11,7 @@ const PUBLIC_ROUTES = [
   '/beliefs',
   '/giving',
   '/get-involved',
+  '/feed',
   '/vision',
   '/vision-2026',
   '/campus',

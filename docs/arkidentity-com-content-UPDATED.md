@@ -8,7 +8,7 @@
 ## Site Overview
 
 **Domain:** arkidentity.com  
-**Hosting:** Vercel (free tier, same as dna.arkidentity.com)  
+**Hosting:** Vercel (free tier, same as dnadiscipleship.com)  
 **Tech Stack:** Next.js or Static HTML + Tailwind CSS  
 **Purpose:** Brand hub/landing page that directs audiences to two main products (app + DNA) with campus ministry as emerging third pillar
 
@@ -18,7 +18,7 @@
 
 1. **arkidentity.com** - Brand home (this document)
 2. **app.arkidentity.com** - Daily discipleship tools (already built)
-3. **dna.arkidentity.com** - Church multiplication system (already built)
+3. **dnadiscipleship.com** - Church multiplication system (already built)
 4. **campus.arkidentity.com** - Campus ministry model (proof of concept, will build later)
 
 ---
@@ -72,7 +72,7 @@ A discipleship resource company that provides daily tools for individuals and mu
 
 **Two Main CTAs (Equal Prominence):**
 - Button 1: "For Individuals" → app.arkidentity.com
-- Button 2: "For Churches" → dna.arkidentity.com
+- Button 2: "For Churches" → dnadiscipleship.com
 
 **Visual:** Split-screen showing app interface + church DNA group
 
@@ -90,7 +90,7 @@ A discipleship resource company that provides daily tools for individuals and mu
 - Icon/Image: DNA helix or group of 4 people
 - Headline: "For Churches"
 - Text: "Life-on-life discipleship groups that multiply every 6-12 months. Move from consumer culture to disciple-making DNA."
-- Link: "Explore DNA" → dna.arkidentity.com
+- Link: "Explore DNA" → dnadiscipleship.com
 
 ---
 
@@ -367,7 +367,7 @@ The ARK Identity Training believes that theology should be rooted in the Bible, 
 
 **For Churches:**
 - Text: "Launch ARK Identity for your congregation. Our DNA system equips your members to make disciples who multiply."
-- CTA: "Explore DNA for Churches" → dna.arkidentity.com
+- CTA: "Explore DNA for Churches" → dnadiscipleship.com
 
 **For Content Creators:**
 - Text: "Use our resources, co-create courses, and help us reach more believers with the gospel."

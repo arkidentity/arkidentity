@@ -10,9 +10,17 @@ export default function Footer() {
             <h3 className="text-xl font-bold mb-4" style={{ color: 'var(--gold)' }}>
               ARK Identity
             </h3>
-            <p className="text-gray-300 text-sm">
+            <p className="text-gray-300 text-sm mb-4">
               We help believers experience God daily and churches multiply disciples naturally.
             </p>
+            <p className="text-gray-300 text-sm mb-3">Get ministry updates from the field.</p>
+            <Link
+              href="/feed/subscribe"
+              className="inline-block px-4 py-2 rounded-lg font-semibold text-sm transition hover:opacity-90"
+              style={{ backgroundColor: 'var(--gold)', color: 'var(--navy)' }}
+            >
+              Get Updates
+            </Link>
           </div>
 
           {/* Quick Links */}
@@ -21,6 +29,11 @@ export default function Footer() {
               Quick Links
             </h4>
             <ul className="space-y-2 text-sm">
+              <li>
+                <Link href="/feed" className="text-gray-300 hover:text-gold transition">
+                  Updates
+                </Link>
+              </li>
               <li>
                 <Link href="/about" className="text-gray-300 hover:text-gold transition">
                   About
@@ -43,7 +56,7 @@ export default function Footer() {
               </li>
               <li>
                 <Link href="/get-involved" className="text-gray-300 hover:text-gold transition">
-                  Careers
+                  Get Involved
                 </Link>
               </li>
               <li>

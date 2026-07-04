@@ -57,6 +57,18 @@ const NAV_LINKS = [
     ),
   },
   {
+    id: 'updates',
+    label: 'Updates',
+    href: '/feed',
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M4 11a9 9 0 0 1 9 9" />
+        <path d="M4 4a16 16 0 0 1 16 16" />
+        <circle cx="5" cy="19" r="1" />
+      </svg>
+    ),
+  },
+  {
     id: 'giving',
     label: 'Giving',
     href: '/giving',
@@ -237,15 +249,15 @@ export default function Header() {
               <Link href="/beliefs" className="text-white hover:text-gold transition">
                 What We Believe
               </Link>
+              <Link href="/feed" className="text-white hover:text-gold transition">
+                Updates
+              </Link>
               <Link
                 href="/giving"
                 className="px-4 py-2 rounded-lg font-semibold transition hover:opacity-90"
                 style={{ backgroundColor: 'var(--gold)', color: 'var(--navy)' }}
               >
                 Giving
-              </Link>
-              <Link href="/get-involved" className="text-white hover:text-gold transition">
-                Get Involved
               </Link>
               <Link href="/vision-2026" className="text-white hover:text-gold transition">
                 Vision 2026

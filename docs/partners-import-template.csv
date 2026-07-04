@@ -1,0 +1,5 @@
+name,email,phone,channel,frequency
+Jane Smith,jane@example.com,,email,monthly
+Marcus Lee,marcus@example.com,+15551234567,both,weekly
+Pastor Tom,,+15559876543,text,monthly
+The Riveras,rivera@example.com,,,

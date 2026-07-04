@@ -270,9 +270,25 @@ function AdminCard({
 }) {
   const [editing, setEditing] = useState(false);
   const [text, setText] = useState(post.final_text ?? post.draft_text ?? '');
+  const [copied, setCopied] = useState(false);
   const hasBody = !!(post.final_text || post.draft_text);
 
   const media = post.media ?? [];
+
+  // Ready-to-send SMS for a manual Gloo broadcast: a short teaser + feed link.
+  async function copyText() {
+    const feedUrl = `${(process.env.NEXT_PUBLIC_SITE_URL || '').replace(/\/$/, '')}/feed`;
+    const body = (post.final_text || '').replace(/\s+/g, ' ').trim();
+    const teaser = body.split(/(?<=[.!?])\s/)[0] || body.slice(0, 140);
+    const msg = `New from ARK Identity: ${teaser} Read: ${feedUrl}`;
+    try {
+      await navigator.clipboard.writeText(msg);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      window.prompt('Copy this text for Gloo:', msg);
+    }
+  }
 
   return (
     <div className="rounded-xl p-5 mb-4" style={{ backgroundColor: '#FFFFFF', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
@@ -343,6 +359,9 @@ function AdminCard({
             )}
             {post.status === 'approved' && (
               <ActionBtn label="Publish" disabled={busy} onClick={() => onAct(post.id, 'publish')} />
+            )}
+            {post.status === 'published' && hasBody && (
+              <ActionBtn label={copied ? 'Copied!' : 'Copy text for Gloo'} ghost onClick={copyText} />
             )}
             <ActionBtn
               label="Delete"

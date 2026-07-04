@@ -46,6 +46,58 @@ export async function sendConfirmationEmail(to: string, name: string, confirmUrl
   });
 }
 
+export interface DigestPost {
+  id: string;
+  headline: string;
+  excerpt: string;
+  imageUrl: string | null;
+  publishedAt: string | null;
+}
+
+export async function sendDigestEmail(
+  to: string,
+  name: string,
+  posts: DigestPost[],
+  unsubscribeUrl: string
+) {
+  const feedUrl = `${siteUrl()}/feed`;
+
+  const items = posts
+    .map(
+      (p) => `
+    <div style="margin:0 0 28px; padding:0 0 24px; border-bottom:1px solid #eee;">
+      ${
+        p.imageUrl
+          ? `<a href="${feedUrl}"><img src="${p.imageUrl}" alt="" width="100%" style="border-radius:10px; margin-bottom:12px; max-height:260px; object-fit:cover;" /></a>`
+          : ''
+      }
+      <p style="margin:0 0 8px; font-size:17px; line-height:1.5; color:#2c2c2a;">${escapeHtml(p.excerpt)}</p>
+      <a href="${feedUrl}" style="color:#143348; font-weight:600; text-decoration:none;">Read the full update →</a>
+    </div>`
+    )
+    .join('');
+
+  const html = wrap(`
+    <p style="font-size:12px; letter-spacing:0.08em; text-transform:uppercase; color:#9d855a; margin:0 0 4px;">From the field</p>
+    <h1 style="color:#143348; font-size:24px; margin:0 0 24px;">ARK Identity ministry update</h1>
+    ${items}
+    <p style="margin:24px 0;">
+      <a href="${feedUrl}" style="background:#143348; color:#fff; text-decoration:none; padding:12px 24px; border-radius:8px; font-weight:600;">See everything on the feed</a>
+    </p>
+    <p style="color:#8a8378; font-size:13px; margin-top:32px;">
+      You're receiving this because you partner with ARK Identity.
+      <a href="${unsubscribeUrl}" style="color:#8a8378;">Unsubscribe</a>.
+    </p>
+  `);
+
+  return getResend().emails.send({
+    from: fromAddress(),
+    to,
+    subject: `ARK Identity update${posts.length > 1 ? ` (${posts.length} new)` : ''}`,
+    html,
+  });
+}
+
 function escapeHtml(s: string): string {
   return s.replace(/[&<>"']/g, (c) =>
     ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c] as string

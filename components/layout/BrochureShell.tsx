@@ -12,6 +12,7 @@ const PUBLIC_ROUTES = [
   '/giving',
   '/get-involved',
   '/feed',
+  '/unsubscribe',
   '/vision',
   '/vision-2026',
   '/campus',

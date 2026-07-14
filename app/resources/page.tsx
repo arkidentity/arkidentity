@@ -292,6 +292,40 @@ export default function ResourcesPage() {
           </div>
         </section>
 
+        {/* ── ARK Updates ── */}
+        <section>
+          <div className="resources-section-card">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ background: 'rgba(232,181,98,0.15)' }}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="var(--ark-gold)" strokeWidth="1.5" className="w-5 h-5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M4 11a9 9 0 0 1 9 9" />
+                  <path d="M4 4a16 16 0 0 1 16 16" />
+                  <circle cx="5" cy="19" r="1" />
+                </svg>
+              </div>
+              <div>
+                <h2 className="text-lg font-bold text-white">ARK Updates</h2>
+                <p className="text-white/50 text-sm">Stories & photos from the field</p>
+              </div>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Link href="/feed" className="resources-btn-gold-sm">
+                View updates
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-3.5 h-3.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M9 18l6-6-6-6" />
+                </svg>
+              </Link>
+              <Link
+                href="/feed/subscribe"
+                className="inline-flex items-center gap-1.5 text-sm font-semibold px-4 py-2 rounded-lg"
+                style={{ border: '1px solid rgba(232,181,98,0.5)', color: 'var(--ark-gold)' }}
+              >
+                Get updates
+              </Link>
+            </div>
+          </div>
+        </section>
+
         {/* ── Creed Cards ── */}
         <section>
           <Link href="/creed-cards" className="resources-section-card block">

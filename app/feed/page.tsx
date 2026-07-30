@@ -1,10 +1,31 @@
-import { getPublishedPosts } from '@/lib/feed';
+import type { Metadata } from 'next';
+import { getPublishedPosts, postLeadImage } from '@/lib/feed';
 import { PostCard } from '@/components/feed/PostCard';
 
-export const metadata = {
-  title: 'Ministry Feed - ARK Identity',
-  description: 'Updates from the field — photos, stories, and moments from ARK Identity ministry.',
-};
+const FEED_TITLE = 'Ministry Feed - ARK Identity';
+const FEED_DESC = 'Updates from the field — photos, stories, and moments from ARK Identity ministry.';
+
+// Preview the feed link with the most recent post's photo.
+export async function generateMetadata(): Promise<Metadata> {
+  const posts = await getPublishedPosts();
+  const image = posts.map(postLeadImage).find(Boolean) || null;
+  return {
+    title: FEED_TITLE,
+    description: FEED_DESC,
+    openGraph: {
+      title: FEED_TITLE,
+      description: FEED_DESC,
+      url: '/feed',
+      images: image ? [{ url: image }] : undefined,
+    },
+    twitter: {
+      card: image ? 'summary_large_image' : 'summary',
+      title: FEED_TITLE,
+      description: FEED_DESC,
+      images: image ? [image] : undefined,
+    },
+  };
+}
 
 // Always render fresh so newly published posts appear without a rebuild.
 export const dynamic = 'force-dynamic';

@@ -17,6 +17,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(
+    process.env.NEXT_PUBLIC_SITE_URL || "https://www.arkidentity.com"
+  ),
   title: "ARK Identity",
   description: "Discipleship courses, resources, and training from ARK Identity.",
   manifest: "/manifest.json",

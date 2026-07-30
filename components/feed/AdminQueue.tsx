@@ -322,11 +322,12 @@ function AdminCard({
 
   // Ready-to-send SMS for a manual Gloo broadcast: a short teaser + feed link.
   async function copyText() {
-    const feedUrl = `${(process.env.NEXT_PUBLIC_SITE_URL || '').replace(/\/$/, '')}/feed`;
+    // Link to THIS post so the text preview shows its headline + photo.
+    const postUrl = `${(process.env.NEXT_PUBLIC_SITE_URL || '').replace(/\/$/, '')}/feed/${post.id}`;
     // Use the AI headline as the hook; fall back to the first sentence.
     const body = (post.final_text || '').replace(/\s+/g, ' ').trim();
     const hook = post.headline?.trim() || body.split(/(?<=[.!?])\s/)[0] || body.slice(0, 140);
-    const msg = `${hook} — Read: ${feedUrl}`;
+    const msg = `${hook} — Read: ${postUrl}`;
     try {
       await navigator.clipboard.writeText(msg);
       setCopied(true);
@@ -483,7 +484,7 @@ function AdminCard({
             )}
             {post.status === 'published' && (
               <a
-                href="/feed"
+                href={`/feed/${post.id}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="px-4 py-2 rounded-lg text-sm font-semibold transition hover:opacity-90"

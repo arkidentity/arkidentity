@@ -63,19 +63,20 @@ export async function sendDigestEmail(
   const feedUrl = `${siteUrl()}/feed`;
 
   const items = posts
-    .map(
-      (p) => `
+    .map((p) => {
+      const postUrl = `${siteUrl()}/feed/${p.id}`;
+      return `
     <div style="margin:0 0 28px; padding:0 0 24px; border-bottom:1px solid #eee;">
       ${
         p.imageUrl
-          ? `<a href="${feedUrl}"><img src="${p.imageUrl}" alt="" width="100%" style="border-radius:10px; margin-bottom:12px; max-height:260px; object-fit:cover;" /></a>`
+          ? `<a href="${postUrl}"><img src="${p.imageUrl}" alt="" width="100%" style="border-radius:10px; margin-bottom:12px; max-height:260px; object-fit:cover;" /></a>`
           : ''
       }
       ${p.headline ? `<h2 style="margin:0 0 8px; font-size:20px; line-height:1.3; color:#143348;">${escapeHtml(p.headline)}</h2>` : ''}
       <p style="margin:0 0 8px; font-size:16px; line-height:1.5; color:#4a4540;">${escapeHtml(p.excerpt)}</p>
-      <a href="${feedUrl}" style="color:#143348; font-weight:600; text-decoration:none;">Read the full update →</a>
-    </div>`
-    )
+      <a href="${postUrl}" style="color:#143348; font-weight:600; text-decoration:none;">Read the full update →</a>
+    </div>`;
+    })
     .join('');
 
   const html = wrap(`

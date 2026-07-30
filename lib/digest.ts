@@ -91,7 +91,7 @@ export async function runDigests(): Promise<DigestSummary> {
 
     const digestPosts: DigestPost[] = posts.map((p) => ({
       id: p.id,
-      headline: excerptOf(p).split('. ')[0],
+      headline: p.headline || '',
       excerpt: excerptOf(p),
       imageUrl: leadImage(p),
       publishedAt: p.published_at,

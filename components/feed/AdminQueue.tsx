@@ -119,14 +119,15 @@ export function AdminQueue({ initialPosts }: { initialPosts: Post[] }) {
     id: string,
     action: 'draft' | 'edit' | 'update' | 'approve' | 'publish',
     final_text?: string,
-    media?: MediaItem[]
+    media?: MediaItem[],
+    headline?: string
   ) {
     setBusy(id);
     setError('');
     const res = await fetch(`/api/admin/posts/${id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action, final_text, media }),
+      body: JSON.stringify({ action, final_text, media, headline }),
     });
     setBusy(null);
     if (res.ok) {
@@ -264,11 +265,13 @@ function AdminCard({
     id: string,
     action: 'draft' | 'edit' | 'update' | 'approve' | 'publish',
     final_text?: string,
-    media?: MediaItem[]
+    media?: MediaItem[],
+    headline?: string
   ) => void;
   onDelete: (id: string, published: boolean) => void;
 }) {
   const [editing, setEditing] = useState(false);
+  const [headline, setHeadline] = useState(post.headline ?? '');
   const [text, setText] = useState(post.final_text ?? post.draft_text ?? '');
   const [editMedia, setEditMedia] = useState<MediaItem[]>(post.media ?? []);
   const [newLink, setNewLink] = useState('');
@@ -279,6 +282,7 @@ function AdminCard({
   const media = post.media ?? [];
 
   function startEditing() {
+    setHeadline(post.headline ?? '');
     setText(post.final_text ?? post.draft_text ?? '');
     setEditMedia(post.media ?? []);
     setNewLink('');
@@ -312,16 +316,17 @@ function AdminCard({
   }
 
   function saveEdit() {
-    onAct(post.id, 'update', text, editMedia);
+    onAct(post.id, 'update', text, editMedia, headline);
     setEditing(false);
   }
 
   // Ready-to-send SMS for a manual Gloo broadcast: a short teaser + feed link.
   async function copyText() {
     const feedUrl = `${(process.env.NEXT_PUBLIC_SITE_URL || '').replace(/\/$/, '')}/feed`;
+    // Use the AI headline as the hook; fall back to the first sentence.
     const body = (post.final_text || '').replace(/\s+/g, ' ').trim();
-    const teaser = body.split(/(?<=[.!?])\s/)[0] || body.slice(0, 140);
-    const msg = `New from ARK Identity: ${teaser} Read: ${feedUrl}`;
+    const hook = post.headline?.trim() || body.split(/(?<=[.!?])\s/)[0] || body.slice(0, 140);
+    const msg = `${hook} — Read: ${feedUrl}`;
     try {
       await navigator.clipboard.writeText(msg);
       setCopied(true);
@@ -336,6 +341,12 @@ function AdminCard({
       <p className="text-xs font-semibold uppercase tracking-wide mb-3" style={{ color: '#b98a3a' }}>
         {cardSummary(post)}
       </p>
+
+      {!editing && post.headline && (
+        <h3 className="text-lg font-bold mb-2 leading-snug" style={{ color: 'var(--navy)' }}>
+          {post.headline}
+        </h3>
+      )}
 
       {!editing && media.length > 0 && (
         <div className="flex flex-wrap gap-2 mb-3">
@@ -369,6 +380,16 @@ function AdminCard({
 
       {editing ? (
         <>
+          <label className="block text-xs font-semibold uppercase tracking-wide mb-1" style={{ color: '#8a8378' }}>
+            Headline / text hook
+          </label>
+          <input
+            value={headline}
+            onChange={(e) => setHeadline(e.target.value)}
+            placeholder="A short, catchy line…"
+            className="w-full px-4 py-2.5 rounded-lg border mb-3 font-semibold"
+            style={{ borderColor: '#d1d5db', color: '#111827' }}
+          />
           <textarea
             value={text}
             onChange={(e) => setText(e.target.value)}

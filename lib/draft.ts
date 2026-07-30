@@ -15,7 +15,12 @@ function getClient(): Anthropic {
   return client;
 }
 
-export async function draftUpdate(rawMaterial: string): Promise<string> {
+export interface DraftResult {
+  headline: string;
+  body: string;
+}
+
+export async function draftUpdate(rawMaterial: string): Promise<DraftResult> {
   const message = await getClient().messages.create({
     model: 'claude-opus-4-8',
     max_tokens: 1024,
@@ -35,5 +40,21 @@ export async function draftUpdate(rawMaterial: string): Promise<string> {
     .trim();
 
   if (!text) throw new Error('The model returned an empty draft.');
-  return text;
+
+  // Parse the JSON { headline, body }. Fall back gracefully if the model
+  // wrapped it in fences or returned plain prose.
+  const jsonText = text.replace(/^```(?:json)?/i, '').replace(/```$/, '').trim();
+  try {
+    const parsed = JSON.parse(jsonText) as { headline?: string; body?: string };
+    const body = (parsed.body || '').trim();
+    if (body) {
+      return { headline: (parsed.headline || '').trim(), body };
+    }
+  } catch {
+    // not JSON — fall through
+  }
+
+  // Fallback: treat the whole thing as the body, derive a headline.
+  const firstSentence = text.split(/(?<=[.!?])\s/)[0] || text.slice(0, 60);
+  return { headline: firstSentence.replace(/[.!?]+$/, ''), body: text };
 }

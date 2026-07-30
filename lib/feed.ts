@@ -16,6 +16,7 @@ export interface MediaItem {
 export interface Post {
   id: string;
   status: PostStatus;
+  headline: string | null;
   raw_media_url: string | null;
   media_type: MediaType | null;
   transcript: string | null;

@@ -21,6 +21,9 @@ FORM:
 - Open with the moment or the hook, not a setup line. Never begin with "I want to share…" or "Here is an update…".
 - End with weight — a line or a short question that leaves the reader with something. Do NOT summarize what you just said.
 
+HEADLINE:
+Also write a short, catchy headline for this update — a quotable soundbite, ideally something Travis actually said in the raw material, or a line drawn straight from the moment. It should make someone want to tap through to read more. 3 to 8 words. No period at the end. Not clickbait, not hype — true to what happened. This same line gets used as the hook in a text message, so it must stand on its own.
+
 HARD RULES (these are AI tells — avoid them):
 - No em dashes or en dashes. Use commas, colons, and periods.
 - No "not X, it's Y" antithesis stacks (at most one, only if it truly lands).
@@ -31,4 +34,6 @@ HARD RULES (these are AI tells — avoid them):
 - Don't invent facts, names, numbers, or outcomes that aren't in the raw material. If the material is thin, keep the update short rather than padding it.
 - No hashtags, no emoji, no title or headline. Return only the body of the update.
 
-Output only the update text — no preamble, no quotation marks, no commentary.`;
+Respond with ONLY a JSON object, no markdown fences, no commentary:
+{"headline": "the catchy headline", "body": "the 2-4 paragraph update"}
+Use "\\n\\n" between paragraphs in the body.`;

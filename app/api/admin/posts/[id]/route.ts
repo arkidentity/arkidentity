@@ -28,6 +28,7 @@ export async function PATCH(
   const body = (await req.json().catch(() => ({}))) as {
     action?: 'draft' | 'edit' | 'update' | 'approve' | 'publish';
     final_text?: string;
+    headline?: string;
     media?: MediaItem[];
   };
 
@@ -46,6 +47,7 @@ export async function PATCH(
       case 'update':
         post = await updatePost(id, {
           ...(body.final_text !== undefined ? { final_text: body.final_text.trim() } : {}),
+          ...(body.headline !== undefined ? { headline: body.headline.trim() } : {}),
           ...(body.media !== undefined ? { media: cleanMedia(body.media) } : {}),
         });
         break;

@@ -71,7 +71,8 @@ export async function sendDigestEmail(
           ? `<a href="${feedUrl}"><img src="${p.imageUrl}" alt="" width="100%" style="border-radius:10px; margin-bottom:12px; max-height:260px; object-fit:cover;" /></a>`
           : ''
       }
-      <p style="margin:0 0 8px; font-size:17px; line-height:1.5; color:#2c2c2a;">${escapeHtml(p.excerpt)}</p>
+      ${p.headline ? `<h2 style="margin:0 0 8px; font-size:20px; line-height:1.3; color:#143348;">${escapeHtml(p.headline)}</h2>` : ''}
+      <p style="margin:0 0 8px; font-size:16px; line-height:1.5; color:#4a4540;">${escapeHtml(p.excerpt)}</p>
       <a href="${feedUrl}" style="color:#143348; font-weight:600; text-decoration:none;">Read the full update →</a>
     </div>`
     )
@@ -90,10 +91,16 @@ export async function sendDigestEmail(
     </p>
   `);
 
+  // Lead the subject with the first update's headline when there's just one.
+  const subject =
+    posts.length === 1 && posts[0].headline
+      ? posts[0].headline
+      : `ARK Identity update${posts.length > 1 ? ` (${posts.length} new)` : ''}`;
+
   return getResend().emails.send({
     from: fromAddress(),
     to,
-    subject: `ARK Identity update${posts.length > 1 ? ` (${posts.length} new)` : ''}`,
+    subject,
     html,
   });
 }

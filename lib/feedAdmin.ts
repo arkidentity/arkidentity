@@ -57,10 +57,10 @@ export async function draftPost(id: string): Promise<Post> {
   }
 
   const { draftUpdate } = await import('@/lib/draft');
-  const draft = await draftUpdate(rawMaterial);
+  const { headline, body } = await draftUpdate(rawMaterial);
 
-  const patch: Record<string, unknown> = { draft_text: draft };
-  if (!post.final_text?.trim()) patch.final_text = draft;
+  const patch: Record<string, unknown> = { draft_text: body, headline };
+  if (!post.final_text?.trim()) patch.final_text = body;
 
   const { data, error } = await getSupabaseAdmin()
     .from('posts')
@@ -77,10 +77,11 @@ export async function draftPost(id: string): Promise<Post> {
 // photos/videos can be added or removed after the draft is saved.
 export async function updatePost(
   id: string,
-  patch: { final_text?: string; media?: MediaItem[] }
+  patch: { final_text?: string; headline?: string; media?: MediaItem[] }
 ): Promise<Post> {
   const set: Record<string, unknown> = {};
   if (patch.final_text !== undefined) set.final_text = patch.final_text;
+  if (patch.headline !== undefined) set.headline = patch.headline;
   if (patch.media !== undefined) set.media = patch.media;
 
   const { data, error } = await getSupabaseAdmin()

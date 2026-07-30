@@ -150,12 +150,18 @@ export function PostCard({ post }: { post: Post }) {
       style={{ backgroundColor: '#FFFFFF', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}
     >
       <time
-        className="block text-sm font-semibold tracking-widest uppercase mb-4"
+        className="block text-sm font-semibold tracking-widest uppercase mb-2"
         style={{ color: 'var(--gold)' }}
         dateTime={post.published_at ?? undefined}
       >
         {formatDate(post.published_at)}
       </time>
+
+      {post.headline && (
+        <h2 className="text-2xl sm:text-3xl font-bold mb-5 leading-tight" style={{ color: 'var(--navy)' }}>
+          {post.headline}
+        </h2>
+      )}
 
       {useEditorial ? (
         <EditorialLayout photos={photos} videos={videos} paragraphs={paragraphs} />

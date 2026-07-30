@@ -2,21 +2,9 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { supabase } from '@/lib/supabase';
 import { videoLinkToMedia } from '@/lib/videoLinks';
-import type { Post, PostStatus, MediaItem, MediaType } from '@/lib/feed';
-
-const MEDIA_BUCKET = 'feed-media';
-// Keep uploads within the Supabase per-file limit. Long video goes to YouTube
-// and gets pasted as a link instead (no upload). Raise if you bump the plan.
-const MAX_FILE_MB = 50;
-
-function mediaTypeForFile(file: File): MediaType | null {
-  if (file.type.startsWith('image/')) return 'photo';
-  if (file.type.startsWith('video/')) return 'video';
-  if (file.type.startsWith('audio/')) return 'audio';
-  return null;
-}
+import { uploadFileToStorage, mediaTypeForFile, MAX_FILE_MB } from '@/lib/uploadMedia';
+import type { Post, PostStatus, MediaItem } from '@/lib/feed';
 
 const STATUS_LABELS: Record<PostStatus, string> = {
   draft: 'Drafts — needs review',
@@ -38,29 +26,6 @@ export function AdminQueue({ initialPosts }: { initialPosts: Post[] }) {
 
   function refresh() {
     router.refresh();
-  }
-
-  // Upload one file directly to Storage via a server-minted signed URL.
-  async function uploadFile(file: File): Promise<MediaItem> {
-    const type = mediaTypeForFile(file);
-    if (!type) throw new Error(`Unsupported file: ${file.name}`);
-
-    const signRes = await fetch('/api/admin/media/sign', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ filename: file.name, contentType: file.type }),
-    });
-    if (!signRes.ok) {
-      throw new Error((await signRes.json().catch(() => ({}))).error || `Could not sign ${file.name}`);
-    }
-    const { path, token, publicUrl } = await signRes.json();
-
-    const { error: upErr } = await supabase.storage
-      .from(MEDIA_BUCKET)
-      .uploadToSignedUrl(path, token, file, { contentType: file.type });
-    if (upErr) throw new Error(`${file.name}: ${upErr.message}`);
-
-    return { url: publicUrl, type };
   }
 
   function onSelectFiles(selected: File[]) {
@@ -98,7 +63,7 @@ export function AdminQueue({ initialPosts }: { initialPosts: Post[] }) {
 
       for (let i = 0; i < files.length; i++) {
         setProgress(`Uploading ${i + 1} of ${files.length}…`);
-        media.push(await uploadFile(files[i]));
+        media.push(await uploadFileToStorage(files[i]));
       }
       setProgress('Saving update…');
 
@@ -125,15 +90,16 @@ export function AdminQueue({ initialPosts }: { initialPosts: Post[] }) {
 
   async function act(
     id: string,
-    action: 'draft' | 'edit' | 'approve' | 'publish',
-    final_text?: string
+    action: 'draft' | 'edit' | 'update' | 'approve' | 'publish',
+    final_text?: string,
+    media?: MediaItem[]
   ) {
     setBusy(id);
     setError('');
     const res = await fetch(`/api/admin/posts/${id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action, final_text }),
+      body: JSON.stringify({ action, final_text, media }),
     });
     setBusy(null);
     if (res.ok) {
@@ -141,7 +107,7 @@ export function AdminQueue({ initialPosts }: { initialPosts: Post[] }) {
       setPosts((p) => p.map((x) => (x.id === id ? post : x)));
       // Edits to a published post change the live feed; refresh so the public
       // page reflects it (and publish, which adds it to the feed).
-      if (action === 'publish' || action === 'edit') refresh();
+      if (action === 'publish' || action === 'edit' || action === 'update') refresh();
     } else {
       setError((await res.json().catch(() => ({}))).error || 'Action failed.');
     }
@@ -263,17 +229,59 @@ function AdminCard({
   busy: boolean;
   onAct: (
     id: string,
-    action: 'draft' | 'edit' | 'approve' | 'publish',
-    final_text?: string
+    action: 'draft' | 'edit' | 'update' | 'approve' | 'publish',
+    final_text?: string,
+    media?: MediaItem[]
   ) => void;
   onDelete: (id: string, published: boolean) => void;
 }) {
   const [editing, setEditing] = useState(false);
   const [text, setText] = useState(post.final_text ?? post.draft_text ?? '');
+  const [editMedia, setEditMedia] = useState<MediaItem[]>(post.media ?? []);
+  const [newLink, setNewLink] = useState('');
+  const [uploading, setUploading] = useState('');
   const [copied, setCopied] = useState(false);
   const hasBody = !!(post.final_text || post.draft_text);
 
   const media = post.media ?? [];
+
+  function startEditing() {
+    setText(post.final_text ?? post.draft_text ?? '');
+    setEditMedia(post.media ?? []);
+    setNewLink('');
+    setEditing(true);
+  }
+
+  async function addFiles(selected: File[]) {
+    for (let i = 0; i < selected.length; i++) {
+      if (selected[i].size > MAX_FILE_MB * 1024 * 1024) {
+        setUploading(`"${selected[i].name}" is over ${MAX_FILE_MB} MB — use a YouTube link instead.`);
+        continue;
+      }
+      setUploading(`Uploading ${i + 1} of ${selected.length}…`);
+      try {
+        const item = await uploadFileToStorage(selected[i]);
+        setEditMedia((m) => [...m, item]);
+      } catch (e) {
+        setUploading((e as Error).message);
+        return;
+      }
+    }
+    setUploading('');
+  }
+
+  function addLink() {
+    const item = videoLinkToMedia(newLink);
+    if (!item) { setUploading('Not a recognized YouTube/Vimeo link.'); return; }
+    setEditMedia((m) => [...m, item]);
+    setNewLink('');
+    setUploading('');
+  }
+
+  function saveEdit() {
+    onAct(post.id, 'update', text, editMedia);
+    setEditing(false);
+  }
 
   // Ready-to-send SMS for a manual Gloo broadcast: a short teaser + feed link.
   async function copyText() {
@@ -292,7 +300,7 @@ function AdminCard({
 
   return (
     <div className="rounded-xl p-5 mb-4" style={{ backgroundColor: '#FFFFFF', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
-      {media.length > 0 && (
+      {!editing && media.length > 0 && (
         <div className="flex flex-wrap gap-2 mb-3">
           {media.map((m, i) =>
             m.type === 'photo' ? (
@@ -323,13 +331,65 @@ function AdminCard({
       )}
 
       {editing ? (
-        <textarea
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          rows={6}
-          className="w-full px-4 py-3 rounded-lg border mb-3"
-          style={{ borderColor: '#d1d5db', color: '#111827' }}
-        />
+        <>
+          <textarea
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            rows={6}
+            className="w-full px-4 py-3 rounded-lg border mb-3"
+            style={{ borderColor: '#d1d5db', color: '#111827' }}
+          />
+
+          {/* Editable media */}
+          {editMedia.length > 0 && (
+            <div className="flex flex-wrap gap-2 mb-3">
+              {editMedia.map((m, i) => (
+                <div key={i} className="relative">
+                  {m.type === 'photo' ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={m.url} alt="" className="h-20 w-20 object-cover rounded-lg" />
+                  ) : (
+                    <span className="h-20 w-20 flex items-center justify-center rounded-lg text-xs font-semibold" style={{ backgroundColor: '#f0ede8', color: '#8a8378' }}>
+                      {m.provider ? '▶ ' + m.provider : m.type}
+                    </span>
+                  )}
+                  <button
+                    onClick={() => setEditMedia((arr) => arr.filter((_, j) => j !== i))}
+                    aria-label="Remove"
+                    className="absolute -top-2 -right-2 h-6 w-6 rounded-full text-xs font-bold flex items-center justify-center"
+                    style={{ backgroundColor: '#b91c1c', color: 'white' }}
+                  >
+                    ×
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <div className="flex flex-wrap items-center gap-3 mb-2">
+            <label className="text-sm font-semibold px-3 py-1.5 rounded-lg border cursor-pointer" style={{ borderColor: '#d1d5db', color: 'var(--navy)' }}>
+              + Add photos
+              <input
+                type="file"
+                accept="image/*,video/*,audio/*"
+                multiple
+                className="hidden"
+                onChange={(e) => { addFiles(Array.from(e.target.files ?? [])); e.target.value = ''; }}
+              />
+            </label>
+            <div className="flex gap-2 flex-1 min-w-[220px]">
+              <input
+                value={newLink}
+                onChange={(e) => setNewLink(e.target.value)}
+                placeholder="Paste a YouTube/Vimeo link"
+                className="flex-1 px-3 py-1.5 rounded-lg border text-sm"
+                style={{ borderColor: '#d1d5db', color: '#111827' }}
+              />
+              <ActionBtn label="Add link" ghost onClick={addLink} />
+            </div>
+          </div>
+          {uploading && <p className="text-sm mb-3" style={{ color: '#8a8378' }}>{uploading}</p>}
+        </>
       ) : (
         <p className="whitespace-pre-wrap mb-4 leading-relaxed" style={{ color: '#4a4540' }}>
           {post.final_text || post.draft_text || <em style={{ color: '#8a8378' }}>Not drafted yet — use “Draft with AI”.</em>}
@@ -339,8 +399,8 @@ function AdminCard({
       <div className="flex flex-wrap gap-2">
         {editing ? (
           <>
-            <ActionBtn label="Save" disabled={busy} onClick={() => { onAct(post.id, 'edit', text); setEditing(false); }} />
-            <ActionBtn label="Cancel" ghost onClick={() => { setText(post.final_text ?? ''); setEditing(false); }} />
+            <ActionBtn label="Save" disabled={busy || !!uploading} onClick={saveEdit} />
+            <ActionBtn label="Cancel" ghost onClick={() => setEditing(false)} />
           </>
         ) : (
           <>
@@ -351,8 +411,8 @@ function AdminCard({
                 onClick={() => onAct(post.id, 'draft')}
               />
             )}
-            {hasBody && (
-              <ActionBtn label="Edit" ghost disabled={busy} onClick={() => { setText(post.final_text ?? post.draft_text ?? ''); setEditing(true); }} />
+            {(hasBody || media.length > 0) && (
+              <ActionBtn label="Edit" ghost disabled={busy} onClick={startEditing} />
             )}
             {post.status === 'draft' && hasBody && (
               <ActionBtn label="Approve" ghost disabled={busy} onClick={() => onAct(post.id, 'approve')} />

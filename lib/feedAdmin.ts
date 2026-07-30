@@ -73,6 +73,27 @@ export async function draftPost(id: string): Promise<Post> {
   return data as Post;
 }
 
+// Update a post's written text and/or its media list. Used by the editor so
+// photos/videos can be added or removed after the draft is saved.
+export async function updatePost(
+  id: string,
+  patch: { final_text?: string; media?: MediaItem[] }
+): Promise<Post> {
+  const set: Record<string, unknown> = {};
+  if (patch.final_text !== undefined) set.final_text = patch.final_text;
+  if (patch.media !== undefined) set.media = patch.media;
+
+  const { data, error } = await getSupabaseAdmin()
+    .from('posts')
+    .update(set)
+    .eq('id', id)
+    .select('*')
+    .single();
+
+  if (error) throw new Error(error.message);
+  return data as Post;
+}
+
 export async function editPost(id: string, final_text: string): Promise<Post> {
   const { data, error } = await getSupabaseAdmin()
     .from('posts')

@@ -1,5 +1,19 @@
 import { NextResponse } from 'next/server';
-import { editPost, approvePost, publishPost, draftPost, deletePost } from '@/lib/feedAdmin';
+import { editPost, updatePost, approvePost, publishPost, draftPost, deletePost } from '@/lib/feedAdmin';
+import type { MediaItem, MediaType } from '@/lib/feed';
+
+const VALID_TYPES: MediaType[] = ['photo', 'video', 'audio'];
+
+function cleanMedia(media: unknown): MediaItem[] {
+  if (!Array.isArray(media)) return [];
+  return (media as MediaItem[])
+    .filter((m) => m && typeof m.url === 'string' && VALID_TYPES.includes(m.type))
+    .map((m) => ({
+      url: m.url,
+      type: m.type,
+      ...(m.provider === 'youtube' || m.provider === 'vimeo' ? { provider: m.provider } : {}),
+    }));
+}
 
 // AI drafting calls Claude, which can run longer than the default limit.
 export const maxDuration = 60;
@@ -12,8 +26,9 @@ export async function PATCH(
 ) {
   const { id } = await params;
   const body = (await req.json().catch(() => ({}))) as {
-    action?: 'draft' | 'edit' | 'approve' | 'publish';
+    action?: 'draft' | 'edit' | 'update' | 'approve' | 'publish';
     final_text?: string;
+    media?: MediaItem[];
   };
 
   try {
@@ -27,6 +42,12 @@ export async function PATCH(
           return NextResponse.json({ error: 'Text is required.' }, { status: 400 });
         }
         post = await editPost(id, body.final_text.trim());
+        break;
+      case 'update':
+        post = await updatePost(id, {
+          ...(body.final_text !== undefined ? { final_text: body.final_text.trim() } : {}),
+          ...(body.media !== undefined ? { media: cleanMedia(body.media) } : {}),
+        });
         break;
       case 'approve':
         post = await approvePost(id, body.final_text?.trim());

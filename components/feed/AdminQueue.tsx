@@ -4,7 +4,31 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { videoLinkToMedia } from '@/lib/videoLinks';
 import { uploadFileToStorage, mediaTypeForFile, MAX_FILE_MB } from '@/lib/uploadMedia';
+import { useToast } from '@/components/ui/Toast';
 import type { Post, PostStatus, MediaItem } from '@/lib/feed';
+
+const ACTION_TOAST: Record<string, string> = {
+  draft: 'Draft written',
+  edit: 'Saved',
+  update: 'Saved',
+  approve: 'Approved',
+  publish: 'Published to the feed',
+};
+
+// "Published Jul 4 · 2 photos · 1 video"
+function cardSummary(post: Post): string {
+  const media = post.media ?? [];
+  const photos = media.filter((m) => m.type === 'photo').length;
+  const videos = media.filter((m) => m.type !== 'photo').length;
+  const date = post.published_at || post.created_at;
+  const when = date
+    ? new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+    : '';
+  const parts = [when];
+  if (photos) parts.push(`${photos} photo${photos === 1 ? '' : 's'}`);
+  if (videos) parts.push(`${videos} video${videos === 1 ? '' : 's'}`);
+  return parts.filter(Boolean).join(' · ');
+}
 
 const STATUS_LABELS: Record<PostStatus, string> = {
   draft: 'Drafts — needs review',
@@ -16,6 +40,7 @@ const STATUS_ORDER: PostStatus[] = ['draft', 'approved', 'published'];
 
 export function AdminQueue({ initialPosts }: { initialPosts: Post[] }) {
   const router = useRouter();
+  const { showToast } = useToast();
   const [posts, setPosts] = useState<Post[]>(initialPosts);
   const [newText, setNewText] = useState('');
   const [files, setFiles] = useState<File[]>([]);
@@ -80,8 +105,10 @@ export function AdminQueue({ initialPosts }: { initialPosts: Post[] }) {
       setNewText('');
       setFiles([]);
       setVideoLinks('');
+      showToast('Draft saved', 'success');
     } catch (e) {
       setError((e as Error).message);
+      showToast((e as Error).message, 'error');
     } finally {
       setBusy(null);
       setProgress('');
@@ -108,8 +135,11 @@ export function AdminQueue({ initialPosts }: { initialPosts: Post[] }) {
       // Edits to a published post change the live feed; refresh so the public
       // page reflects it (and publish, which adds it to the feed).
       if (action === 'publish' || action === 'edit' || action === 'update') refresh();
+      showToast(ACTION_TOAST[action] || 'Done', 'success');
     } else {
-      setError((await res.json().catch(() => ({}))).error || 'Action failed.');
+      const msg = (await res.json().catch(() => ({}))).error || 'Action failed.';
+      setError(msg);
+      showToast(msg, 'error');
     }
   }
 
@@ -125,8 +155,11 @@ export function AdminQueue({ initialPosts }: { initialPosts: Post[] }) {
     if (res.ok) {
       setPosts((p) => p.filter((x) => x.id !== id));
       if (published) refresh();
+      showToast('Deleted', 'success');
     } else {
-      setError((await res.json().catch(() => ({}))).error || 'Delete failed.');
+      const msg = (await res.json().catch(() => ({}))).error || 'Delete failed.';
+      setError(msg);
+      showToast(msg, 'error');
     }
   }
 
@@ -300,6 +333,10 @@ function AdminCard({
 
   return (
     <div className="rounded-xl p-5 mb-4" style={{ backgroundColor: '#FFFFFF', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
+      <p className="text-xs font-semibold uppercase tracking-wide mb-3" style={{ color: '#b98a3a' }}>
+        {cardSummary(post)}
+      </p>
+
       {!editing && media.length > 0 && (
         <div className="flex flex-wrap gap-2 mb-3">
           {media.map((m, i) =>
@@ -422,6 +459,17 @@ function AdminCard({
             )}
             {post.status === 'published' && hasBody && (
               <ActionBtn label={copied ? 'Copied!' : 'Copy text for Gloo'} ghost onClick={copyText} />
+            )}
+            {post.status === 'published' && (
+              <a
+                href="/feed"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="px-4 py-2 rounded-lg text-sm font-semibold transition hover:opacity-90"
+                style={{ backgroundColor: 'transparent', color: 'var(--navy)', border: '1px solid #d1d5db' }}
+              >
+                View on feed ↗
+              </a>
             )}
             <ActionBtn
               label="Delete"

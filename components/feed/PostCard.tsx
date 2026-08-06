@@ -170,7 +170,7 @@ export function PostCard({ post }: { post: Post }) {
       )}
 
       <div className="mt-6 pt-5 flex items-center justify-between gap-3 flex-wrap" style={{ borderTop: '1px solid #f0ede8' }}>
-        <span className="text-sm" style={{ color: '#8a8378' }}>Moved by this? Help send more.</span>
+        <span className="text-sm" style={{ color: '#8a8378' }}>Your partnership empowers us to make more disciples.</span>
         <a
           href="/giving"
           className="inline-block px-5 py-2.5 rounded-lg font-semibold text-sm transition hover:opacity-90"

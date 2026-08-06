@@ -83,9 +83,13 @@ export async function sendDigestEmail(
     <p style="font-size:12px; letter-spacing:0.08em; text-transform:uppercase; color:#9d855a; margin:0 0 4px;">From the field</p>
     <h1 style="color:#143348; font-size:24px; margin:0 0 24px;">ARK Identity ministry update</h1>
     ${items}
-    <p style="margin:24px 0;">
+    <p style="margin:24px 0 8px;">
       <a href="${feedUrl}" style="background:#143348; color:#fff; text-decoration:none; padding:12px 24px; border-radius:8px; font-weight:600;">See everything on the feed</a>
     </p>
+    <div style="margin:20px 0; padding:20px; background:#faf6ee; border-radius:10px; text-align:center;">
+      <p style="margin:0 0 12px; color:#4a4540; font-size:15px;">Want to help send more disciples out?</p>
+      <a href="${siteUrl()}/giving" style="background:#e8b562; color:#143348; text-decoration:none; padding:11px 22px; border-radius:8px; font-weight:700; display:inline-block;">Support the mission</a>
+    </div>
     <p style="color:#8a8378; font-size:13px; margin-top:32px;">
       You're receiving this because you partner with ARK Identity.
       <a href="${unsubscribeUrl}" style="color:#8a8378;">Unsubscribe</a>.

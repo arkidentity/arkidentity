@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { getPublishedPost, postExcerpt, postLeadImage } from '@/lib/feed';
 import { PostCard } from '@/components/feed/PostCard';
+import { SupportFloat } from '@/components/feed/SupportFloat';
 
 export const dynamic = 'force-dynamic';
 
@@ -67,6 +68,8 @@ export default async function PostPage({
           </div>
         </div>
       </section>
+
+      <SupportFloat />
     </div>
   );
 }

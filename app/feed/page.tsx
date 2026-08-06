@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { getPublishedPosts, postLeadImage } from '@/lib/feed';
 import { PostCard } from '@/components/feed/PostCard';
+import { SupportFloat } from '@/components/feed/SupportFloat';
 
 const FEED_TITLE = 'Ministry Feed - ARK Identity';
 const FEED_DESC = 'Updates from the field — photos, stories, and moments from ARK Identity ministry.';
@@ -74,6 +75,8 @@ export default async function FeedPage() {
           </div>
         </div>
       </section>
+
+      <SupportFloat />
     </div>
   );
 }

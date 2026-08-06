@@ -168,6 +168,17 @@ export function PostCard({ post }: { post: Post }) {
       ) : (
         <GalleryLayout items={items} paragraphs={paragraphs} />
       )}
+
+      <div className="mt-6 pt-5 flex items-center justify-between gap-3 flex-wrap" style={{ borderTop: '1px solid #f0ede8' }}>
+        <span className="text-sm" style={{ color: '#8a8378' }}>Moved by this? Help send more.</span>
+        <a
+          href="/giving"
+          className="inline-block px-5 py-2.5 rounded-lg font-semibold text-sm transition hover:opacity-90"
+          style={{ backgroundColor: 'var(--gold)', color: 'var(--navy)' }}
+        >
+          Support the mission
+        </a>
+      </div>
     </article>
   );
 }

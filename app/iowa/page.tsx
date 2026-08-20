@@ -2,12 +2,15 @@ import type { Metadata } from 'next';
 import IowaPageContent from './page-content';
 
 export const metadata: Metadata = {
-  title: 'Campus Ministry at University of Iowa | ARK Identity',
-  description: 'Join weekly discipleship gatherings at U of Iowa. Learn to hear God\'s voice, follow Jesus daily, and make disciples through ARK Identity\'s campus ministry.',
-  keywords: 'University of Iowa, campus ministry, discipleship, college students, Iowa City, Christian student groups',
+  title: 'ARK Iowa | A college ministry built on tables of four',
+  description:
+    'Tables of four at the University of Iowa, at a time you pick. One hour a week, all semester. Pick your day and time.',
+  keywords:
+    'University of Iowa, campus ministry, Iowa City, Bible study, Christian student groups, small groups, college students',
   openGraph: {
-    title: 'ARK Identity Campus Ministry - University of Iowa',
-    description: 'Weekly discipleship gatherings and daily tools to help you follow Jesus through college.',
+    title: 'ARK Iowa | A college ministry built on tables of four',
+    description:
+      'Tables of four at the University of Iowa, at a time you pick. One hour a week, all semester.',
     url: 'https://arkidentity.com/iowa',
     siteName: 'ARK Identity',
     type: 'website',

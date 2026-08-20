@@ -110,6 +110,43 @@ export async function sendDigestEmail(
   });
 }
 
+export interface TableSignup {
+  name: string;
+  phone: string;
+  email?: string;
+  preferredTime: string;
+  bringing?: string;
+  message?: string;
+}
+
+// A student picking a table time on /iowa. Goes to the campus inbox, not to a list.
+export async function sendTableSignupEmail(signup: TableSignup) {
+  const row = (label: string, value: string) =>
+    `<p style="margin:0 0 6px;"><strong style="color:#143348;">${label}:</strong> ${escapeHtml(value)}</p>`;
+
+  const html = wrap(`
+    <h1 style="color:#143348; font-size:22px;">New table signup — ARK Iowa</h1>
+    ${row('Name', signup.name)}
+    ${row('Phone', signup.phone)}
+    ${signup.email ? row('Email', signup.email) : ''}
+    ${row('Wants', signup.preferredTime)}
+    ${signup.bringing ? row('Bringing', signup.bringing) : ''}
+    ${signup.message ? row('Message', signup.message) : ''}
+    <p style="margin:20px 0 0; color:#8a8378; font-size:14px;">
+      Submitted ${new Date().toLocaleString('en-US', { timeZone: 'America/Chicago' })} CT.
+      Text them within 24 hours.
+    </p>
+  `);
+
+  return getResend().emails.send({
+    from: fromAddress(),
+    to: process.env.IOWA_INBOX || 'iowa@arkidentity.com',
+    replyTo: signup.email || undefined,
+    subject: `Table signup — ${signup.name}`,
+    html,
+  });
+}
+
 function escapeHtml(s: string): string {
   return s.replace(/[&<>"']/g, (c) =>
     ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c] as string

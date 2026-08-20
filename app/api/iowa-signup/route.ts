@@ -8,7 +8,7 @@ export async function POST(req: Request) {
     name?: string;
     phone?: string;
     email?: string;
-    preferredTime?: string;
+    availability?: string[];
     bringing?: string;
     message?: string;
     company?: string; // honeypot — real users leave it empty
@@ -21,7 +21,9 @@ export async function POST(req: Request) {
 
   const name = body.name?.trim();
   const phone = body.phone?.trim();
-  const preferredTime = body.preferredTime?.trim();
+  const availability = Array.isArray(body.availability)
+    ? body.availability.map((a) => String(a).trim()).filter(Boolean)
+    : [];
   const email = body.email?.trim();
 
   if (!name) {
@@ -32,8 +34,8 @@ export async function POST(req: Request) {
   if (!phone || phone.replace(/\D/g, '').length < 10) {
     return NextResponse.json({ error: 'Please enter a phone number we can text.' }, { status: 400 });
   }
-  if (!preferredTime) {
-    return NextResponse.json({ error: 'Pick a time that works, or tell us none of them do.' }, { status: 400 });
+  if (availability.length === 0) {
+    return NextResponse.json({ error: 'Tap at least one time that works for you.' }, { status: 400 });
   }
   if (email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
     return NextResponse.json({ error: 'That email address looks off.' }, { status: 400 });
@@ -44,7 +46,7 @@ export async function POST(req: Request) {
       name,
       phone,
       email,
-      preferredTime,
+      availability,
       bringing: body.bringing?.trim(),
       message: body.message?.trim(),
     });

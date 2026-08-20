@@ -114,7 +114,7 @@ export interface TableSignup {
   name: string;
   phone: string;
   email?: string;
-  preferredTime: string;
+  availability: string[];
   bringing?: string;
   message?: string;
 }
@@ -129,7 +129,7 @@ export async function sendTableSignupEmail(signup: TableSignup) {
     ${row('Name', signup.name)}
     ${row('Phone', signup.phone)}
     ${signup.email ? row('Email', signup.email) : ''}
-    ${row('Wants', signup.preferredTime)}
+    ${row('Free', signup.availability.join(', '))}
     ${signup.bringing ? row('Bringing', signup.bringing) : ''}
     ${signup.message ? row('Message', signup.message) : ''}
     <p style="margin:20px 0 0; color:#8a8378; font-size:14px;">

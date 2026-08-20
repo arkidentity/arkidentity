@@ -3,14 +3,20 @@
 import Image from 'next/image';
 import { useState } from 'react';
 
-// TODO before launch: this is the whole spine of the page. Every table that
-// actually runs goes here, including full ones — a table shown as full is proof
-// the thing is real. Do not list a time that has no table behind it.
-const TABLE_TIMES = [
-  { day: 'Thursday', time: '6:30pm', place: 'Burge Dining Hall', open: true },
+const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+
+const BLOCKS = [
+  { key: 'morning', label: 'Morning', hint: 'before noon' },
+  { key: 'afternoon', label: 'Afternoon', hint: '12–5' },
+  { key: 'evening', label: 'Evening', hint: '5–8' },
+  { key: 'late', label: 'Late', hint: '8 and after' },
 ];
 
-const NO_TIME_WORKS = 'None of these — I’ll tell you when I’m free';
+// Hand-updated. The most persuasive thing on this page is proof that other
+// students exist, and this is the only kind available before anyone will go on
+// record. Only put real numbers here — an invented count is a lie a student can
+// catch the first time they show up. Empty is fine; nothing renders.
+const REQUESTED: { slot: string; count: number }[] = [];
 
 // TODO: point at the real journal / app destination once it exists.
 const JOURNAL_URL = '/resources';
@@ -20,7 +26,7 @@ export default function IowaPageContent() {
     name: '',
     phone: '',
     email: '',
-    preferredTime: '',
+    availability: [] as string[],
     bringing: '',
     message: '',
     company: '', // honeypot
@@ -44,7 +50,7 @@ export default function IowaPageContent() {
         setFormStatus('success');
         setFormMessage('Got it. Somebody’ll text you in the next day or so.');
         setFormData({
-          name: '', phone: '', email: '', preferredTime: '',
+          name: '', phone: '', email: '', availability: [],
           bringing: '', message: '', company: '',
         });
       } else {
@@ -55,6 +61,15 @@ export default function IowaPageContent() {
       setFormStatus('error');
       setFormMessage('Something went wrong. Email iowa@arkidentity.com and we’ll sort it out.');
     }
+  };
+
+  const toggleSlot = (slot: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      availability: prev.availability.includes(slot)
+        ? prev.availability.filter((s) => s !== slot)
+        : [...prev.availability, slot],
+    }));
   };
 
   const scrollToSignup = () => {
@@ -159,43 +174,38 @@ export default function IowaPageContent() {
       <section style={{ background: '#FAF8F5' }} className="py-20">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           <h2 className="text-3xl md:text-4xl font-bold mb-4" style={{ color: 'var(--navy)' }}>
-            We run tables of four all week.
+            Pick the hour. We’ll build the table around it.
           </h2>
           <p className="text-xl text-[#4a4540] mb-3">
             Every other option on this campus has one night. If it doesn’t work, you’re out.
           </p>
+          <p className="text-lg text-[#4a4540] mb-6">
+            We’re not going to hand you a schedule and hope one of the times works. Tell us when
+            you’re actually free, and we’ll start a table there.
+          </p>
           <p className="text-lg text-[#4a4540] mb-10">
-            Pick the hour that already fits. Same four people, same time, every week, all semester.
+            Some hours already have people asking for them, and we’ll put you together. Some don’t
+            yet — you might be the first one at that table. That’s how all of them start.
           </p>
 
-          <div className="space-y-3 mb-10">
-            {TABLE_TIMES.map((t, i) => (
-              <div
-                key={i}
-                className="bg-white rounded-xl border border-gray-100 shadow-sm px-6 py-5 flex flex-wrap items-baseline gap-x-4 gap-y-1"
-              >
-                <span className="text-xl font-bold" style={{ color: 'var(--navy)' }}>
-                  {t.day}
-                </span>
-                <span className="text-xl font-semibold" style={{ color: 'var(--maroon)' }}>
-                  {t.time}
-                </span>
-                <span className="text-[#5a5247]">{t.place}</span>
-                {!t.open && (
-                  <span className="ml-auto text-sm font-semibold text-[#8a8378]">Full</span>
-                )}
-              </div>
-            ))}
-          </div>
-
-          <div className="bg-white rounded-xl border border-gray-100 shadow-sm px-6 py-6 mb-10">
-            <p className="font-semibold mb-1" style={{ color: 'var(--navy)' }}>
-              None of these work?
-            </p>
-            <p className="text-[#4a4540]">
-              Tell us when you’re free and we’ll start one that does.
-            </p>
-          </div>
+          {REQUESTED.length > 0 && (
+            <div className="bg-white rounded-xl border border-gray-100 shadow-sm px-6 py-6 mb-10">
+              <p className="font-semibold mb-3" style={{ color: 'var(--navy)' }}>
+                Hours other students have already asked for
+              </p>
+              <ul className="space-y-2">
+                {REQUESTED.map((r) => (
+                  <li key={r.slot} className="text-[#4a4540]">
+                    <span className="font-semibold" style={{ color: 'var(--maroon)' }}>
+                      {r.count}
+                    </span>{' '}
+                    {r.count === 1 ? 'student has' : 'students have'} asked for{' '}
+                    <span className="font-semibold">{r.slot}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
 
           <PrimaryButton />
         </div>
@@ -381,23 +391,63 @@ export default function IowaPageContent() {
             </div>
 
             <div>
-              <label htmlFor="preferredTime" className="block text-sm font-semibold mb-2" style={{ color: 'var(--navy)' }}>
-                Which one works?
-              </label>
-              <select
-                id="preferredTime" required
-                value={formData.preferredTime}
-                onChange={(e) => setFormData({ ...formData, preferredTime: e.target.value })}
-                className={inputClass}
-              >
-                <option value="">Pick a time</option>
-                {TABLE_TIMES.map((t, i) => (
-                  <option key={i} value={`${t.day} ${t.time} — ${t.place}`}>
-                    {t.day} {t.time} — {t.place}
-                  </option>
-                ))}
-                <option value={NO_TIME_WORKS}>{NO_TIME_WORKS}</option>
-              </select>
+              <span className="block text-sm font-semibold mb-1" style={{ color: 'var(--navy)' }}>
+                When are you actually free?
+              </span>
+              <p className="text-sm text-[#8a8378] mb-3">
+                Tap everything that works. The more you tap, the easier you are to place.
+              </p>
+              <div className="overflow-x-auto -mx-1 px-1">
+                <table className="w-full border-separate" style={{ borderSpacing: '4px' }}>
+                  <thead>
+                    <tr>
+                      <th className="w-20"></th>
+                      {BLOCKS.map((b) => (
+                        <th key={b.key} className="pb-1 text-center">
+                          <span className="block text-xs font-bold" style={{ color: 'var(--navy)' }}>
+                            {b.label}
+                          </span>
+                          <span className="block text-[10px] text-[#8a8378]">{b.hint}</span>
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {DAYS.map((day) => (
+                      <tr key={day}>
+                        <th className="text-left text-xs font-bold pr-1" style={{ color: 'var(--navy)' }}>
+                          {day.slice(0, 3)}
+                        </th>
+                        {BLOCKS.map((b) => {
+                          const slot = `${day} ${b.label.toLowerCase()}`;
+                          const on = formData.availability.includes(slot);
+                          return (
+                            <td key={b.key}>
+                              <button
+                                type="button"
+                                onClick={() => toggleSlot(slot)}
+                                aria-pressed={on}
+                                aria-label={`${day} ${b.label}`}
+                                className="w-full h-10 rounded-md text-xs font-semibold transition"
+                                style={{
+                                  backgroundColor: on ? 'var(--gold)' : '#f1ede7',
+                                  color: on ? 'var(--navy)' : '#8a8378',
+                                  border: on ? '1px solid var(--gold)' : '1px solid #e2ddd5',
+                                }}
+                              >
+                                {on ? '\u2713' : ''}
+                              </button>
+                            </td>
+                          );
+                        })}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              {formData.availability.length === 0 && (
+                <p className="text-sm text-[#8a8378] mt-2">Pick at least one.</p>
+              )}
             </div>
 
             <div>

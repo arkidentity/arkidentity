@@ -18,8 +18,12 @@ const BLOCKS = [
 // catch the first time they show up. Empty is fine; nothing renders.
 const REQUESTED: { slot: string; count: number }[] = [];
 
-// TODO: point at the real journal / app destination once it exists.
-const JOURNAL_URL = '/resources';
+const JOURNAL_URL = 'https://arkiowa.dailydna.app/journal';
+
+// A real number, on purpose. For a ministry with no public gathering, a number
+// a student or a parent can actually call does more than any paragraph.
+const PHONE_DISPLAY = '(319) 359-7117';
+const PHONE_HREF = 'tel:+13193597117';
 
 export default function IowaPageContent() {
   const [formData, setFormData] = useState({
@@ -263,11 +267,15 @@ export default function IowaPageContent() {
               <p>
                 <strong style={{ color: 'var(--navy)' }}>Travis Gluckler</strong> — Campus Director
                 <br />
+                <a href={PHONE_HREF} className="hover:opacity-70 transition">
+                  {PHONE_DISPLAY}
+                </a>
+                {' · '}
                 <a href="mailto:iowa@arkidentity.com" className="hover:opacity-70 transition">
                   iowa@arkidentity.com
                 </a>
-                {/* TODO: add a real phone number here. For a ministry with no public
-                    gathering, a number does more than any paragraph. */}
+                <br />
+                <span className="text-[#8a8378]">Text him. He answers.</span>
               </p>
             </div>
           </div>
@@ -554,6 +562,8 @@ export default function IowaPageContent() {
 
           <a
             href={JOURNAL_URL}
+            target="_blank"
+            rel="noopener noreferrer"
             className="inline-block px-7 py-3 rounded-lg font-semibold transition hover:opacity-80"
             style={{ border: '2px solid var(--navy)', color: 'var(--navy)' }}
           >
@@ -644,6 +654,9 @@ export default function IowaPageContent() {
               </a>
             </li>
             <li>
+              <a href={PHONE_HREF} className="font-semibold hover:opacity-70 transition" style={{ color: 'var(--navy)' }}>
+                {PHONE_DISPLAY}
+              </a>{' · '}
               <a href="mailto:iowa@arkidentity.com" className="font-semibold hover:opacity-70 transition" style={{ color: 'var(--navy)' }}>
                 iowa@arkidentity.com
               </a>{' '}

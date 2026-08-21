@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import Image from 'next/image';
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
@@ -130,7 +131,17 @@ const EXTRA_LINKS = [
   },
 ];
 
-function BrochureDrawer({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
+const IOWA_HIDDEN = ['giving', 'vision'];
+
+function BrochureDrawer({
+  isOpen,
+  onClose,
+  isIowa,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  isIowa: boolean;
+}) {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => setMounted(true), []);
@@ -155,7 +166,13 @@ function BrochureDrawer({ isOpen, onClose }: { isOpen: boolean; onClose: () => v
         </div>
 
         <div className="settings-menu-items">
-          {NAV_LINKS.map((link) => (
+          {isIowa && (
+            <a href="#pick" className="settings-menu-item gold-pill" onClick={onClose}>
+              <span className="links-drawer-item-label">Pick your day and time</span>
+            </a>
+          )}
+
+          {(isIowa ? NAV_LINKS.filter((l) => !IOWA_HIDDEN.includes(l.id)) : NAV_LINKS).map((link) => (
             <Link
               key={link.id}
               href={link.href}
@@ -215,6 +232,8 @@ function BrochureDrawer({ isOpen, onClose }: { isOpen: boolean; onClose: () => v
 
 export default function Header() {
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const pathname = usePathname();
+  const isIowa = pathname === '/iowa' || pathname.startsWith('/iowa/');
 
   return (
     <>
@@ -223,15 +242,23 @@ export default function Header() {
           <div className="flex justify-between items-center h-16">
             {/* Logo */}
             <div className="flex-shrink-0">
-              <Link href="/" className="flex items-center">
+              <Link href={isIowa ? '/iowa' : '/'} className="flex items-center gap-2">
                 <Image
                   src="/images/ark-logo-web.png"
-                  alt="ARK Identity"
+                  alt={isIowa ? 'ARK Iowa' : 'ARK Identity'}
                   width={80}
                   height={21}
                   className="h-5 w-auto"
                   priority
                 />
+                {isIowa && (
+                  <span
+                    className="font-bold tracking-widest text-white"
+                    style={{ fontSize: '0.95rem', lineHeight: 1 }}
+                  >
+                    IOWA
+                  </span>
+                )}
               </Link>
             </div>
 
@@ -252,16 +279,28 @@ export default function Header() {
               <Link href="/feed" className="text-white hover:text-gold transition">
                 Updates
               </Link>
-              <Link
-                href="/giving"
-                className="px-4 py-2 rounded-lg font-semibold transition hover:opacity-90"
-                style={{ backgroundColor: 'var(--gold)', color: 'var(--navy)' }}
-              >
-                Giving
-              </Link>
-              <Link href="/vision-2026" className="text-white hover:text-gold transition">
-                Vision 2026
-              </Link>
+              {isIowa ? (
+                <a
+                  href="#pick"
+                  className="px-4 py-2 rounded-lg font-semibold transition hover:opacity-90"
+                  style={{ backgroundColor: 'var(--gold)', color: 'var(--navy)' }}
+                >
+                  Pick your day and time
+                </a>
+              ) : (
+                <>
+                  <Link
+                    href="/giving"
+                    className="px-4 py-2 rounded-lg font-semibold transition hover:opacity-90"
+                    style={{ backgroundColor: 'var(--gold)', color: 'var(--navy)' }}
+                  >
+                    Giving
+                  </Link>
+                  <Link href="/vision-2026" className="text-white hover:text-gold transition">
+                    Vision 2026
+                  </Link>
+                </>
+              )}
             </div>
 
             {/* Mobile menu button */}
@@ -279,7 +318,7 @@ export default function Header() {
         </nav>
       </header>
 
-      <BrochureDrawer isOpen={drawerOpen} onClose={() => setDrawerOpen(false)} />
+      <BrochureDrawer isOpen={drawerOpen} onClose={() => setDrawerOpen(false)} isIowa={isIowa} />
     </>
   );
 }

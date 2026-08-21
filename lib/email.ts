@@ -140,7 +140,7 @@ export async function sendTableSignupEmail(signup: TableSignup) {
 
   return getResend().emails.send({
     from: fromAddress(),
-    to: process.env.IOWA_INBOX || 'iowa@arkidentity.com',
+    to: process.env.IOWA_INBOX || 'travis@arkidentity.com',
     replyTo: signup.email || undefined,
     subject: `Table signup — ${signup.name}`,
     html,

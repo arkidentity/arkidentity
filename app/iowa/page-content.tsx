@@ -59,11 +59,11 @@ export default function IowaPageContent() {
         });
       } else {
         setFormStatus('error');
-        setFormMessage(data.error || 'Something went wrong. Email iowa@arkidentity.com and we’ll sort it out.');
+        setFormMessage(data.error || 'Something went wrong. Email travis@arkidentity.com and we’ll sort it out.');
       }
     } catch {
       setFormStatus('error');
-      setFormMessage('Something went wrong. Email iowa@arkidentity.com and we’ll sort it out.');
+      setFormMessage('Something went wrong. Email travis@arkidentity.com and we’ll sort it out.');
     }
   };
 
@@ -250,8 +250,8 @@ export default function IowaPageContent() {
                   {PHONE_DISPLAY}
                 </a>
                 {' · '}
-                <a href="mailto:iowa@arkidentity.com" className="hover:opacity-70 transition">
-                  iowa@arkidentity.com
+                <a href="mailto:travis@arkidentity.com" className="hover:opacity-70 transition">
+                  travis@arkidentity.com
                 </a>
                 <br />
                 <span className="text-[#8a8378]">Text him. He answers.</span>
@@ -642,8 +642,8 @@ export default function IowaPageContent() {
               <a href={PHONE_HREF} className="font-semibold hover:opacity-70 transition" style={{ color: 'var(--navy)' }}>
                 {PHONE_DISPLAY}
               </a>{' · '}
-              <a href="mailto:iowa@arkidentity.com" className="font-semibold hover:opacity-70 transition" style={{ color: 'var(--navy)' }}>
-                iowa@arkidentity.com
+              <a href="mailto:travis@arkidentity.com" className="font-semibold hover:opacity-70 transition" style={{ color: 'var(--navy)' }}>
+                travis@arkidentity.com
               </a>{' '}
               · Iowa City, IA
             </li>

@@ -107,34 +107,10 @@ export default function IowaPageContent() {
             A college ministry built on tables of four.
           </h1>
           <p className="text-xl md:text-2xl mb-8 text-gray-200">
-            Tables of four, at a time you pick. One hour a week, all semester.
+            One hour a week, all semester. You pick the hour.
           </p>
           <PrimaryButton />
           <p className="mt-4 text-gray-300">We’ll save you the seat.</p>
-        </div>
-      </section>
-
-      {/* 2 — THE THREE PROBLEMS */}
-      <section style={{ background: '#FAF8F5' }} className="py-20">
-        <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
-          <ul className="space-y-0">
-            {[
-              'Nothing here is going to put Jesus in your week.',
-              'You keep meaning to. It keeps not happening.',
-              'The thing that shaped you shouldn’t be the first thing a semester takes.',
-            ].map((line, i) => (
-              <li
-                key={i}
-                className="text-xl md:text-2xl font-bold py-5"
-                style={{
-                  color: 'var(--navy)',
-                  borderBottom: i < 2 ? '1px solid #e8e4df' : 'none',
-                }}
-              >
-                {line}
-              </li>
-            ))}
-          </ul>
         </div>
       </section>
 
@@ -147,23 +123,24 @@ export default function IowaPageContent() {
 
           <div className="space-y-6 text-lg text-[#4a4540] leading-relaxed">
             <p className="text-xl">
-              You showed up with something. Church at home, maybe a youth group, parents who put it on
-              the calendar so you didn’t have to. Three weeks in, your week is full, and none of that
-              made the cut.
+              At home, your faith had a schedule somebody else built. Church on Sunday. Maybe a youth
+              group on a Wednesday. A ride there, and people who noticed when you didn’t show up.
             </p>
             <p>
-              You’re not going to get a reminder. Nobody at Iowa is going to ask how it’s going.
-              Whatever isn’t built into your week doesn’t happen here, and that’s true of
-              everyone’s week, not just yours.
+              None of that came with you. Three weeks into a semester your schedule is packed, and
+              Jesus doesn’t disappear exactly — he just moves into the background. Nobody’s going to
+              remind you. Nobody in your classes is going to ask how your faith is doing, at least not
+              in normal conversation.
             </p>
             <p>
               <strong style={{ color: 'var(--maroon)' }}>
-                Two-thirds of students who went to church regularly in high school stop for at least a
-                year in college.
+                Two-thirds of students who went to church every week in high school stop for at least
+                a year in college.
               </strong>{' '}
-              The most common reason given isn’t doubt, or hypocrisy, or politics. It’s this:{' '}
+              The most common reason isn’t doubt, or hypocrisy, or politics. It’s this:{' '}
               <em>I moved to college and stopped going.</em>
             </p>
+            <p className="text-xl">Four years of school shouldn’t cost you your faith.</p>
             <p className="text-2xl font-bold pt-2" style={{ color: 'var(--navy)' }}>
               Nobody quits on purpose. The semester just fills up.
             </p>

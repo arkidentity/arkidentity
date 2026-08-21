@@ -563,18 +563,20 @@ export default function IowaPageContent() {
       <section style={{ background: '#F5F2EE' }} className="py-20">
         <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
           <h2 className="text-3xl md:text-4xl font-bold mb-10" style={{ color: 'var(--navy)' }}>
-            Questions
+            The questions people are too polite to ask
           </h2>
 
           <dl className="space-y-7">
             {[
-              ['Is this a cult?', 'Fair question. Everything we teach comes straight out of the Bible, we’ll tell you exactly what we believe before you ever sit down, nobody asks you for money, and you can walk away any week with no phone call from anyone. We meet in fours because it’s the only size where everybody actually talks, not because we’re hiding.'],
+              ['Is this a cult?', 'Fair question. Everything we teach comes straight out of the Bible, and we’ll tell you exactly what we believe before you ever sit down. Nobody asks you for money. You can stop coming any week and nobody will chase you. We meet in fours because it’s the only size where everybody actually talks, not because we’re hiding.'],
               ['I don’t have time.', 'One hour a week, at a time you pick. If none of the times work, tell us and we’ll start one that does.'],
+              ['Is it guys and girls together?', 'Separate — guys with guys, girls with girls. A table of four gets honest fast, and that’s easier when it isn’t mixed.'],
               ['I don’t really know what I believe.', 'Then you’re the easiest person to have at a table. Bring the questions. Nobody’s going to ask you to perform.'],
               ['I already go to Cru, or Salt, or a church.', 'Good, keep going. This isn’t instead of that. This is the four people who read the Bible with you during the week.'],
               ['Do I have to talk?', 'Not the first time. Or the second.'],
               ['Do I have to know the Bible?', 'No. If you needed to already know it, we wouldn’t be much use.'],
               ['Does it cost anything?', 'No. And we’re never going to ask you for money.'],
+              ['What if I don’t click with the other three?', 'Tell us and we’ll move you. No explanation, no hard feelings. Four people is small enough that fit matters, so we’d rather move you than lose you.'],
               ['What if I miss a week?', 'Somebody texts you. That’s the whole point.'],
               ['What happens after a year?', 'You’ll know how to lead a table well enough to start your own. Most people do, around a year in. That’s not a job we talk you into. It’s what the year was for.'],
             ].map(([q, a]) => (
@@ -590,8 +592,8 @@ export default function IowaPageContent() {
                 What do you believe?
               </dt>
               <dd className="text-[#4a4540] leading-relaxed">
-                Historic Christian orthodoxy — Trinitarian, Bible-centered, grace-focused. The whole
-                statement is worth two minutes before you come.{' '}
+                Nothing unusual. The same things the church has believed for two thousand years, and
+                it’s all written out — worth two minutes before you come.{' '}
                 <a href="/beliefs" className="font-semibold underline" style={{ color: 'var(--navy)' }}>
                   Read it here
                 </a>
@@ -646,6 +648,10 @@ export default function IowaPageContent() {
               · Iowa City, IA
             </li>
           </ul>
+
+          <p className="mt-6 text-[#4a4540]">
+            Parents: that number goes straight to Travis. Call it.
+          </p>
         </div>
       </section>
     </>

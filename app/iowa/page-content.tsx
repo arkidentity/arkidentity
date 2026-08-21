@@ -98,7 +98,7 @@ export default function IowaPageContent() {
       {/* 1 — HEADER */}
       <section className="relative min-h-[85vh] flex items-center justify-center py-24">
         <div className="absolute inset-0 bg-gradient-to-br from-gray-800 to-gray-900">
-          {/* TODO: photo of four real students at a table, with food on it. Not stock. */}
+          {/* TODO: photo of four real students at a table. Not stock. */}
           <div className="absolute inset-0 bg-black opacity-45"></div>
         </div>
 
@@ -158,15 +158,17 @@ export default function IowaPageContent() {
             Pick the hour. We’ll build the table around it.
           </h2>
           <p className="text-xl text-[#4a4540] mb-3">
-            Every other option on this campus has one night. If it doesn’t work, you’re out.
+            Every other option on this campus meets one night a week. If that night doesn’t work for
+            you, there isn’t another one.
           </p>
           <p className="text-lg text-[#4a4540] mb-6">
             We’re not going to hand you a schedule and hope one of the times works. Tell us when
             you’re actually free, and we’ll start a table there.
           </p>
           <p className="text-lg text-[#4a4540] mb-10">
-            Some hours already have people asking for them, and we’ll put you together. Some don’t
-            yet — you might be the first one at that table. That’s how all of them start.
+            Some hours already have students asking for them, and we’ll put you together. Some
+            don’t yet, and you’d be the first one at that table. Every table starts with somebody
+            being first.
           </p>
 
           {REQUESTED.length > 0 && (
@@ -200,9 +202,9 @@ export default function IowaPageContent() {
           </h2>
           <div className="space-y-6 text-lg text-[#4a4540] leading-relaxed">
             <p>
-              Four of you, one hour, usually food. You read a piece of Scripture together, you talk
-              about what you actually did with last week, and you pray, out loud or not. Somebody a
-              year or two ahead of you runs it, and after a while, you do.
+              Four of you, one hour. You read the passage of the day, talk about it, and say what
+              you’re going to do about it. The next week you follow up on that. You pray and encourage
+              one another. Somebody a year or two ahead of you runs it, and after a while, you do.
             </p>
             <p>
               Nobody is called on. Nobody is graded. Nobody is going to make you pray out loud. If you
@@ -233,12 +235,12 @@ export default function IowaPageContent() {
             />
             <div className="space-y-5 text-lg text-[#4a4540] leading-relaxed">
               <p className="text-xl">
-                We’ve sat across from a lot of students who meant to keep this up and watched the
-                semester eat it.
+                We’ve sat across from a lot of students who meant to keep following Jesus in
+                college, and watched their schedule quietly win.
               </p>
               <p>
-                We’re new at Iowa and we’re not new at this. Travis has been building this material
-                since 2013, it’s running with groups in Denver and Las Vegas, and he lives in Iowa
+                We’re new at Iowa. Travis isn’t new at this — he’s been teaching people to follow
+                Jesus since 2013, and he has teams in Denver, Las Vegas, and Iowa. He lives in Iowa
                 City.
               </p>
               <p>
@@ -265,7 +267,7 @@ export default function IowaPageContent() {
           <div className="space-y-0">
             {[
               { n: '1', h: 'Pick your day and time.', b: 'Your name and a number.', t: '30 seconds' },
-              { n: '2', h: 'Come sit in on one.', b: 'One table, one hour, no commitment. Food’s there.', t: 'This week' },
+              { n: '2', h: 'Come sit in on one.', b: 'One table, one hour, no commitment. Nothing to bring.', t: 'This week' },
               { n: '3', h: 'Keep the same hour every week.', b: 'Same four people, all semester.', t: 'Ongoing' },
             ].map((s, i) => (
               <div
@@ -300,7 +302,10 @@ export default function IowaPageContent() {
             Four years from now, if nothing changes.
           </h2>
           <div className="space-y-4 text-lg md:text-xl text-gray-200 leading-relaxed">
-            <p>Freshman year you still meant to. By junior year you stopped saying it out loud.</p>
+            <p>
+              Freshman year you tried to make Jesus a priority. By junior year he’d been in the
+              background so long you stopped noticing.
+            </p>
             <p>
               Your Bible is the one your church gave you at graduation, and you know exactly where it
               is.
@@ -510,7 +515,8 @@ export default function IowaPageContent() {
             Not ready to sit down with three other people?
           </h2>
           <p className="text-lg text-[#4a4540] mb-8">
-            Start on your own. Same rhythm, ten minutes a day.
+            Start on your own. Ten minutes a day — the same thing a table does, minus the other
+            three.
           </p>
 
           <p className="text-2xl md:text-3xl font-bold mb-8" style={{ color: 'var(--navy)' }}>
@@ -568,9 +574,9 @@ export default function IowaPageContent() {
               ['I already go to Cru, or Salt, or a church.', 'Good, keep going. This isn’t instead of that. This is the four people who read the Bible with you during the week.'],
               ['Do I have to talk?', 'Not the first time. Or the second.'],
               ['Do I have to know the Bible?', 'No. If you needed to already know it, we wouldn’t be much use.'],
-              ['Does it cost anything?', 'No. Food’s usually covered too.'],
+              ['Does it cost anything?', 'No. And we’re never going to ask you for money.'],
               ['What if I miss a week?', 'Somebody texts you. That’s the whole point.'],
-              ['What happens after a year?', 'You’ll know how to do this well enough to run one yourself. Most people do, around a year in. That’s not a job we talk you into. It’s what the year was for.'],
+              ['What happens after a year?', 'You’ll know how to lead a table well enough to start your own. Most people do, around a year in. That’s not a job we talk you into. It’s what the year was for.'],
             ].map(([q, a]) => (
               <div key={q}>
                 <dt className="text-lg font-bold mb-2" style={{ color: 'var(--navy)' }}>
@@ -600,8 +606,8 @@ export default function IowaPageContent() {
       <section style={{ background: '#FAF8F5' }} className="py-20">
         <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h2 className="text-2xl md:text-3xl font-bold mb-8" style={{ color: 'var(--navy)' }}>
-            One hour a week, three other people, and by the end of it you’ll know how to run one
-            yourself.
+            One hour a week, three other people, and by the end of the year you’ll know how to lead
+            a table of your own.
           </h2>
           <PrimaryButton />
           <p className="mt-4 text-[#8a8378]">We’ll save you the seat.</p>

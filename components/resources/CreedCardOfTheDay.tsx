@@ -34,8 +34,11 @@ export default function CreedCardOfTheDay() {
       <p className="text-white/40 text-[11px] font-bold uppercase tracking-[0.08em] mb-2">
         Creed Card of the Day
       </p>
+      {/* Straight to the day's card, matching Daily DNA. Linking to
+          /creed-cards only opened the dashboard, leaving the reader to hunt
+          for the card they had just been shown. */}
       <Link
-        href="/creed-cards"
+        href="/creed-cards/study?mode=daily"
         className="block rounded-2xl overflow-hidden"
         style={{
           background: `linear-gradient(145deg, ${card.colors.dark}, ${card.colors.dark}cc)`,

@@ -20,7 +20,8 @@
     ],
     "paths": {
       "@/*": ["./*"],
-      "@courses/*": ["./shared/ark-courses/*"]
+      "@courses/*": ["./shared/ark-courses/*"],
+      "@creed-cards/*": ["./shared/creed-cards/*"]
     }
   },
   "include": [

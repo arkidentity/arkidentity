@@ -15,6 +15,7 @@ import { useEffect, useState } from 'react';
 const SPARK_URL = 'https://spark.arkidentity.com';
 const API = `${SPARK_URL}/api/question-of-the-day`;
 const EMBER = '#ff5a1f';
+const SPARK_BLACK = '#0a0a0b';
 
 interface SparkQuestion {
   id: number;
@@ -57,7 +58,8 @@ export default function SparkOfTheDay() {
         rel="noopener noreferrer"
         className="block rounded-2xl overflow-hidden"
         style={{
-          background: 'rgba(255,255,255,0.03)',
+          // Always black, never the host page's surface colour.
+          background: SPARK_BLACK,
           border: `1px solid ${EMBER}4d`,
         }}
       >

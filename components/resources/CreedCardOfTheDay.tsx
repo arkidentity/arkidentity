@@ -2,73 +2,31 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { getCardOfTheDay } from '@creed-cards/lib/cardData';
+import type { CreedCard } from '@creed-cards/lib/cardData';
 
 /**
- * Creed Card of the Day — mirrors the card on the Daily DNA main page.
+ * Creed Card of the Day — the same card Daily DNA shows on its main page.
  *
- * The deck lives in Daily DNA, so the card is fetched from its
- * /api/creed-card-of-the-day rather than copied into this repo. Falls back to
- * the plain "Creed Cards" entry point if the fetch fails, so the resources
- * page never loses the link.
+ * Reads the deck straight from the shared `creed-cards` submodule, so there is
+ * no cross-app HTTP call and no way for ARK and Daily DNA to disagree: both
+ * compile the same `getCardOfTheDay()` against the same pinned commit.
+ *
+ * Computed in an effect rather than during render because getCardOfTheDay()
+ * reads the client clock — deriving it on the server would produce a
+ * hydration mismatch whenever the two disagree about the date.
  */
-
-const API = 'https://dailydna.app/api/creed-card-of-the-day';
-
-interface CreedCard {
-  id: number;
-  title: string;
-  shortDesc: string;
-  colors: { dark: string; accent: string };
-}
-
 export default function CreedCardOfTheDay() {
   const [card, setCard] = useState<CreedCard | null>(null);
 
   useEffect(() => {
-    let cancelled = false;
-    fetch(API)
-      .then((r) => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))))
-      .then((data: { card: CreedCard }) => {
-        if (!cancelled && data?.card?.title) setCard(data.card);
-      })
-      .catch(() => {
-        /* leave `card` null — the fallback below still links through */
-      });
-    return () => {
-      cancelled = true;
-    };
+    setCard(getCardOfTheDay());
   }, []);
 
   if (!card) {
-    // Fallback: the original static entry point. Better a working link than
-    // a blank slot on the page.
-    return (
-      <section>
-        <Link href="/creed-cards" className="resources-section-card block">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div
-                className="w-10 h-10 rounded-full flex items-center justify-center"
-                style={{ background: 'rgba(232,181,98,0.15)' }}
-              >
-                <svg viewBox="0 0 24 24" fill="none" stroke="var(--ark-gold)" strokeWidth="1.5" className="w-5 h-5" strokeLinecap="round" strokeLinejoin="round">
-                  <rect x="2" y="3" width="20" height="14" rx="2" ry="2" />
-                  <path d="M8 21h8" />
-                  <path d="M12 17v4" />
-                </svg>
-              </div>
-              <div>
-                <h2 className="text-lg font-bold text-white">Creed Cards</h2>
-                <p className="text-white/50 text-sm">50 core truths of the Christian faith</p>
-              </div>
-            </div>
-            <svg viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" className="w-5 h-5 opacity-40" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M9 18l6-6-6-6" />
-            </svg>
-          </div>
-        </Link>
-      </section>
-    );
+    // First paint only. Reserve the row instead of collapsing it, so the
+    // resources list does not jump as the card lands.
+    return <section style={{ minHeight: 72 }} aria-hidden />;
   }
 
   return (

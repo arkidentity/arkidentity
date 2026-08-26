@@ -243,7 +243,7 @@ function StartForm() {
     phone: '',
     email: '',
     year: '',
-    company: '',
+    hpField: '',
   });
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [message, setMessage] = useState('');
@@ -365,16 +365,19 @@ function StartForm() {
         ))}
       </div>
 
-      <input
-        type="text"
-        name="company"
-        tabIndex={-1}
-        autoComplete="off"
-        value={form.company}
-        onChange={(e) => setForm({ ...form, company: e.target.value })}
-        style={{ position: 'absolute', left: '-9999px' }}
-        aria-hidden="true"
-      />
+      {/* honeypot — see JoinForm for why it's named this way */}
+      <div aria-hidden="true" style={{ position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0 0 0 0)', whiteSpace: 'nowrap' }}>
+        <label htmlFor="hp-start">Leave this field empty</label>
+        <input
+          id="hp-start"
+          type="text"
+          name="hp_field"
+          tabIndex={-1}
+          autoComplete="off"
+          value={form.hpField}
+          onChange={(e) => setForm({ ...form, hpField: e.target.value })}
+        />
+      </div>
 
       <button
         type="submit"

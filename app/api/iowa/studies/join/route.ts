@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server';
+import { NextResponse, after } from 'next/server';
 import { joinStudy, formatSlot } from '@/lib/bibleStudies';
 import { sendStudyConfirmation, sendStudyRosterAlerts, sendStudyAdminAlert } from '@/lib/email';
 import { googleCalendarUrl } from '@/lib/ics';
@@ -15,10 +15,13 @@ export async function POST(req: Request) {
     phone?: string;
     email?: string;
     year?: string;
-    company?: string; // honeypot
+    hpField?: string; // honeypot — real users leave it empty
   };
 
-  if (body.company) return NextResponse.json({ ok: true }); // bot
+  if (body.hpField) {
+    console.warn('[iowa join] honeypot tripped', { studyId: body.studyId });
+    return NextResponse.json({ ok: true }); // pretend success, do nothing
+  }
 
   const studyId = body.studyId?.trim();
   const name = body.name?.trim();
@@ -49,23 +52,33 @@ export async function POST(req: Request) {
       location: study.location,
     });
 
-    // Fire-and-forget notifications — a slow mail send shouldn't fail the join.
-    void sendStudyConfirmation({ to: email, name, study: info, roster, googleUrl, icsUrl });
-    void sendStudyRosterAlerts({
-      study: info,
-      newMemberName: name,
-      newMemberPhone: phone,
-      existing: study.members
-        .filter((m) => m.status === 'active' && m.id !== member.id)
-        .map((m) => ({ email: m.email })),
-      leaderEmail: study.leader_email,
-    });
-    void sendStudyAdminAlert({
-      kind: 'join',
-      study: info,
-      member: { name, phone, email, year: body.year || null },
-      spotsLeft: Math.max(0, study.capacity - study.activeCount),
-      alsoInStudies: alsoInOtherStudies.map((s) => formatSlot(s)),
+    // Emails run after the response is sent. `after()` keeps the function alive
+    // on Vercel until they finish (a bare `void` promise gets frozen out). A
+    // send failure is logged, never fatal — the student already joined.
+    const existing = study.members
+      .filter((m) => m.status === 'active' && m.id !== member.id)
+      .map((m) => ({ email: m.email }));
+    after(async () => {
+      const results = await Promise.allSettled([
+        sendStudyConfirmation({ to: email, name, study: info, roster, googleUrl, icsUrl }),
+        sendStudyRosterAlerts({
+          study: info,
+          newMemberName: name,
+          newMemberPhone: phone,
+          existing,
+          leaderEmail: study.leader_email,
+        }),
+        sendStudyAdminAlert({
+          kind: 'join',
+          study: info,
+          member: { name, phone, email, year: body.year || null },
+          spotsLeft: Math.max(0, study.capacity - study.activeCount),
+          alsoInStudies: alsoInOtherStudies.map((s) => formatSlot(s)),
+        }),
+      ]);
+      for (const r of results) {
+        if (r.status === 'rejected') console.error('[iowa join email]', r.reason);
+      }
     });
 
     return NextResponse.json({ ok: true, roster, calendar: { icsUrl, googleUrl } });

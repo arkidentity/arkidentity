@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server';
+import { NextResponse, after } from 'next/server';
 import { startStudy, formatSlot } from '@/lib/bibleStudies';
 import { sendStudyAdminAlert } from '@/lib/email';
 
@@ -15,10 +15,13 @@ export async function POST(req: Request) {
     phone?: string;
     email?: string;
     year?: string;
-    company?: string; // honeypot
+    hpField?: string; // honeypot — real users leave it empty
   };
 
-  if (body.company) return NextResponse.json({ ok: true });
+  if (body.hpField) {
+    console.warn('[iowa start] honeypot tripped');
+    return NextResponse.json({ ok: true });
+  }
 
   const day = Number(body.dayOfWeek);
   const startTime = body.startTime?.trim();
@@ -42,10 +45,16 @@ export async function POST(req: Request) {
       year: body.year,
     });
     const slot = formatSlot(study);
-    void sendStudyAdminAlert({
-      kind: 'start',
-      study: { id: study.id, slot, location: null },
-      member: { name: member.name, phone: member.phone, email: member.email, year: member.year },
+    after(async () => {
+      try {
+        await sendStudyAdminAlert({
+          kind: 'start',
+          study: { id: study.id, slot, location: null },
+          member: { name: member.name, phone: member.phone, email: member.email, year: member.year },
+        });
+      } catch (e) {
+        console.error('[iowa start email]', e);
+      }
     });
     return NextResponse.json({ ok: true, slot });
   } catch (e) {

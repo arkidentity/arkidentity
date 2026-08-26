@@ -196,6 +196,12 @@ open option is pushed to **start one**, not to queue for a closed group.
 **To Travis, on every join and every start-new:** the signup detail (reuse the
 `sendTableSignupEmail` shape), with the duplicate-guard flag when relevant.
 
+**Sending mechanics:** study emails go out from the route handler via `after()` (from `next/server`),
+*not* a bare `void promise`. On Vercel the function is frozen once the response returns, so a
+fire-and-forget send never completes. `after()` keeps it alive; failures are `console.error`-logged
+(grep Vercel logs for `[iowa join email]` / `[iowa start email]`), never fatal to the join. Needs
+`RESEND_API_KEY` + `EMAIL_FROM` in this project's prod env — the same ones the feed digest uses.
+
 ---
 
 ## 7. Admin — `/iowa/admin`

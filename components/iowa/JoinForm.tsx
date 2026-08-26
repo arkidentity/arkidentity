@@ -36,7 +36,7 @@ export default function JoinForm({
   capacity,
   onJoined,
 }: Props) {
-  const [form, setForm] = useState({ name: '', phone: '', email: '', year: '', company: '' });
+  const [form, setForm] = useState({ name: '', phone: '', email: '', year: '', hpField: '' });
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [message, setMessage] = useState('');
   const [roster, setRoster] = useState<Contact[]>([]);
@@ -198,17 +198,21 @@ export default function JoinForm({
         </div>
       </div>
 
-      {/* honeypot */}
-      <input
-        type="text"
-        name="company"
-        tabIndex={-1}
-        autoComplete="off"
-        value={form.company}
-        onChange={(e) => setForm({ ...form, company: e.target.value })}
-        style={{ position: 'absolute', left: '-9999px' }}
-        aria-hidden="true"
-      />
+      {/* honeypot — real users never see or fill this. Named so browser
+          autofill / password managers won't touch it (avoid company, name,
+          email, phone, address, organization). */}
+      <div aria-hidden="true" style={{ position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0 0 0 0)', whiteSpace: 'nowrap' }}>
+        <label htmlFor={`hp-${studyId}`}>Leave this field empty</label>
+        <input
+          id={`hp-${studyId}`}
+          type="text"
+          name="hp_field"
+          tabIndex={-1}
+          autoComplete="off"
+          value={form.hpField}
+          onChange={(e) => setForm({ ...form, hpField: e.target.value })}
+        />
+      </div>
 
       <p className="text-sm text-[#8a8378]">
         Your name and number are shared with the others in your study so you can coordinate.

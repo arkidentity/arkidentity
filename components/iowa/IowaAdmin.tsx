@@ -16,7 +16,7 @@ const STATUS_COLOR: Record<StudyStatus, string> = {
   ended: '#b91c1c',
 };
 
-const input = 'w-full px-3 py-2 border border-gray-300 rounded-md text-sm';
+const input = 'w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-gray-900 bg-white';
 const THREE_WEEKS = 21 * 24 * 60 * 60 * 1000;
 
 function needsAttention(s: StudyWithMembers): string | null {
@@ -89,7 +89,7 @@ export default function IowaAdmin({
   }, [initial]);
 
   return (
-    <div style={{ background: '#FAF8F5', minHeight: '100vh' }}>
+    <div style={{ background: '#FAF8F5', minHeight: '100vh', color: '#1f2937' }}>
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="flex items-baseline justify-between mb-2">
           <h1 className="text-3xl font-bold" style={{ color: 'var(--navy)' }}>
@@ -312,7 +312,7 @@ function StudyEditor({ s, busy, call }: { s: StudyWithMembers; busy: boolean; ca
           />
         </Field>
         <Field label="Accepting signups">
-          <label className="flex items-center gap-2 text-sm py-2">
+          <label className="flex items-center gap-2 text-sm py-2 text-gray-700">
             <input
               type="checkbox"
               checked={draft.accepting_signups}
@@ -480,7 +480,10 @@ function NewStudyForm({
     leaderPhone: '',
     leaderEmail: '',
     notes: '',
+    addLeaderAsMember: true,
   });
+
+  const leaderFilled = !!(f.leaderName.trim() && f.leaderPhone.trim() && f.leaderEmail.trim());
 
   return (
     <div className="mt-4 rounded-lg border border-gray-200 bg-white p-4 grid sm:grid-cols-2 gap-3">
@@ -554,10 +557,34 @@ function NewStudyForm({
           />
         </Field>
       </div>
+      {leaderFilled && (
+        <div className="sm:col-span-2">
+          <label className="flex items-start gap-2 text-sm text-gray-700">
+            <input
+              type="checkbox"
+              className="mt-0.5"
+              checked={f.addLeaderAsMember}
+              onChange={(e) => setF({ ...f, addLeaderAsMember: e.target.checked })}
+            />
+            <span>
+              This leader is one of the four — add them to the roster now.
+              <span className="block text-xs text-[#8a8378]">
+                Leave unchecked if you’re facilitating this one yourself.
+              </span>
+            </span>
+          </label>
+        </div>
+      )}
       <div className="sm:col-span-2">
         <button
           disabled={busy}
-          onClick={() => onCreate({ ...f, dayOfWeek: Number(f.dayOfWeek) })}
+          onClick={() =>
+            onCreate({
+              ...f,
+              dayOfWeek: Number(f.dayOfWeek),
+              addLeaderAsMember: leaderFilled && f.addLeaderAsMember,
+            })
+          }
           className="px-4 py-2 rounded-md text-sm font-semibold text-white transition hover:opacity-90 disabled:opacity-50"
           style={{ backgroundColor: 'var(--navy)' }}
         >

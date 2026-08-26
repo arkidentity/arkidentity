@@ -359,10 +359,17 @@ export interface CreateStudyInput {
   leader_email?: string;
   notes?: string;
   semester?: string;
+  // When the leader is one of the four students (not Travis facilitating),
+  // also seat them on the roster so the count is right.
+  addLeaderAsMember?: boolean;
 }
 
 export async function createStudy(input: CreateStudyInput): Promise<BibleStudy> {
   const db = getSupabaseAdmin();
+  const leaderName = input.leader_name?.trim() || null;
+  const leaderPhone = input.leader_phone?.trim() || null;
+  const leaderEmail = input.leader_email?.trim() || null;
+
   const { data, error } = await db
     .from('bible_studies')
     .insert({
@@ -372,15 +379,20 @@ export async function createStudy(input: CreateStudyInput): Promise<BibleStudy> 
       location: input.location.trim(),
       capacity: input.capacity ?? 4,
       status: 'forming',
-      leader_name: input.leader_name?.trim() || null,
-      leader_phone: input.leader_phone?.trim() || null,
-      leader_email: input.leader_email?.trim() || null,
+      leader_name: leaderName,
+      leader_phone: leaderPhone,
+      leader_email: leaderEmail,
       notes: input.notes?.trim() || null,
     })
     .select('*')
     .single();
   if (error) throw error;
-  return data as BibleStudy;
+  const study = data as BibleStudy;
+
+  if (input.addLeaderAsMember && leaderName && leaderPhone && leaderEmail) {
+    await addMember(study.id, { name: leaderName, phone: leaderPhone, email: leaderEmail });
+  }
+  return study;
 }
 
 const EDITABLE_FIELDS = [

@@ -24,6 +24,7 @@ export async function POST(req: Request) {
     leaderPhone?: string;
     leaderEmail?: string;
     notes?: string;
+    addLeaderAsMember?: boolean;
   };
 
   const day = Number(body.dayOfWeek);
@@ -41,6 +42,7 @@ export async function POST(req: Request) {
       leader_phone: body.leaderPhone,
       leader_email: body.leaderEmail,
       notes: body.notes,
+      addLeaderAsMember: body.addLeaderAsMember,
     });
     return NextResponse.json({ study }, { status: 201 });
   } catch (e) {

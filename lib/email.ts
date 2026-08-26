@@ -197,6 +197,10 @@ export async function sendStudyConfirmation(opts: {
 }) {
   const { to, name, study, roster, googleUrl, icsUrl } = opts;
   const where = study.location ? ` at ${escapeHtml(study.location)}` : '';
+  const closing =
+    roster.length > 0
+      ? 'Save those numbers — that’s your study. Your name and number went to them too, so you can sort out a missed week or a ride. Can’t make it some week? Text them.'
+      : 'You’re the first one in this study. We’ll pass along the others’ numbers as they join, and someone will text you this week either way.';
   const html = wrap(`
     <h1 style="color:#143348; font-size:22px;">You're in — ${escapeHtml(study.slot)} Bible study</h1>
     <p>${escapeHtml(name)}, you're set for the <strong>${escapeHtml(study.slot)}</strong> Bible study${where}.
@@ -206,7 +210,7 @@ export async function sendStudyConfirmation(opts: {
       <a href="${icsUrl}" style="border:1px solid #143348; color:#143348; text-decoration:none; padding:11px 20px; border-radius:8px; font-weight:600; display:inline-block;">Add to any other calendar</a>
     </p>
     ${contactList(roster)}
-    <p style="color:#8a8378; font-size:14px; margin-top:24px;">Your name and number are shared with the others in your study so you can coordinate. Can't make it some week? Text the group.</p>
+    <p style="color:#8a8378; font-size:14px; margin-top:24px;">${closing}</p>
   `);
   return getResend().emails.send({
     from: fromAddress(),

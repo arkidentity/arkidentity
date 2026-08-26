@@ -152,3 +152,165 @@ function escapeHtml(s: string): string {
     ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c] as string
   );
 }
+
+// ---------------------------------------------------------------------------
+// ARK Iowa Bible Study system. See docs/IOWA-BIBLE-STUDY-SYSTEM.md.
+// Voice follows messaging/iowa/booking/booking-copy.md — short, plain, human.
+// ---------------------------------------------------------------------------
+
+const IOWA_INBOX = () => process.env.IOWA_INBOX || 'travis@arkidentity.com';
+
+export interface StudyEmailInfo {
+  id: string;
+  slot: string; // e.g. "Wed 8 AM"
+  location: string | null;
+}
+export interface StudyContact {
+  name: string;
+  phone: string;
+  role: 'leader' | 'member';
+}
+
+function contactList(contacts: StudyContact[]): string {
+  if (contacts.length === 0) return '';
+  const rows = contacts
+    .map(
+      (c) =>
+        `<li style="margin:0 0 4px;">${escapeHtml(c.name)}${
+          c.role === 'leader' ? ' (leader)' : ''
+        } — <a href="tel:${c.phone.replace(/[^\d+]/g, '')}" style="color:#143348;">${escapeHtml(
+          c.phone
+        )}</a></li>`
+    )
+    .join('');
+  return `<p style="margin:20px 0 6px; font-weight:600; color:#143348;">Your study</p><ul style="margin:0; padding-left:18px; color:#4a4540;">${rows}</ul>`;
+}
+
+// To the student who just joined.
+export async function sendStudyConfirmation(opts: {
+  to: string;
+  name: string;
+  study: StudyEmailInfo;
+  roster: StudyContact[];
+  googleUrl: string;
+  icsUrl: string;
+}) {
+  const { to, name, study, roster, googleUrl, icsUrl } = opts;
+  const where = study.location ? ` at ${escapeHtml(study.location)}` : '';
+  const html = wrap(`
+    <h1 style="color:#143348; font-size:22px;">You're in — ${escapeHtml(study.slot)} Bible study</h1>
+    <p>${escapeHtml(name)}, you're set for the <strong>${escapeHtml(study.slot)}</strong> Bible study${where}.
+       One hour a week. Someone from the study will text you this week.</p>
+    <p style="margin:24px 0;">
+      <a href="${googleUrl}" style="background:#143348; color:#fff; text-decoration:none; padding:11px 20px; border-radius:8px; font-weight:600; display:inline-block; margin:0 8px 8px 0;">Add to Google Calendar</a>
+      <a href="${icsUrl}" style="border:1px solid #143348; color:#143348; text-decoration:none; padding:11px 20px; border-radius:8px; font-weight:600; display:inline-block;">Add to any other calendar</a>
+    </p>
+    ${contactList(roster)}
+    <p style="color:#8a8378; font-size:14px; margin-top:24px;">Your name and number are shared with the others in your study so you can coordinate. Can't make it some week? Text the group.</p>
+  `);
+  return getResend().emails.send({
+    from: fromAddress(),
+    to,
+    subject: `You're in — ${study.slot} Bible study`,
+    html,
+  });
+}
+
+// To the students already in the study, and a sharper nudge to the leader.
+export async function sendStudyRosterAlerts(opts: {
+  study: StudyEmailInfo;
+  newMemberName: string;
+  newMemberPhone: string;
+  existing: { email: string }[];
+  leaderEmail?: string | null;
+}) {
+  const { study, newMemberName, newMemberPhone, existing, leaderEmail } = opts;
+  const tel = newMemberPhone.replace(/[^\d+]/g, '');
+  const sends: Promise<unknown>[] = [];
+
+  for (const m of existing) {
+    if (!m.email) continue;
+    sends.push(
+      getResend().emails.send({
+        from: fromAddress(),
+        to: m.email,
+        subject: `${newMemberName} just joined your ${study.slot} study`,
+        html: wrap(`
+          <p><strong>${escapeHtml(newMemberName)}</strong> is joining your ${escapeHtml(
+            study.slot
+          )} Bible study${study.location ? ` at ${escapeHtml(study.location)}` : ''}.</p>
+          <p>Their number: <a href="tel:${tel}" style="color:#143348;">${escapeHtml(newMemberPhone)}</a>. Send a hi.</p>
+        `),
+      })
+    );
+  }
+
+  if (leaderEmail) {
+    sends.push(
+      getResend().emails.send({
+        from: fromAddress(),
+        to: leaderEmail,
+        subject: `New student in your ${study.slot} study — send a welcome text`,
+        html: wrap(`
+          <p><strong>${escapeHtml(newMemberName)}</strong> just signed up for your ${escapeHtml(
+            study.slot
+          )} Bible study.</p>
+          <p><a href="tel:${tel}" style="color:#143348;">${escapeHtml(newMemberPhone)}</a></p>
+          <p>Text them a quick welcome now — "looking forward to meeting you, see you then." That first text is what gets someone to actually show up.</p>
+        `),
+      })
+    );
+  }
+
+  await Promise.allSettled(sends);
+}
+
+// To Travis.
+export async function sendStudyAdminAlert(opts: {
+  kind: 'join' | 'start';
+  study: StudyEmailInfo;
+  member: { name: string; phone: string; email: string; year?: string | null };
+  spotsLeft?: number;
+  alsoInStudies?: string[]; // slot labels
+}) {
+  const { kind, study, member, spotsLeft, alsoInStudies } = opts;
+  const row = (label: string, value: string) =>
+    `<p style="margin:0 0 6px;"><strong style="color:#143348;">${label}:</strong> ${escapeHtml(value)}</p>`;
+  const adminUrl = `${siteUrl()}/iowa/admin`;
+
+  const html = wrap(`
+    <h1 style="color:#143348; font-size:22px;">${
+      kind === 'start' ? 'New study to set up' : 'Study signup'
+    } — ${escapeHtml(study.slot)}</h1>
+    ${row('Name', member.name)}
+    ${row('Phone', member.phone)}
+    ${row('Email', member.email)}
+    ${member.year ? row('Year', member.year) : ''}
+    ${row('Study', `${study.slot}${study.location ? ` · ${study.location}` : ''}`)}
+    ${
+      kind === 'start'
+        ? `<p style="margin:14px 0; color:#4a4540;">They're the first student. Set a location and take it out of pending setup in the <a href="${adminUrl}" style="color:#143348;">admin</a>.</p>`
+        : typeof spotsLeft === 'number'
+          ? row('Spots left now', String(spotsLeft))
+          : ''
+    }
+    ${
+      alsoInStudies && alsoInStudies.length
+        ? `<p style="margin:14px 0; color:#9d855a;"><strong>Heads up:</strong> this phone is already active in ${escapeHtml(
+            alsoInStudies.join(', ')
+          )}.</p>`
+        : ''
+    }
+    <p style="margin:20px 0 0; color:#8a8378; font-size:14px;">
+      ${new Date().toLocaleString('en-US', { timeZone: 'America/Chicago' })} CT.
+    </p>
+  `);
+
+  return getResend().emails.send({
+    from: fromAddress(),
+    to: IOWA_INBOX(),
+    replyTo: member.email || undefined,
+    subject: `${kind === 'start' ? 'New study' : 'Study signup'} — ${member.name} → ${study.slot}`,
+    html,
+  });
+}

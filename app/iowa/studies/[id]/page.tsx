@@ -57,6 +57,7 @@ export default async function IowaStudyPage({
                 slotLabel={`${DAY_NAMES[study.day_of_week]} · ${formatTime(study.start_time)}`}
                 location={study.location}
                 spotsLeft={study.spotsLeft}
+                capacity={study.capacity}
               />
             ) : (
               <div className="rounded-2xl border border-gray-200 bg-white px-6 py-8 text-center">

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { spotsLabel } from '@/lib/bibleStudyFormat';
 
 interface Contact {
   name: string;
@@ -13,6 +14,7 @@ interface Props {
   slotLabel: string;
   location: string | null;
   spotsLeft: number;
+  capacity: number;
   onJoined?: () => void;
 }
 
@@ -26,7 +28,14 @@ function telHref(phone: string) {
   return `tel:${phone.replace(/[^\d+]/g, '')}`;
 }
 
-export default function JoinForm({ studyId, slotLabel, location, spotsLeft, onJoined }: Props) {
+export default function JoinForm({
+  studyId,
+  slotLabel,
+  location,
+  spotsLeft,
+  capacity,
+  onJoined,
+}: Props) {
   const [form, setForm] = useState({ name: '', phone: '', email: '', year: '', company: '' });
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [message, setMessage] = useState('');
@@ -117,7 +126,7 @@ export default function JoinForm({ studyId, slotLabel, location, spotsLeft, onJo
   return (
     <form onSubmit={handleSubmit} className="bg-white rounded-2xl shadow-lg p-8 space-y-5">
       <p className="text-sm text-[#8a8378]">
-        {spotsLeft === 1 ? 'One spot left' : `${spotsLeft} of 4 spots open`} · {slotLabel}
+        {spotsLabel(spotsLeft, capacity)} · {slotLabel}
         {location ? ` · ${location}` : ''}
       </p>
 

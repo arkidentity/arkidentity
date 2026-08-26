@@ -7,6 +7,7 @@ import {
   DAY_NAMES,
   blockOf,
   formatTime,
+  spotsLabel,
 } from '@/lib/bibleStudyFormat';
 import JoinForm from '@/components/iowa/JoinForm';
 
@@ -168,7 +169,7 @@ export default function StudiesBrowser({ initial }: { initial: PublicStudy[] }) 
                             </span>
                           </p>
                           <p className="text-sm text-[#8a8378]">
-                            {s.spotsLeft === 1 ? '1 spot left' : `${s.spotsLeft} of ${s.capacity} spots open`}
+                            {spotsLabel(s.spotsLeft, s.capacity)}
                             {s.leader_name ? ` · ${s.leader_name}` : ''}
                           </p>
                         </div>
@@ -187,6 +188,7 @@ export default function StudiesBrowser({ initial }: { initial: PublicStudy[] }) 
                             slotLabel={`${DAY_NAMES[s.day_of_week]} · ${formatTime(s.start_time)}`}
                             location={s.location}
                             spotsLeft={s.spotsLeft}
+                            capacity={s.capacity}
                             onJoined={refresh}
                           />
                         </div>

@@ -158,6 +158,18 @@ and we'll help fill it."* Travis gets an email.
 
 `/iowa/studies/<id>` — a single study's card + join. For texting one specific study to a student.
 
+### Pre-seeding the schedule (launch strategy)
+
+Supply-led launch: Travis creates 5–10 studies at times he'll actually staff *before* students
+ask, so the page looks alive and students pick into existing slots instead of always starting from
+zero. A seeded study has Travis as `leader` (facilitator, not on the roster), a real location, and
+zero members. Studies without a locked venue stay `pending_setup` (hidden) until the spot is set.
+The "forming 3+ weeks, still not full" flag surfaces seeded slots that never took, to pause or end.
+
+An empty study must not imply members who aren't there. `spotsLabel()` renders a zero-member
+forming study as **"Open — be the first"**, switching to **"N of 4 open · join them"** only once
+real students are in it, and **"1 spot left"** / **"Full"** past that.
+
 ### No waitlist — by design
 
 Full study = closed. If a seat later opens, the study simply reappears in results. A student with no

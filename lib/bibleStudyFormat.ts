@@ -48,3 +48,12 @@ export function formatSlot(study: { day_of_week: number; start_time: string }): 
 export function formatDayTime(study: { day_of_week: number; start_time: string }): string {
   return `${DAY_NAMES[study.day_of_week]} · ${formatTime(study.start_time)}`;
 }
+
+// How a study's openness reads to a student. An empty study says "be the first"
+// rather than implying members who aren't there yet.
+export function spotsLabel(spotsLeft: number, capacity: number): string {
+  if (spotsLeft >= capacity) return 'Open — be the first';
+  if (spotsLeft <= 0) return 'Full';
+  if (spotsLeft === 1) return '1 spot left';
+  return `${spotsLeft} of ${capacity} open · join them`;
+}

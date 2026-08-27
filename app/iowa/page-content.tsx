@@ -1,22 +1,7 @@
 'use client';
 
 import Image from 'next/image';
-import { useState } from 'react';
-
-const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-
-const BLOCKS = [
-  { key: 'morning', label: 'Morning', hint: 'before noon' },
-  { key: 'afternoon', label: 'Afternoon', hint: '12–5' },
-  { key: 'evening', label: 'Evening', hint: '5–8' },
-  { key: 'late', label: 'Late', hint: '8 and after' },
-];
-
-// Hand-updated. The most persuasive thing on this page is proof that other
-// students exist, and this is the only kind available before anyone will go on
-// record. Only put real numbers here — an invented count is a lie a student can
-// catch the first time they show up. Empty is fine; nothing renders.
-const REQUESTED: { slot: string; count: number }[] = [];
+import StudiesBrowser from '@/components/iowa/StudiesBrowser';
 
 const JOURNAL_URL = 'https://arkiowa.dailydna.app/journal';
 
@@ -25,74 +10,34 @@ const JOURNAL_URL = 'https://arkiowa.dailydna.app/journal';
 const PHONE_DISPLAY = '(319) 359-7117';
 const PHONE_HREF = 'tel:+13193597117';
 
-export default function IowaPageContent() {
-  const [formData, setFormData] = useState({
-    name: '',
-    phone: '',
-    email: '',
-    availability: [] as string[],
-    bringing: '',
-    message: '',
-    company: '', // honeypot
-  });
-  const [formStatus, setFormStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
-  const [formMessage, setFormMessage] = useState('');
+interface PublicStudy {
+  id: string;
+  day_of_week: number;
+  start_time: string;
+  location: string | null;
+  capacity: number;
+  spotsLeft: number;
+  leader_name: string | null;
+}
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setFormStatus('loading');
+interface Props {
+  studies: PublicStudy[];
+  counts: { running: number; open: number };
+}
 
-    try {
-      const response = await fetch('/api/iowa-signup', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
-      });
-      const data = await response.json().catch(() => ({}));
-
-      if (response.ok) {
-        setFormStatus('success');
-        setFormMessage('Got it. Somebody’ll text you in the next day or so.');
-        setFormData({
-          name: '', phone: '', email: '', availability: [],
-          bringing: '', message: '', company: '',
-        });
-      } else {
-        setFormStatus('error');
-        setFormMessage(data.error || 'Something went wrong. Email travis@arkidentity.com and we’ll sort it out.');
-      }
-    } catch {
-      setFormStatus('error');
-      setFormMessage('Something went wrong. Email travis@arkidentity.com and we’ll sort it out.');
-    }
-  };
-
-  const toggleSlot = (slot: string) => {
-    setFormData((prev) => ({
-      ...prev,
-      availability: prev.availability.includes(slot)
-        ? prev.availability.filter((s) => s !== slot)
-        : [...prev.availability, slot],
-    }));
-  };
-
-  const scrollToSignup = () => {
-    document.getElementById('pick')?.scrollIntoView({ behavior: 'smooth' });
-  };
-
-  const PrimaryButton = ({ className = '' }: { className?: string }) => (
+function PrimaryButton({ className = '' }: { className?: string }) {
+  return (
     <button
-      onClick={scrollToSignup}
+      onClick={() => document.getElementById('pick')?.scrollIntoView({ behavior: 'smooth' })}
       className={`px-8 py-4 rounded-lg font-semibold text-lg transition hover:opacity-90 ${className}`}
       style={{ backgroundColor: 'var(--gold)', color: 'var(--navy)' }}
     >
       Pick your day and time
     </button>
   );
+}
 
-  const inputClass =
-    'w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-offset-0 focus:border-transparent';
-
+export default function IowaPageContent({ studies, counts }: Props) {
   return (
     <>
       {/* 1 — HEADER */}
@@ -171,22 +116,25 @@ export default function IowaPageContent() {
             being first.
           </p>
 
-          {REQUESTED.length > 0 && (
-            <div className="bg-white rounded-xl border border-gray-100 shadow-sm px-6 py-6 mb-10">
-              <p className="font-semibold mb-3" style={{ color: 'var(--navy)' }}>
-                Hours other students have already asked for
-              </p>
-              <ul className="space-y-2">
-                {REQUESTED.map((r) => (
-                  <li key={r.slot} className="text-[#4a4540]">
+          {counts.running > 0 && (
+            <div className="bg-white rounded-xl border border-gray-100 shadow-sm px-6 py-5 mb-10">
+              <p className="text-[#4a4540]">
+                <span className="font-semibold" style={{ color: 'var(--maroon)' }}>
+                  {counts.running}
+                </span>{' '}
+                {counts.running === 1 ? 'Bible study is' : 'Bible studies are'} running right now
+                {counts.open > 0 && (
+                  <>
+                    {' '}
+                    ·{' '}
                     <span className="font-semibold" style={{ color: 'var(--maroon)' }}>
-                      {r.count}
+                      {counts.open}
                     </span>{' '}
-                    {r.count === 1 ? 'student has' : 'students have'} asked for{' '}
-                    <span className="font-semibold">{r.slot}</span>
-                  </li>
-                ))}
-              </ul>
+                    with a seat open this week
+                  </>
+                )}
+                .
+              </p>
             </div>
           )}
 
@@ -351,160 +299,11 @@ export default function IowaPageContent() {
               Pick your day and time
             </h2>
             <p className="text-lg text-[#5a5247]">
-              Your name and a number. Somebody texts you, and that’s it.
+              Tap the times you’re free to see what’s open. Join one, or start a new one.
             </p>
           </div>
 
-          <form onSubmit={handleSubmit} className="bg-white rounded-2xl shadow-lg p-8 space-y-6">
-            <div>
-              <label htmlFor="name" className="block text-sm font-semibold mb-2" style={{ color: 'var(--navy)' }}>
-                Your name
-              </label>
-              <input
-                type="text" id="name" required placeholder="First and last"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                className={inputClass}
-              />
-            </div>
-
-            <div>
-              <label htmlFor="phone" className="block text-sm font-semibold mb-2" style={{ color: 'var(--navy)' }}>
-                A number we can text
-              </label>
-              <input
-                type="tel" id="phone" required placeholder="(555) 555-5555"
-                value={formData.phone}
-                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                className={inputClass}
-              />
-            </div>
-
-            <div>
-              <span className="block text-sm font-semibold mb-1" style={{ color: 'var(--navy)' }}>
-                When are you actually free?
-              </span>
-              <p className="text-sm text-[#8a8378] mb-3">
-                Tap everything that works. The more you tap, the easier you are to place.
-              </p>
-              <div className="overflow-x-auto -mx-1 px-1">
-                <table className="w-full border-separate" style={{ borderSpacing: '4px' }}>
-                  <thead>
-                    <tr>
-                      <th className="w-20"></th>
-                      {BLOCKS.map((b) => (
-                        <th key={b.key} className="pb-1 text-center">
-                          <span className="block text-xs font-bold" style={{ color: 'var(--navy)' }}>
-                            {b.label}
-                          </span>
-                          <span className="block text-[10px] text-[#8a8378]">{b.hint}</span>
-                        </th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {DAYS.map((day) => (
-                      <tr key={day}>
-                        <th className="text-left text-xs font-bold pr-1" style={{ color: 'var(--navy)' }}>
-                          {day.slice(0, 3)}
-                        </th>
-                        {BLOCKS.map((b) => {
-                          const slot = `${day} ${b.label.toLowerCase()}`;
-                          const on = formData.availability.includes(slot);
-                          return (
-                            <td key={b.key}>
-                              <button
-                                type="button"
-                                onClick={() => toggleSlot(slot)}
-                                aria-pressed={on}
-                                aria-label={`${day} ${b.label}`}
-                                className="w-full h-10 rounded-md text-xs font-semibold transition"
-                                style={{
-                                  backgroundColor: on ? 'var(--gold)' : '#f1ede7',
-                                  color: on ? 'var(--navy)' : '#8a8378',
-                                  border: on ? '1px solid var(--gold)' : '1px solid #e2ddd5',
-                                }}
-                              >
-                                {on ? '\u2713' : ''}
-                              </button>
-                            </td>
-                          );
-                        })}
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-              {formData.availability.length === 0 && (
-                <p className="text-sm text-[#8a8378] mt-2">Pick at least one.</p>
-              )}
-            </div>
-
-            <div>
-              <label htmlFor="email" className="block text-sm font-semibold mb-2" style={{ color: 'var(--navy)' }}>
-                Email <span className="font-normal text-[#8a8378]">(optional)</span>
-              </label>
-              <input
-                type="email" id="email" placeholder="you@uiowa.edu"
-                value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                className={inputClass}
-              />
-            </div>
-
-            <div>
-              <label htmlFor="bringing" className="block text-sm font-semibold mb-2" style={{ color: 'var(--navy)' }}>
-                Bringing anybody? <span className="font-normal text-[#8a8378]">(optional)</span>
-              </label>
-              <input
-                type="text" id="bringing" placeholder="Their name"
-                value={formData.bringing}
-                onChange={(e) => setFormData({ ...formData, bringing: e.target.value })}
-                className={inputClass}
-              />
-            </div>
-
-            <div>
-              <label htmlFor="message" className="block text-sm font-semibold mb-2" style={{ color: 'var(--navy)' }}>
-                Anything you want to ask <span className="font-normal text-[#8a8378]">(optional)</span>
-              </label>
-              <textarea
-                id="message" rows={3} placeholder="Or when you’re actually free, if none of the times work"
-                value={formData.message}
-                onChange={(e) => setFormData({ ...formData, message: e.target.value })}
-                className={inputClass}
-              />
-            </div>
-
-            {/* honeypot — hidden from humans */}
-            <input
-              type="text" name="company" tabIndex={-1} autoComplete="off"
-              value={formData.company}
-              onChange={(e) => setFormData({ ...formData, company: e.target.value })}
-              style={{ position: 'absolute', left: '-9999px' }}
-              aria-hidden="true"
-            />
-
-            <button
-              type="submit"
-              disabled={formStatus === 'loading'}
-              className="w-full px-8 py-4 rounded-lg font-semibold text-lg transition hover:opacity-90 disabled:opacity-50"
-              style={{ backgroundColor: 'var(--gold)', color: 'var(--navy)' }}
-            >
-              {formStatus === 'loading' ? 'Sending...' : 'Save me the seat'}
-            </button>
-
-            {formStatus === 'success' && (
-              <div className="p-4 rounded-lg bg-green-50 border border-green-200">
-                <p className="text-green-800 text-center">{formMessage}</p>
-              </div>
-            )}
-            {formStatus === 'error' && (
-              <div className="p-4 rounded-lg bg-red-50 border border-red-200">
-                <p className="text-red-800 text-center">{formMessage}</p>
-              </div>
-            )}
-          </form>
+          <StudiesBrowser initial={studies} />
         </div>
       </section>
 

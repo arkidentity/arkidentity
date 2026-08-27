@@ -1,5 +1,8 @@
 import type { Metadata } from 'next';
+import { listListableStudies, studyCounts } from '@/lib/bibleStudies';
 import IowaPageContent from './page-content';
+
+export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = {
   title: 'ARK Iowa | A college ministry built on tables of four',
@@ -17,6 +20,16 @@ export const metadata: Metadata = {
   },
 };
 
-export default function IowaPage() {
-  return <IowaPageContent />;
+export default async function IowaPage() {
+  // Live data drives the schedule module and the headline counts. If Supabase
+  // is briefly unreachable, degrade to an empty schedule rather than 500 the
+  // whole marketing page.
+  let studies: Awaited<ReturnType<typeof listListableStudies>> = [];
+  let counts = { running: 0, open: 0 };
+  try {
+    [studies, counts] = await Promise.all([listListableStudies(), studyCounts()]);
+  } catch (e) {
+    console.error('[iowa page] study data unavailable', e);
+  }
+  return <IowaPageContent studies={studies} counts={counts} />;
 }

@@ -143,6 +143,20 @@ export async function listStudies(semester = CURRENT_SEMESTER): Promise<StudyWit
   });
 }
 
+// Headline numbers for the landing page. Only real, current counts — callers
+// should hide the line when `running` is 0 rather than show a zero.
+export async function studyCounts(
+  semester = CURRENT_SEMESTER
+): Promise<{ running: number; open: number }> {
+  const all = await listStudies(semester);
+  return {
+    running: all.filter(
+      (s) => s.status === 'forming' || s.status === 'full' || s.status === 'activated'
+    ).length,
+    open: all.filter((s) => isListable(s, s.activeCount)).length,
+  };
+}
+
 // Student browser: only studies with an open seat, no PII.
 export async function listListableStudies(semester = CURRENT_SEMESTER): Promise<PublicStudy[]> {
   const all = await listStudies(semester);

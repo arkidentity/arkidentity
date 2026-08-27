@@ -365,11 +365,21 @@ Coaching / prayer / Bible questions with Travis. Irregular, one person, meet at 
 - [ ] One durable QR → `arkidentity.com/iowa/studies` (any generator; not built here)
 - [ ] Live smoke test once the migration is applied
 
-**Phase 2 — funnel + reminders**
-- [ ] Evening-before reminder cron (`vercel.json`)
-- [ ] Swap landing-page grid for the studies module; `REQUESTED` → real counts
-- [ ] Landing copy "table" → "Bible study" pass (confirm with Travis)
-- [ ] Retire `/api/iowa-signup`
+**Phase 2 — funnel + reminders** — DONE 2026-08-26 (build/tsc/lint green)
+- [x] Evening-before reminder cron: `/api/cron/iowa-reminders` (`vercel.json`, `0 23 * * *` UTC =
+      6pm CT summer / 5pm CST winter), `lib/studyReminders.ts`, `sendStudyReminderBatch` in
+      `lib/email.ts` (Resend batch endpoint, ≤100/call), `CRON_SECRET` bearer check. Emails every
+      active member of every `forming`/`full`/`activated` study meeting tomorrow.
+- [x] Minimal landing swap: `app/iowa/page.tsx` server-fetches `listListableStudies()` +
+      `studyCounts()` (try/catch → degrades to empty, never 500s the page), passes to
+      `page-content.tsx`, which renders `<StudiesBrowser>` in the `#pick` section in place of the old
+      availability-grid form. `REQUESTED` fake-proof block → real line ("N Bible studies are running
+      right now · M with a seat open this week"), hidden when `running === 0`. `PrimaryButton`
+      hoisted out of render (cleared a pre-existing lint error).
+- [~] "table" → "Bible study" copy pass across hero/sections/FAQ: **deferred by Travis.** Page now
+      mixes "tables of four" (brand copy, untouched) with "Bible study" (module + count line).
+- [~] `/api/iowa-signup` + `sendTableSignupEmail`: **kept dormant** by Travis's call. Nothing calls
+      `/api/iowa-signup` now; route + helper left in place.
 
 **Phase 3 — calendar, pulse, retention**
 - [ ] Google Calendar sync (separate calendar, service account)

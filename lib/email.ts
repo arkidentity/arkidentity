@@ -318,3 +318,44 @@ export async function sendStudyAdminAlert(opts: {
     html,
   });
 }
+
+// The evening-before reminder, sent to every active member of every study
+// meeting tomorrow. Uses Resend's batch endpoint (≤100 per call) so ~200/week
+// is one or two API calls, not hundreds.
+export interface StudyReminderItem {
+  to: string;
+  name: string;
+  slot: string;
+  location: string | null;
+}
+
+export async function sendStudyReminderBatch(
+  items: StudyReminderItem[]
+): Promise<{ sent: number; failed: number }> {
+  if (items.length === 0) return { sent: 0, failed: 0 };
+
+  const payloads = items.map((it) => ({
+    from: fromAddress(),
+    to: it.to,
+    subject: `Tomorrow — ${it.slot} Bible study`,
+    html: wrap(`
+      <p>${escapeHtml(it.name)}, your <strong>${escapeHtml(it.slot)}</strong> Bible study is
+         tomorrow${it.location ? ` at ${escapeHtml(it.location)}` : ''}.</p>
+      <p>See you there — text the group if you can't make it.</p>
+    `),
+  }));
+
+  let sent = 0;
+  let failed = 0;
+  for (let i = 0; i < payloads.length; i += 100) {
+    const chunk = payloads.slice(i, i + 100);
+    try {
+      await getResend().batch.send(chunk);
+      sent += chunk.length;
+    } catch (e) {
+      failed += chunk.length;
+      console.error('[iowa reminders] batch failed', e);
+    }
+  }
+  return { sent, failed };
+}

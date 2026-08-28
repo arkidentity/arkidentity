@@ -259,6 +259,8 @@ function StudyRow({
 
 function StudyEditor({ s, busy, call }: { s: StudyWithMembers; busy: boolean; call: CallFn }) {
   const [draft, setDraft] = useState({
+    day_of_week: s.day_of_week,
+    start_time: (s.start_time ?? '').slice(0, 5),
     location: s.location ?? '',
     status: s.status,
     accepting_signups: s.accepting_signups,
@@ -270,17 +272,62 @@ function StudyEditor({ s, busy, call }: { s: StudyWithMembers; busy: boolean; ca
     break_plan: s.break_plan ?? '',
   });
 
-  async function save() {
-    await call(`/api/iowa/admin/studies/${s.id}`, 'PATCH', {
+  function studyPatch() {
+    return {
       ...draft,
+      day_of_week: Number(draft.day_of_week),
+      start_time: draft.start_time,
       location: draft.location.trim() || null,
       capacity: Number(draft.capacity),
+    };
+  }
+
+  async function save() {
+    return call(`/api/iowa/admin/studies/${s.id}`, 'PATCH', studyPatch());
+  }
+
+  const digits = (p: string) => p.replace(/\D/g, '');
+  const leaderComplete =
+    !!draft.leader_name.trim() && !!draft.leader_phone.trim() && !!draft.leader_email.trim();
+  const leaderIsMember = s.members.some(
+    (m) => m.status === 'active' && digits(m.phone) === digits(draft.leader_phone)
+  );
+
+  async function addLeaderToRoster() {
+    const ok = await save();
+    if (ok === false) return;
+    await call('/api/iowa/admin/members', 'POST', {
+      studyId: s.id,
+      name: draft.leader_name,
+      phone: draft.leader_phone,
+      email: draft.leader_email,
     });
   }
 
   return (
     <div className="border-t border-gray-100 px-4 py-4 space-y-4">
       <div className="grid sm:grid-cols-2 gap-3">
+        <Field label="Day">
+          <select
+            className={input}
+            value={String(draft.day_of_week)}
+            onChange={(e) => setDraft({ ...draft, day_of_week: Number(e.target.value) })}
+          >
+            {PICKER_DAYS.map((d) => (
+              <option key={d.value} value={d.value}>
+                {d.label}
+              </option>
+            ))}
+          </select>
+        </Field>
+        <Field label="Time">
+          <input
+            type="time"
+            className={input}
+            value={draft.start_time}
+            onChange={(e) => setDraft({ ...draft, start_time: e.target.value })}
+          />
+        </Field>
         <Field label="Location">
           <input
             className={input}
@@ -343,6 +390,22 @@ function StudyEditor({ s, busy, call }: { s: StudyWithMembers; busy: boolean; ca
           />
         </Field>
       </div>
+
+      {leaderComplete && !leaderIsMember && (
+        <div className="rounded-md bg-[#FAF8F5] border border-gray-200 px-3 py-2 flex items-center justify-between gap-3">
+          <span className="text-sm text-gray-700">
+            Leading this study and one of the four? Seat them on the roster too.
+          </span>
+          <button
+            onClick={addLeaderToRoster}
+            disabled={busy}
+            className="shrink-0 px-3 py-1.5 rounded-md text-sm font-semibold text-white transition hover:opacity-90 disabled:opacity-50"
+            style={{ backgroundColor: 'var(--navy)' }}
+          >
+            Save + add leader to roster
+          </button>
+        </div>
+      )}
 
       <Field label="Notes">
         <textarea
@@ -557,19 +620,22 @@ function NewStudyForm({
           />
         </Field>
       </div>
-      {leaderFilled && (
+      {f.leaderName.trim() && (
         <div className="sm:col-span-2">
           <label className="flex items-start gap-2 text-sm text-gray-700">
             <input
               type="checkbox"
               className="mt-0.5"
-              checked={f.addLeaderAsMember}
+              disabled={!leaderFilled}
+              checked={leaderFilled && f.addLeaderAsMember}
               onChange={(e) => setF({ ...f, addLeaderAsMember: e.target.checked })}
             />
             <span>
               This leader is one of the four — add them to the roster now.
               <span className="block text-xs text-[#8a8378]">
-                Leave unchecked if you’re facilitating this one yourself.
+                {leaderFilled
+                  ? 'Leave unchecked if you’re facilitating this one yourself.'
+                  : 'Fill in leader phone and email above to seat them on the roster.'}
               </span>
             </span>
           </label>

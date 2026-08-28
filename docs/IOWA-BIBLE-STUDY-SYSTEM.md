@@ -223,8 +223,14 @@ Shared-password gate (`IOWA_ADMIN_PASSWORD`, cookie `iowa_admin`, `lib/iowaAdmin
 - Create a study (day, time, location, capacity, leader fields, semester).
 - Confirm a `pending_setup` study (add location → `forming`).
 - Edit roster: add member manually, mark `dropped`, edit contact/notes.
-- Change status; toggle `accepting_signups`.
-- Edit `notes`, `break_plan`, leader fields.
+- Edit **day + time**, location, status, `accepting_signups`, capacity, `notes`, `break_plan`,
+  leader fields — any study, any time, from the expanded editor. (`day_of_week` / `start_time` were
+  always in `updateStudy`'s whitelist; the 2026-08-27 change just surfaced them in the UI.)
+- **Add leader to the roster:** New Study form has a checkbox (auto-on once leader name+phone+email
+  are filled). The editor shows a "Save + add leader to roster" button whenever the leader's three
+  fields are set and that phone isn't already an active member — one click persists the study and
+  seats the leader. Needed because a roster row requires name+phone+email; a leader with only a name
+  can't be auto-seated.
 - **Roll to next semester** (§9).
 
 ---

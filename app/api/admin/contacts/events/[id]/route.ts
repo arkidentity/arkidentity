@@ -4,7 +4,8 @@ import { updateEvent, type ContactEvent } from '@/lib/contacts';
 export const dynamic = 'force-dynamic';
 
 // PATCH /api/admin/contacts/events/:id — edit details, paste the Calendar link,
-// or move the status along (planning → invites sent → complete).
+// move the status along (planning → invites sent → complete), or save the
+// audience filters that decide who still needs inviting.
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const body = (await req.json().catch(() => ({}))) as Partial<ContactEvent>;

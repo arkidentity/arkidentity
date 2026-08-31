@@ -67,7 +67,7 @@ export function EventList({ initialEvents }: { initialEvents: Row[] }) {
           Create event
         </button>
         <p className="text-sm mt-3" style={{ color: '#8a8378' }}>
-          Then run a segment and mark that list invited.
+          Then open it and set who it&rsquo;s for — the list of people to invite builds itself.
         </p>
       </div>
 
@@ -85,6 +85,7 @@ export function EventList({ initialEvents }: { initialEvents: Row[] }) {
                   {[e.event_date, e.location].filter(Boolean).join(' · ') || 'No date set'}
                   {' · '}
                   {e.invitedCount} invited
+                  {!e.filters && <span style={{ color: '#b98900' }}> · no audience set</span>}
                 </p>
               </div>
               <select

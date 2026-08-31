@@ -1,5 +1,5 @@
 import { notFound } from 'next/navigation';
-import { getEvent } from '@/lib/contacts';
+import { getEventBoard, listTags, listStates, listRegions, listChurches } from '@/lib/contacts';
 import { EventDetail } from '@/components/contacts/EventDetail';
 
 export const metadata = { title: 'Event - ARK Identity' };
@@ -7,7 +7,9 @@ export const dynamic = 'force-dynamic';
 
 export default async function EventPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const event = await getEvent(id);
+  const [event, tags, states, regions, churches] = await Promise.all([
+    getEventBoard(id), listTags(), listStates(), listRegions(), listChurches(),
+  ]);
   if (!event) notFound();
 
   return (
@@ -20,7 +22,7 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
         <p className="mb-8" style={{ color: '#8a8378' }}>
           {[event.event_date, event.location].filter(Boolean).join(' · ') || 'No date set'}
         </p>
-        <EventDetail event={event} />
+        <EventDetail event={event} tags={tags} states={states} regions={regions} churches={churches} />
       </div>
     </div>
   );

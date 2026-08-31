@@ -437,6 +437,9 @@ export type InviteStatus = 'invited' | 'confirmed' | 'declined' | 'no_response';
 export interface ContactEvent {
   id: string;
   name: string;
+  // Who this event is for. Read whole and handed to runSegment; null means the
+  // event has no standing audience and is hand-picked only.
+  filters: SegmentFilters | null;
   event_date: string | null;
   location: string | null;
   calendar_link: string | null;
@@ -504,12 +507,33 @@ export async function getEvent(id: string): Promise<EventWithInvites | null> {
   };
 }
 
+export interface EventBoard extends EventWithInvites {
+  // Everyone matching the event's filters who hasn't been invited yet. Computed
+  // live rather than frozen at creation: a contact added next week who matches
+  // should appear here without you rebuilding the event. The invited list is
+  // kept separately and always shown in full, so someone who no longer matches
+  // the filters (a tag removed, a move out of state) doesn't silently vanish
+  // after you already asked them.
+  candidates: ContactWithTags[];
+}
+
+export async function getEventBoard(id: string): Promise<EventBoard | null> {
+  const event = await getEvent(id);
+  if (!event) return null;
+  if (!event.filters) return { ...event, candidates: [] };
+
+  const matching = await runSegment(event.filters);
+  const invited = new Set(event.invites.map((i) => i.contact.id));
+  return { ...event, candidates: matching.filter((c) => !invited.has(c.id)) };
+}
+
 export async function createEvent(input: {
   name: string;
   event_date?: string | null;
   location?: string | null;
   calendar_link?: string | null;
   notes?: string | null;
+  filters?: SegmentFilters | null;
 }): Promise<ContactEvent> {
   const { data, error } = await getSupabaseAdmin()
     .from('contact_events')
@@ -519,6 +543,7 @@ export async function createEvent(input: {
       location: input.location?.trim() || null,
       calendar_link: input.calendar_link?.trim() || null,
       notes: input.notes?.trim() || null,
+      filters: input.filters ?? null,
     })
     .select('*')
     .single();
@@ -528,7 +553,7 @@ export async function createEvent(input: {
 
 export async function updateEvent(
   id: string,
-  patch: Partial<Pick<ContactEvent, 'name' | 'event_date' | 'location' | 'calendar_link' | 'notes' | 'status'>>
+  patch: Partial<Pick<ContactEvent, 'name' | 'event_date' | 'location' | 'calendar_link' | 'notes' | 'status' | 'filters'>>
 ): Promise<ContactEvent> {
   const { data, error } = await getSupabaseAdmin()
     .from('contact_events')

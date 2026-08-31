@@ -14,8 +14,11 @@ export default async function AdminPage() {
             Ministry Feed Admin
           </h1>
           <div className="flex items-center gap-4">
-            <a href="/admin/partners" className="text-sm font-semibold hover:underline" style={{ color: 'var(--navy)' }}>
-              Partners →
+            <a href="/admin/quick-add" className="text-sm font-semibold hover:underline" style={{ color: 'var(--navy)' }}>
+              Quick Add →
+            </a>
+            <a href="/admin/contacts" className="text-sm font-semibold hover:underline" style={{ color: 'var(--navy)' }}>
+              Contacts →
             </a>
             <a href="/feed" className="text-sm font-semibold hover:underline" style={{ color: 'var(--navy)' }}>
               View public feed →

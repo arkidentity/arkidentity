@@ -1,4 +1,4 @@
-import { unsubscribeByToken } from '@/lib/partners';
+import { unsubscribeByToken } from '@/lib/contacts';
 
 export const metadata = { title: 'Unsubscribed - ARK Identity' };
 export const dynamic = 'force-dynamic';

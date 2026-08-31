@@ -1,4 +1,5 @@
 import { getSupabaseAdmin } from '@/lib/supabaseAdmin';
+import { findOrCreateContact, ensureTag } from '@/lib/contacts';
 
 // Data layer for the ARK Iowa Bible Study system. Server-only — every function
 // here uses the service-role client and must be called from a route handler or
@@ -37,9 +38,13 @@ export interface BibleStudy {
   created_at: string;
 }
 
+// A seat in a study. The person's name/phone/email live on their contact row
+// (migration 007) and are flattened in here on read, so the Iowa UI sees the
+// same shape it always did.
 export interface StudyMember {
   id: string;
   study_id: string;
+  contact_id: string;
   name: string;
   phone: string;
   email: string;
@@ -68,7 +73,9 @@ export interface PublicStudy {
   leader_name: string | null;
 }
 
-export interface Contact {
+// Renamed from `Contact` in migration 007 — that name now belongs to a person
+// in the contacts table. This is just what a joining student is shown.
+export interface RosterContact {
   name: string;
   phone: string;
   role: 'leader' | 'member';
@@ -77,6 +84,24 @@ export interface Contact {
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
+
+// Every member read joins the contact and flattens it, so callers keep seeing
+// name/phone/email directly on the member.
+const MEMBER_SELECT = '*, contacts(name, phone, email)';
+
+type MemberRow = Omit<StudyMember, 'name' | 'phone' | 'email'> & {
+  contacts: { name: string; phone: string | null; email: string | null } | null;
+};
+
+function flattenMember(row: MemberRow): StudyMember {
+  const { contacts, ...seat } = row;
+  return {
+    ...seat,
+    name: contacts?.name ?? '(deleted contact)',
+    phone: contacts?.phone ?? '',
+    email: contacts?.email ?? '',
+  };
+}
 
 function spotsLeft(capacity: number, activeCount: number): number {
   return Math.max(0, capacity - activeCount);
@@ -109,11 +134,11 @@ async function membersBySemester(semester: string): Promise<Map<string, StudyMem
 
   const { data: members, error: mErr } = await db
     .from('bible_study_members')
-    .select('*')
+    .select(MEMBER_SELECT)
     .in('study_id', ids)
     .order('joined_at', { ascending: true });
   if (mErr) throw mErr;
-  for (const m of (members ?? []) as StudyMember[]) {
+  for (const m of ((members ?? []) as unknown as MemberRow[]).map(flattenMember)) {
     const list = byStudy.get(m.study_id) ?? [];
     list.push(m);
     byStudy.set(m.study_id, list);
@@ -186,12 +211,12 @@ export async function getStudyWithMembers(id: string): Promise<StudyWithMembers 
 
   const { data: members, error: mErr } = await db
     .from('bible_study_members')
-    .select('*')
+    .select(MEMBER_SELECT)
     .eq('study_id', id)
     .order('joined_at', { ascending: true });
   if (mErr) throw mErr;
 
-  const list = (members ?? []) as StudyMember[];
+  const list = ((members ?? []) as unknown as MemberRow[]).map(flattenMember);
   return {
     ...(study as BibleStudy),
     members: list,
@@ -218,10 +243,11 @@ export async function getPublicStudy(id: string): Promise<PublicStudy | null> {
   };
 }
 
-// Other studies where this phone already holds an active seat — used to flag
-// the admin alert on a new join, not to block it.
-export async function otherActiveStudiesForPhone(
-  phone: string,
+// Other studies where this person already holds an active seat — used to flag
+// the admin alert on a new join, not to block it. Keyed on the contact now that
+// the seat no longer stores a phone of its own.
+export async function otherActiveStudiesForContact(
+  contactId: string,
   exceptStudyId: string
 ): Promise<BibleStudy[]> {
   const db = getSupabaseAdmin();
@@ -229,7 +255,7 @@ export async function otherActiveStudiesForPhone(
     .from('bible_study_members')
     .select('study_id, bible_studies(*)')
     .eq('status', 'active')
-    .ilike('phone', phone.trim())
+    .eq('contact_id', contactId)
     .neq('study_id', exceptStudyId);
   if (error) throw error;
   return (data ?? [])
@@ -252,7 +278,7 @@ export interface JoinInput {
 export interface JoinResult {
   study: StudyWithMembers;
   member: StudyMember;
-  roster: Contact[];
+  roster: RosterContact[];
   alsoInOtherStudies: BibleStudy[];
 }
 
@@ -263,11 +289,8 @@ export async function joinStudy(input: JoinInput): Promise<JoinResult> {
   if (!isListable(study, study.activeCount)) {
     throw new Error('That study just filled — pick another open time or start one.');
   }
-  if (
-    study.members.some(
-      (m) => m.status === 'active' && m.phone.trim().toLowerCase() === input.phone.trim().toLowerCase()
-    )
-  ) {
+  const contact = await contactForStudent(input);
+  if (study.members.some((m) => m.status === 'active' && m.contact_id === contact.id)) {
     throw new Error("You're already on that study's roster.");
   }
 
@@ -275,15 +298,13 @@ export async function joinStudy(input: JoinInput): Promise<JoinResult> {
     .from('bible_study_members')
     .insert({
       study_id: input.studyId,
-      name: input.name.trim(),
-      phone: input.phone.trim(),
-      email: input.email.trim(),
+      contact_id: contact.id,
       year: input.year?.trim() || null,
     })
-    .select('*')
+    .select(MEMBER_SELECT)
     .single();
   if (error) {
-    // unique partial index → someone took the last seat / same phone raced in
+    // unique partial index → someone took the last seat / same person raced in
     if (error.code === '23505') {
       throw new Error('That study just filled — pick another open time or start one.');
     }
@@ -297,15 +318,31 @@ export async function joinStudy(input: JoinInput): Promise<JoinResult> {
     fresh.status = 'full';
   }
 
-  const roster = rosterContacts(fresh, member.id);
-  const alsoInOtherStudies = await otherActiveStudiesForPhone(input.phone, input.studyId);
-  return { study: fresh, member: member as StudyMember, roster, alsoInOtherStudies };
+  const seat = flattenMember(member as unknown as MemberRow);
+  const roster = rosterContacts(fresh, seat.id);
+  const alsoInOtherStudies = await otherActiveStudiesForContact(contact.id, input.studyId);
+  return { study: fresh, member: seat, roster, alsoInOtherStudies };
+}
+
+// A student signing up for a Bible study becomes a contact, tagged ARK Iowa so
+// they show up in campus segments. Subscribed is left OFF: they signed up for a
+// study, not the newsletter — the one intake that doesn't default on.
+async function contactForStudent(input: { name: string; phone: string; email: string }) {
+  const tag = await ensureTag('ARK Iowa', 'role');
+  return findOrCreateContact({
+    name: input.name,
+    email: input.email,
+    phone: input.phone,
+    source: 'ARK Iowa Bible study',
+    subscribed: false,
+    tagIds: [tag.id],
+  });
 }
 
 // Contacts a joining student is shown: the leader plus the other active members
 // (optionally excluding one member id — the person who just joined).
-export function rosterContacts(study: StudyWithMembers, excludeMemberId?: string): Contact[] {
-  const contacts: Contact[] = [];
+export function rosterContacts(study: StudyWithMembers, excludeMemberId?: string): RosterContact[] {
+  const contacts: RosterContact[] = [];
   if (study.leader_name && study.leader_phone) {
     contacts.push({ name: study.leader_name, phone: study.leader_phone, role: 'leader' });
   }
@@ -343,20 +380,19 @@ export async function startStudy(
     .single();
   if (error) throw error;
 
+  const contact = await contactForStudent(input);
   const { data: member, error: mErr } = await db
     .from('bible_study_members')
     .insert({
       study_id: study.id,
-      name: input.name.trim(),
-      phone: input.phone.trim(),
-      email: input.email.trim(),
+      contact_id: contact.id,
       year: input.year?.trim() || null,
     })
-    .select('*')
+    .select(MEMBER_SELECT)
     .single();
   if (mErr) throw mErr;
 
-  return { study: study as BibleStudy, member: member as StudyMember };
+  return { study: study as BibleStudy, member: flattenMember(member as unknown as MemberRow) };
 }
 
 // ---------------------------------------------------------------------------
@@ -461,24 +497,23 @@ export interface AddMemberInput {
 
 export async function addMember(studyId: string, input: AddMemberInput): Promise<StudyMember> {
   const db = getSupabaseAdmin();
+  const contact = await contactForStudent(input);
   const { data, error } = await db
     .from('bible_study_members')
     .insert({
       study_id: studyId,
-      name: input.name.trim(),
-      phone: input.phone.trim(),
-      email: input.email.trim(),
+      contact_id: contact.id,
       year: input.year?.trim() || null,
       source: input.source?.trim() || null,
       notes: input.notes?.trim() || null,
     })
-    .select('*')
+    .select(MEMBER_SELECT)
     .single();
   if (error) {
-    if (error.code === '23505') throw new Error('That phone already holds an active seat here.');
+    if (error.code === '23505') throw new Error('They already hold an active seat here.');
     throw error;
   }
-  return data as StudyMember;
+  return flattenMember(data as unknown as MemberRow);
 }
 
 export async function setMemberStatus(
@@ -490,8 +525,8 @@ export async function setMemberStatus(
     .from('bible_study_members')
     .update({ status, left_at: status === 'dropped' ? new Date().toISOString() : null })
     .eq('id', memberId)
-    .select('*')
+    .select(MEMBER_SELECT)
     .single();
   if (error) throw error;
-  return data as StudyMember;
+  return flattenMember(data as unknown as MemberRow);
 }

@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server';
-import { importPartners, type ImportRow, type PartnerChannel, type PartnerFrequency } from '@/lib/partners';
+import { importContacts, type ImportRow, type ContactChannel, type ContactFrequency } from '@/lib/contacts';
 
 export const maxDuration = 60;
+export const dynamic = 'force-dynamic';
 
 // Minimal CSV parser: handles quoted fields and escaped quotes ("").
 function parseCsv(text: string): string[][] {
@@ -37,10 +38,13 @@ function parseCsv(text: string): string[][] {
 
 const norm = (s: string) => s.trim().toLowerCase();
 
-// POST /api/admin/partners/import — body: { csv: string }
-// Expected header columns (any order): name, email, phone, channel, frequency.
+// POST /api/admin/contacts/import — body: { csv, tagIds? }
+// Header columns (any order): name, email, phone, city, state, channel, frequency.
 export async function POST(req: Request) {
-  const { csv } = (await req.json().catch(() => ({}))) as { csv?: string };
+  const { csv, tagIds } = (await req.json().catch(() => ({}))) as {
+    csv?: string;
+    tagIds?: string[];
+  };
   if (!csv?.trim()) {
     return NextResponse.json({ error: 'No CSV content.' }, { status: 400 });
   }
@@ -55,6 +59,8 @@ export async function POST(req: Request) {
     name: header.indexOf('name'),
     email: header.indexOf('email'),
     phone: header.indexOf('phone'),
+    city: header.indexOf('city'),
+    state: header.indexOf('state'),
     channel: header.indexOf('channel'),
     frequency: header.indexOf('frequency'),
   };
@@ -69,13 +75,15 @@ export async function POST(req: Request) {
       name: r[idx.name] || '',
       email: idx.email >= 0 ? r[idx.email] : undefined,
       phone: idx.phone >= 0 ? r[idx.phone] : undefined,
-      channel: (['email', 'text', 'both'].includes(channel) ? channel : undefined) as PartnerChannel | undefined,
-      frequency: (['weekly', 'monthly'].includes(frequency) ? frequency : undefined) as PartnerFrequency | undefined,
+      city: idx.city >= 0 ? r[idx.city] : undefined,
+      state: idx.state >= 0 ? r[idx.state] : undefined,
+      channel: (['email', 'text', 'both'].includes(channel) ? channel : undefined) as ContactChannel | undefined,
+      frequency: (['weekly', 'monthly'].includes(frequency) ? frequency : undefined) as ContactFrequency | undefined,
     };
   });
 
   try {
-    const result = await importPartners(rows);
+    const result = await importContacts(rows, { tagIds });
     return NextResponse.json(result);
   } catch (e) {
     return NextResponse.json({ error: (e as Error).message }, { status: 500 });

@@ -1,14 +1,18 @@
 import { NextResponse } from 'next/server';
-import { createPendingSubscriber, type PartnerFrequency } from '@/lib/partners';
-import { sendConfirmationEmail, siteUrl } from '@/lib/email';
+import { subscribePublic, type ContactFrequency } from '@/lib/contacts';
 
 // PUBLIC (not behind the /admin proxy). New subscribers from the feed.
-// Double opt-in: create a pending partner and email a confirmation link.
+//
+// No double opt-in: the address goes straight onto the list (see 007_contacts
+// .sql). That makes the honeypot below the only thing keeping bots off the
+// list, so don't remove it. An address we already know — a student, someone met
+// at an event, an existing partner — has its subscription switched on rather
+// than being added a second time.
 export async function POST(req: Request) {
   const body = (await req.json().catch(() => ({}))) as {
     name?: string;
     email?: string;
-    frequency?: PartnerFrequency;
+    frequency?: ContactFrequency;
     company?: string; // honeypot — real users leave it empty
   };
 
@@ -21,20 +25,10 @@ export async function POST(req: Request) {
   if (!email || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
     return NextResponse.json({ error: 'Please enter a valid email address.' }, { status: 400 });
   }
-  const frequency: PartnerFrequency = body.frequency === 'weekly' ? 'weekly' : 'monthly';
+  const frequency: ContactFrequency = body.frequency === 'weekly' ? 'weekly' : 'monthly';
 
   try {
-    const { token, alreadyConfirmed } = await createPendingSubscriber({
-      name: body.name?.trim() || '',
-      email,
-      frequency,
-    });
-
-    if (!alreadyConfirmed && token) {
-      const confirmUrl = `${siteUrl()}/feed/subscribe/confirm?token=${token}`;
-      await sendConfirmationEmail(email, body.name?.trim() || '', confirmUrl);
-    }
-
+    await subscribePublic({ name: body.name?.trim() || '', email, frequency });
     // Always the same response — don't reveal whether the address already exists.
     return NextResponse.json({ ok: true });
   } catch (e) {

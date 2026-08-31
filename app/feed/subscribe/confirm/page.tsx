@@ -1,4 +1,4 @@
-import { confirmSubscriber } from '@/lib/partners';
+import { confirmSubscriber } from '@/lib/contacts';
 
 export const metadata = { title: 'Subscription confirmed - ARK Identity' };
 export const dynamic = 'force-dynamic';

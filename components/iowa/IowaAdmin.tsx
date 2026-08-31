@@ -95,7 +95,12 @@ export default function IowaAdmin({
           <h1 className="text-3xl font-bold" style={{ color: 'var(--navy)' }}>
             Bible studies
           </h1>
-          <span className="text-sm text-[#8a8378]">{semester}</span>
+          <span className="flex items-center gap-4">
+            <a href="/iowa/admin/students" className="text-sm font-semibold hover:underline" style={{ color: 'var(--navy)' }}>
+              Students →
+            </a>
+            <span className="text-sm text-[#8a8378]">{semester}</span>
+          </span>
         </div>
         <p className="text-sm text-[#8a8378] mb-8">
           {initial.length} total · {counts.forming ?? 0} forming · {counts.full ?? 0} full ·{' '}
@@ -126,6 +131,7 @@ export default function IowaAdmin({
               <StudyRow
                 key={s.id}
                 s={s}
+                all={initial}
                 expanded={expanded === s.id}
                 onToggle={() => setExpanded(expanded === s.id ? null : s.id)}
                 busy={busy}
@@ -142,6 +148,7 @@ export default function IowaAdmin({
                 key={s.id}
                 s={s}
                 flag={why}
+                all={initial}
                 expanded={expanded === s.id}
                 onToggle={() => setExpanded(expanded === s.id ? null : s.id)}
                 busy={busy}
@@ -171,6 +178,7 @@ export default function IowaAdmin({
                     <StudyRow
                       key={s.id}
                       s={s}
+                      all={initial}
                       expanded={expanded === s.id}
                       onToggle={() => setExpanded(expanded === s.id ? null : s.id)}
                       busy={busy}
@@ -210,6 +218,7 @@ type CallFn = (url: string, method: string, body?: unknown) => Promise<boolean>;
 
 function StudyRow({
   s,
+  all,
   expanded,
   onToggle,
   busy,
@@ -217,6 +226,7 @@ function StudyRow({
   flag,
 }: {
   s: StudyWithMembers;
+  all: StudyWithMembers[];
   expanded: boolean;
   onToggle: () => void;
   busy: boolean;
@@ -252,12 +262,22 @@ function StudyRow({
           </span>
         </span>
       </button>
-      {expanded && <StudyEditor s={s} busy={busy} call={call} />}
+      {expanded && <StudyEditor s={s} all={all} busy={busy} call={call} />}
     </div>
   );
 }
 
-function StudyEditor({ s, busy, call }: { s: StudyWithMembers; busy: boolean; call: CallFn }) {
+function StudyEditor({
+  s,
+  all,
+  busy,
+  call,
+}: {
+  s: StudyWithMembers;
+  all: StudyWithMembers[];
+  busy: boolean;
+  call: CallFn;
+}) {
   const [draft, setDraft] = useState({
     day_of_week: s.day_of_week,
     start_time: (s.start_time ?? '').slice(0, 5),
@@ -443,7 +463,7 @@ function StudyEditor({ s, busy, call }: { s: StudyWithMembers; busy: boolean; ca
         {s.members.length === 0 && <p className="text-sm text-[#8a8378]">No students yet.</p>}
         <ul className="space-y-1.5">
           {s.members.map((m) => (
-            <MemberRow key={m.id} m={m} busy={busy} call={call} />
+            <MemberRow key={m.id} m={m} studyId={s.id} others={all} busy={busy} call={call} />
           ))}
         </ul>
         <AddMemberForm studyId={s.id} busy={busy} call={call} />
@@ -452,26 +472,79 @@ function StudyEditor({ s, busy, call }: { s: StudyWithMembers; busy: boolean; ca
   );
 }
 
-function MemberRow({ m, busy, call }: { m: StudyMember; busy: boolean; call: CallFn }) {
+function MemberRow({
+  m,
+  studyId,
+  others,
+  busy,
+  call,
+}: {
+  m: StudyMember;
+  studyId: string;
+  others: StudyWithMembers[];
+  busy: boolean;
+  call: CallFn;
+}) {
   const dropped = m.status === 'dropped';
+  const [moving, setMoving] = useState(false);
+
   return (
-    <li className="flex items-center justify-between gap-3 text-sm">
-      <span className={dropped ? 'text-[#b0a99e] line-through' : 'text-[#4a4540]'}>
-        {m.name} · {m.phone}
-        {m.year ? ` · ${m.year}` : ''}
-      </span>
-      <button
-        onClick={() =>
-          call(`/api/iowa/admin/members/${m.id}`, 'PATCH', {
-            status: dropped ? 'active' : 'dropped',
-          })
-        }
-        disabled={busy}
-        className="text-xs font-semibold px-2 py-1 rounded border transition hover:bg-gray-50 disabled:opacity-50"
-        style={{ borderColor: '#d1d5db', color: dropped ? '#15803d' : '#b91c1c' }}
-      >
-        {dropped ? 'Restore' : 'Drop'}
-      </button>
+    <li className="text-sm">
+      <div className="flex items-center justify-between gap-3">
+        <span className={dropped ? 'text-[#b0a99e] line-through' : 'text-[#4a4540]'}>
+          {m.name}
+          {/* Phone AND email — you can't text someone their email address. */}
+          <span className="text-[#8a8378]">
+            {' · '}{[m.phone, m.email].filter(Boolean).join(' · ')}
+            {m.year ? ` · ${m.year}` : ''}
+          </span>
+        </span>
+        <span className="flex gap-1 shrink-0">
+          {!dropped && (
+            <button
+              onClick={() => setMoving((v) => !v)}
+              disabled={busy}
+              className="text-xs font-semibold px-2 py-1 rounded border transition hover:bg-gray-50 disabled:opacity-50"
+              style={{ borderColor: '#d1d5db', color: '#143348' }}
+            >
+              {moving ? 'Cancel' : 'Move'}
+            </button>
+          )}
+          <button
+            onClick={() =>
+              call(`/api/iowa/admin/members/${m.id}`, 'PATCH', {
+                status: dropped ? 'active' : 'dropped',
+              })
+            }
+            disabled={busy}
+            className="text-xs font-semibold px-2 py-1 rounded border transition hover:bg-gray-50 disabled:opacity-50"
+            style={{ borderColor: '#d1d5db', color: dropped ? '#15803d' : '#b91c1c' }}
+          >
+            {dropped ? 'Restore' : 'Drop'}
+          </button>
+        </span>
+      </div>
+
+      {moving && (
+        <select
+          defaultValue=""
+          disabled={busy}
+          onChange={(e) => {
+            if (e.target.value) call(`/api/iowa/admin/members/${m.id}`, 'PATCH', { studyId: e.target.value });
+          }}
+          className="mt-2 w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-gray-900 bg-white"
+        >
+          <option value="">Move {m.name} to…</option>
+          {others
+            .filter((o) => o.id !== studyId)
+            .map((o) => (
+              <option key={o.id} value={o.id}>
+                {DAY_NAMES[o.day_of_week]} {formatTime(o.start_time)}
+                {o.location ? ` · ${o.location}` : ''} ({o.activeCount}/{o.capacity})
+              </option>
+            ))}
+        </select>
+      )}
     </li>
   );
 }

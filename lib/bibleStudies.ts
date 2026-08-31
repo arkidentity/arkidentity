@@ -1,5 +1,7 @@
 import { getSupabaseAdmin } from '@/lib/supabaseAdmin';
 import { findOrCreateContact, ensureTag } from '@/lib/contacts';
+// Re-exported below for callers, but also needed locally.
+import { DAY_NAMES as DAYS, formatTime as fmtTime } from '@/lib/bibleStudyFormat';
 
 // Data layer for the ARK Iowa Bible Study system. Server-only — every function
 // here uses the service-role client and must be called from a route handler or
@@ -14,6 +16,10 @@ export const CURRENT_SEMESTER = process.env.IOWA_SEMESTER || 'Fall 2026';
 export type StudyStatus =
   | 'pending_setup' | 'forming' | 'full' | 'activated' | 'paused' | 'ended';
 export type MemberStatus = 'active' | 'dropped';
+// Where a student sits in the ministry's life cycle. Whether they're currently
+// in a study is NOT here — that's derived from an active seat, so the two can't
+// disagree. This covers only what the roster can't tell you.
+export type StudentStatus = 'active' | 'dormant' | 'graduated' | 'transferred' | 'left_school';
 export type PulseStatus = 'green' | 'yellow' | 'red';
 
 export interface BibleStudy {
@@ -48,7 +54,8 @@ export interface StudyMember {
   name: string;
   phone: string;
   email: string;
-  year: string | null;
+  year: string | null;            // from campus_students, not the seat
+  student_status: StudentStatus;
   status: MemberStatus;
   source: string | null;
   notes: string | null;
@@ -89,7 +96,7 @@ export interface RosterContact {
 // name/phone/email directly on the member.
 const MEMBER_SELECT = '*, contacts(name, phone, email)';
 
-type MemberRow = Omit<StudyMember, 'name' | 'phone' | 'email'> & {
+type MemberRow = Omit<StudyMember, 'name' | 'phone' | 'email' | 'year' | 'student_status'> & {
   contacts: { name: string; phone: string | null; email: string | null } | null;
 };
 
@@ -100,7 +107,30 @@ function flattenMember(row: MemberRow): StudyMember {
     name: contacts?.name ?? '(deleted contact)',
     phone: contacts?.phone ?? '',
     email: contacts?.email ?? '',
+    year: null,
+    student_status: 'active',
   };
+}
+
+// Year and life-cycle status come from campus_students, fetched in one extra
+// query and merged. A separate round trip rather than a nested embed so what
+// comes back has an obvious shape.
+async function withCampus(members: StudyMember[]): Promise<StudyMember[]> {
+  if (members.length === 0) return members;
+  const { data, error } = await getSupabaseAdmin()
+    .from('campus_students')
+    .select('contact_id, year, status')
+    .in('contact_id', members.map((m) => m.contact_id));
+  if (error) throw error;
+
+  const byContact = new Map<string, { year: string | null; status: StudentStatus }>();
+  for (const r of (data ?? []) as { contact_id: string; year: string | null; status: StudentStatus }[]) {
+    byContact.set(r.contact_id, { year: r.year, status: r.status });
+  }
+  return members.map((m) => {
+    const campus = byContact.get(m.contact_id);
+    return campus ? { ...m, year: campus.year, student_status: campus.status } : m;
+  });
 }
 
 function spotsLeft(capacity: number, activeCount: number): number {
@@ -138,7 +168,8 @@ async function membersBySemester(semester: string): Promise<Map<string, StudyMem
     .in('study_id', ids)
     .order('joined_at', { ascending: true });
   if (mErr) throw mErr;
-  for (const m of ((members ?? []) as unknown as MemberRow[]).map(flattenMember)) {
+  const flat = await withCampus(((members ?? []) as unknown as MemberRow[]).map(flattenMember));
+  for (const m of flat) {
     const list = byStudy.get(m.study_id) ?? [];
     list.push(m);
     byStudy.set(m.study_id, list);
@@ -216,7 +247,7 @@ export async function getStudyWithMembers(id: string): Promise<StudyWithMembers 
     .order('joined_at', { ascending: true });
   if (mErr) throw mErr;
 
-  const list = ((members ?? []) as unknown as MemberRow[]).map(flattenMember);
+  const list = await withCampus(((members ?? []) as unknown as MemberRow[]).map(flattenMember));
   return {
     ...(study as BibleStudy),
     members: list,
@@ -299,7 +330,6 @@ export async function joinStudy(input: JoinInput): Promise<JoinResult> {
     .insert({
       study_id: input.studyId,
       contact_id: contact.id,
-      year: input.year?.trim() || null,
     })
     .select(MEMBER_SELECT)
     .single();
@@ -327,9 +357,14 @@ export async function joinStudy(input: JoinInput): Promise<JoinResult> {
 // A student signing up for a Bible study becomes a contact, tagged ARK Iowa so
 // they show up in campus segments. Subscribed is left OFF: they signed up for a
 // study, not the newsletter — the one intake that doesn't default on.
-async function contactForStudent(input: { name: string; phone: string; email: string }) {
+async function contactForStudent(input: {
+  name: string;
+  phone: string;
+  email: string;
+  year?: string | null;
+}) {
   const tag = await ensureTag('ARK Iowa', 'role');
-  return findOrCreateContact({
+  const contact = await findOrCreateContact({
     name: input.name,
     email: input.email,
     phone: input.phone,
@@ -337,6 +372,35 @@ async function contactForStudent(input: { name: string; phone: string; email: st
     subscribed: false,
     tagIds: [tag.id],
   });
+  await ensureCampusStudent(contact.id, input.year);
+  return contact;
+}
+
+// Every student on a roster has a campus_students row. Year is only written
+// when we're told one — a blank on a later signup must not erase what's there.
+export async function ensureCampusStudent(
+  contactId: string,
+  year?: string | null
+): Promise<void> {
+  const db = getSupabaseAdmin();
+  const { data: existing } = await db
+    .from('campus_students')
+    .select('contact_id, year')
+    .eq('contact_id', contactId)
+    .maybeSingle();
+
+  const trimmed = year?.trim() || null;
+  if (!existing) {
+    const { error } = await db.from('campus_students').insert({ contact_id: contactId, year: trimmed });
+    if (error) throw error;
+    return;
+  }
+  if (trimmed && !existing.year) {
+    await db
+      .from('campus_students')
+      .update({ year: trimmed, updated_at: new Date().toISOString() })
+      .eq('contact_id', contactId);
+  }
 }
 
 // Contacts a joining student is shown: the leader plus the other active members
@@ -386,7 +450,6 @@ export async function startStudy(
     .insert({
       study_id: study.id,
       contact_id: contact.id,
-      year: input.year?.trim() || null,
     })
     .select(MEMBER_SELECT)
     .single();
@@ -503,7 +566,6 @@ export async function addMember(studyId: string, input: AddMemberInput): Promise
     .insert({
       study_id: studyId,
       contact_id: contact.id,
-      year: input.year?.trim() || null,
       source: input.source?.trim() || null,
       notes: input.notes?.trim() || null,
     })
@@ -514,6 +576,169 @@ export async function addMember(studyId: string, input: AddMemberInput): Promise
     throw error;
   }
   return flattenMember(data as unknown as MemberRow);
+}
+
+// Move a student from one study to another. A move, not a delete-and-re-add:
+// the seat keeps its id and its joined_at, so the roster history stays honest
+// and nobody has to be re-entered. Capacity on the destination is enforced the
+// same way a fresh join is.
+export async function moveMember(memberId: string, toStudyId: string): Promise<StudyMember> {
+  const db = getSupabaseAdmin();
+  const { data: seat, error: seatErr } = await db
+    .from('bible_study_members')
+    .select('id, study_id, contact_id, status')
+    .eq('id', memberId)
+    .maybeSingle();
+  if (seatErr) throw seatErr;
+  if (!seat) throw new Error('That roster spot no longer exists.');
+  if (seat.study_id === toStudyId) throw new Error('They are already in that study.');
+
+  const target = await getStudyWithMembers(toStudyId);
+  if (!target) throw new Error('That study no longer exists.');
+  if (target.members.some((m) => m.status === 'active' && m.contact_id === seat.contact_id)) {
+    throw new Error('They already hold a seat in that study.');
+  }
+  if (seat.status === 'active' && target.activeCount >= target.capacity) {
+    throw new Error(`${formatSlotOf(target)} is full — drop someone there first, or raise its capacity.`);
+  }
+
+  const { data, error } = await db
+    .from('bible_study_members')
+    .update({ study_id: toStudyId })
+    .eq('id', memberId)
+    .select(MEMBER_SELECT)
+    .single();
+  if (error) {
+    if (error.code === '23505') throw new Error('They already hold a seat in that study.');
+    throw error;
+  }
+
+  // Leaving a study can un-fill it; arriving can fill one.
+  await resyncFullness(seat.study_id);
+  await resyncFullness(toStudyId);
+
+  const [withYear] = await withCampus([flattenMember(data as unknown as MemberRow)]);
+  return withYear;
+}
+
+function formatSlotOf(study: BibleStudy): string {
+  return `${DAYS[study.day_of_week]} ${fmtTime(study.start_time)}`;
+}
+
+// A study is 'full' or 'forming' depending on the seat count; keep that honest
+// after any move. Studies that are paused, ended or still pending setup are
+// left alone — their status means something a head count can't override.
+async function resyncFullness(studyId: string): Promise<void> {
+  const db = getSupabaseAdmin();
+  const study = await getStudyWithMembers(studyId);
+  if (!study) return;
+  if (study.status !== 'forming' && study.status !== 'full') return;
+
+  const next = study.activeCount >= study.capacity ? 'full' : 'forming';
+  if (next !== study.status) {
+    await db.from('bible_studies').update({ status: next }).eq('id', studyId);
+  }
+}
+
+export interface CampusStudent {
+  contact_id: string;
+  name: string;
+  phone: string | null;
+  email: string | null;
+  year: string | null;
+  status: StudentStatus;
+  notes: string | null;
+  // Derived, never stored: the studies they currently hold an active seat in.
+  // Empty means unplaced — met, but not in a study yet.
+  studies: { id: string; label: string; member_id: string }[];
+}
+
+// Everyone tagged ARK Iowa, whether or not they're currently in a study. This
+// is the campus view of the contacts table: same people, campus-specific facts.
+export async function listCampusStudents(): Promise<CampusStudent[]> {
+  const db = getSupabaseAdmin();
+
+  const { data: tag } = await db.from('contact_tags').select('id').eq('slug', 'ark-iowa').maybeSingle();
+  if (!tag) return [];
+
+  const { data: links, error: lErr } = await db
+    .from('contact_tag_links')
+    .select('contact_id, contacts(id, name, phone, email)')
+    .eq('tag_id', tag.id);
+  if (lErr) throw lErr;
+
+  const people = ((links ?? []) as unknown as {
+    contact_id: string;
+    contacts: { id: string; name: string; phone: string | null; email: string | null } | null;
+  }[]).filter((r) => r.contacts);
+  if (people.length === 0) return [];
+
+  const ids = people.map((p) => p.contact_id);
+
+  const [{ data: campus, error: cErr }, { data: seats, error: sErr }] = await Promise.all([
+    db.from('campus_students').select('*').in('contact_id', ids),
+    db
+      .from('bible_study_members')
+      .select('id, contact_id, study_id, bible_studies(id, day_of_week, start_time, location)')
+      .eq('status', 'active')
+      .in('contact_id', ids),
+  ]);
+  if (cErr) throw cErr;
+  if (sErr) throw sErr;
+
+  const campusByContact = new Map(
+    ((campus ?? []) as { contact_id: string; year: string | null; status: StudentStatus; notes: string | null }[])
+      .map((r) => [r.contact_id, r])
+  );
+
+  const seatsByContact = new Map<string, CampusStudent['studies']>();
+  for (const row of (seats ?? []) as unknown as {
+    id: string;
+    contact_id: string;
+    bible_studies: { id: string; day_of_week: number; start_time: string; location: string | null } | null;
+  }[]) {
+    if (!row.bible_studies) continue;
+    const st = row.bible_studies;
+    const list = seatsByContact.get(row.contact_id) ?? [];
+    list.push({
+      id: st.id,
+      member_id: row.id,
+      label: `${DAYS[st.day_of_week]} ${fmtTime(st.start_time)}${st.location ? ` · ${st.location}` : ''}`,
+    });
+    seatsByContact.set(row.contact_id, list);
+  }
+
+  return people
+    .map((p) => {
+      const c = campusByContact.get(p.contact_id);
+      return {
+        contact_id: p.contact_id,
+        name: p.contacts!.name,
+        phone: p.contacts!.phone,
+        email: p.contacts!.email,
+        year: c?.year ?? null,
+        status: c?.status ?? ('active' as StudentStatus),
+        notes: c?.notes ?? null,
+        studies: seatsByContact.get(p.contact_id) ?? [],
+      };
+    })
+    .sort((a, b) => a.name.localeCompare(b.name));
+}
+
+export async function updateCampusStudent(
+  contactId: string,
+  patch: { year?: string | null; status?: StudentStatus; notes?: string | null }
+): Promise<void> {
+  const db = getSupabaseAdmin();
+  await ensureCampusStudent(contactId);
+
+  const update: Record<string, unknown> = { updated_at: new Date().toISOString() };
+  if ('year' in patch) update.year = patch.year?.trim() || null;
+  if ('status' in patch) update.status = patch.status;
+  if ('notes' in patch) update.notes = patch.notes?.trim() || null;
+
+  const { error } = await db.from('campus_students').update(update).eq('contact_id', contactId);
+  if (error) throw error;
 }
 
 export async function setMemberStatus(

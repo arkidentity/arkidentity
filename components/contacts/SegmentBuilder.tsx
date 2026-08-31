@@ -14,13 +14,19 @@ type EventOption = ContactEvent & { invitedCount: number };
 export function SegmentBuilder({
   tags,
   states,
+  regions,
+  churches,
   events,
 }: {
   tags: Tag[];
   states: string[];
+  regions: string[];
+  churches: string[];
   events: EventOption[];
 }) {
   const [selectedStates, setSelectedStates] = useState<string[]>([]);
+  const [selectedRegions, setSelectedRegions] = useState<string[]>([]);
+  const [selectedChurches, setSelectedChurches] = useState<string[]>([]);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [excludeEventId, setExcludeEventId] = useState('');
   const [subscribedOnly, setSubscribedOnly] = useState(false);
@@ -46,6 +52,8 @@ export function SegmentBuilder({
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         states: selectedStates,
+        regions: selectedRegions,
+        churches: selectedChurches,
         tagIds: selectedTags,
         excludeEventId: excludeEventId || undefined,
         subscribedOnly,
@@ -75,8 +83,8 @@ export function SegmentBuilder({
     if (!results) return;
     const escape = (v: string | null) => `"${(v ?? '').replace(/"/g, '""')}"`;
     const csv = [
-      'Name,Email,Phone,City,State',
-      ...results.map((c) => [c.name, c.email, c.phone, c.city, c.state].map(escape).join(',')),
+      'Name,Email,Phone,City,State,Region,Church',
+      ...results.map((c) => [c.name, c.email, c.phone, c.city, c.state, c.region, c.church].map(escape).join(',')),
     ].join('\n');
     const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
     const a = document.createElement('a');
@@ -121,6 +129,32 @@ export function SegmentBuilder({
           </div>
         )}
 
+        {regions.length > 0 && (
+          <div className="mb-4">
+            <p className="text-sm font-semibold mb-2" style={{ color: 'var(--navy)' }}>Region</p>
+            <div className="flex flex-wrap gap-2">
+              {regions.map((r) => (
+                <Chip key={r} on={selectedRegions.includes(r)} onClick={() => toggle(selectedRegions, r, setSelectedRegions)}>
+                  {r}
+                </Chip>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {churches.length > 0 && (
+          <div className="mb-4">
+            <p className="text-sm font-semibold mb-2" style={{ color: 'var(--navy)' }}>Church</p>
+            <div className="flex flex-wrap gap-2">
+              {churches.map((c) => (
+                <Chip key={c} on={selectedChurches.includes(c)} onClick={() => toggle(selectedChurches, c, setSelectedChurches)}>
+                  {c}
+                </Chip>
+              ))}
+            </div>
+          </div>
+        )}
+
         <div className="mb-4">
           <p className="text-sm font-semibold mb-2" style={{ color: 'var(--navy)' }}>
             Tags {selectedTags.length > 1 && <span className="font-normal" style={{ color: '#8a8378' }}>(must have all)</span>}
@@ -153,7 +187,7 @@ export function SegmentBuilder({
           <div>
             <p className="text-sm font-semibold mb-2" style={{ color: 'var(--navy)' }}>Search</p>
             <input
-              placeholder="Name, email, phone, city"
+              placeholder="Name, email, phone, city, church"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               onKeyDown={(e) => { if (e.key === 'Enter') run(); }}
@@ -222,7 +256,7 @@ export function SegmentBuilder({
                 </p>
               </div>
               <p className="text-sm" style={{ color: '#8a8378' }}>
-                {[c.city, c.state].filter(Boolean).join(', ')}
+                {[[c.city, c.state].filter(Boolean).join(', '), c.church].filter(Boolean).join(' · ')}
               </p>
               <div className="flex flex-wrap gap-1">
                 {c.tags.map((t) => (

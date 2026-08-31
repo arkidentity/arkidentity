@@ -24,6 +24,7 @@ export function ContactManager({
   const [search, setSearch] = useState('');
   const [stateFilter, setStateFilter] = useState('');
   const [tagFilter, setTagFilter] = useState('');
+  const [churchFilter, setChurchFilter] = useState('');
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
   const [busy, setBusy] = useState(false);
@@ -34,16 +35,21 @@ export function ContactManager({
     () => [...new Set(contacts.map((c) => c.state).filter((s): s is string => !!s))].sort(),
     [contacts]
   );
+  const churches = useMemo(
+    () => [...new Set(contacts.map((c) => c.church).filter((s): s is string => !!s))].sort(),
+    [contacts]
+  );
 
   const visible = useMemo(() => {
     const q = search.trim().toLowerCase();
     return contacts.filter((c) => {
       if (stateFilter && c.state !== stateFilter) return false;
       if (tagFilter && !c.tags.some((t) => t.id === tagFilter)) return false;
+      if (churchFilter && c.church !== churchFilter) return false;
       if (!q) return true;
-      return [c.name, c.email, c.phone, c.city].some((v) => v?.toLowerCase().includes(q));
+      return [c.name, c.email, c.phone, c.city, c.church].some((v) => v?.toLowerCase().includes(q));
     });
-  }, [contacts, search, stateFilter, tagFilter]);
+  }, [contacts, search, stateFilter, tagFilter, churchFilter]);
 
   async function patch(id: string, body: Partial<Contact> & { tagIds?: string[] }) {
     const res = await fetch(`/api/admin/contacts/${id}`, {
@@ -93,8 +99,8 @@ export function ContactManager({
   function exportCsv() {
     const escape = (v: string | null) => `"${(v ?? '').replace(/"/g, '""')}"`;
     const csv = [
-      'Name,Email,Phone,City,State',
-      ...visible.map((c) => [c.name, c.email, c.phone, c.city, c.state].map(escape).join(',')),
+      'Name,Email,Phone,City,State,Region,Church',
+      ...visible.map((c) => [c.name, c.email, c.phone, c.city, c.state, c.region, c.church].map(escape).join(',')),
     ].join('\n');
     const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
     const a = document.createElement('a');
@@ -110,7 +116,7 @@ export function ContactManager({
       <div className="rounded-xl p-4 mb-5" style={card}>
         <div className="flex flex-wrap gap-3">
           <input
-            placeholder="Search name, email, phone, city"
+            placeholder="Search name, email, phone, city, church"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="flex-1 min-w-[200px] px-3 py-2 rounded-lg border text-sm"
@@ -124,6 +130,12 @@ export function ContactManager({
             <option value="">All tags</option>
             {tags.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
           </select>
+          {churches.length > 0 && (
+            <select value={churchFilter} onChange={(e) => setChurchFilter(e.target.value)} className="px-3 py-2 rounded-lg border text-sm" style={inputStyle}>
+              <option value="">All churches</option>
+              {churches.map((c) => <option key={c} value={c}>{c}</option>)}
+            </select>
+          )}
         </div>
         <div className="flex flex-wrap items-center gap-3 mt-3">
           <button onClick={() => setShowAdd((s) => !s)} className="text-sm font-semibold px-3 py-2 rounded-lg border" style={{ borderColor: '#d1d5db', color: 'var(--navy)' }}>
@@ -148,7 +160,7 @@ export function ContactManager({
         </div>
         {notice && <p className="text-sm mt-2" style={{ color: '#1e5631' }}>{notice}</p>}
         <p className="text-xs mt-2" style={{ color: '#8a8378' }}>
-          CSV columns: name, email, phone, city, state, channel, frequency. Existing emails are skipped.
+          CSV columns: name, email, phone, city, state, region, church, channel, frequency. Existing emails are skipped.
         </p>
       </div>
 
@@ -166,7 +178,7 @@ export function ContactManager({
                   {!c.subscribed && <span className="text-xs font-normal" style={{ color: '#8a8378' }}> · not on updates</span>}
                 </p>
                 <p className="text-sm" style={{ color: '#8a8378' }}>
-                  {[c.email, c.phone, [c.city, c.state].filter(Boolean).join(', ')].filter(Boolean).join(' · ')}
+                  {[c.email, c.phone, [c.city, c.state].filter(Boolean).join(', '), c.church].filter(Boolean).join(' · ')}
                 </p>
               </div>
               <div className="flex flex-wrap gap-1">
@@ -220,6 +232,8 @@ function AddForm({
   const [phone, setPhone] = useState('');
   const [city, setCity] = useState('');
   const [state, setState] = useState('');
+  const [region, setRegion] = useState('');
+  const [church, setChurch] = useState('');
   const [tagIds, setTagIds] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
 
@@ -228,7 +242,7 @@ function AddForm({
     const res = await fetch('/api/admin/contacts', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, email, phone, city, state, tagIds, source: 'Added by hand' }),
+      body: JSON.stringify({ name, email, phone, city, state, region, church, tagIds, source: 'Added by hand' }),
     });
     setBusy(false);
     if (!res.ok) {
@@ -249,6 +263,8 @@ function AddForm({
           <input placeholder="City" value={city} onChange={(e) => setCity(e.target.value)} className="flex-1 px-3 py-2 rounded-lg border" style={inputStyle} />
           <input placeholder="ST" maxLength={2} value={state} onChange={(e) => setState(e.target.value.toUpperCase())} className="w-20 px-3 py-2 rounded-lg border text-center" style={inputStyle} />
         </div>
+        <input placeholder="Region" value={region} onChange={(e) => setRegion(e.target.value)} className="px-3 py-2 rounded-lg border" style={inputStyle} />
+        <input placeholder="Church" value={church} onChange={(e) => setChurch(e.target.value)} className="px-3 py-2 rounded-lg border" style={inputStyle} />
       </div>
       <TagPicker tags={tags} selected={tagIds} onChange={setTagIds} />
       <button
@@ -277,6 +293,8 @@ function EditRow({
   const [phone, setPhone] = useState(contact.phone ?? '');
   const [city, setCity] = useState(contact.city ?? '');
   const [state, setState] = useState(contact.state ?? '');
+  const [region, setRegion] = useState(contact.region ?? '');
+  const [church, setChurch] = useState(contact.church ?? '');
   const [notes, setNotes] = useState(contact.relationship_notes ?? '');
   const [tagIds, setTagIds] = useState<string[]>(contact.tags.map((t) => t.id));
   const [busy, setBusy] = useState(false);
@@ -291,13 +309,15 @@ function EditRow({
           <input value={city} onChange={(e) => setCity(e.target.value)} placeholder="City" className="flex-1 px-3 py-2 rounded-lg border text-sm" style={inputStyle} />
           <input value={state} maxLength={2} onChange={(e) => setState(e.target.value.toUpperCase())} placeholder="ST" className="w-16 px-3 py-2 rounded-lg border text-sm text-center" style={inputStyle} />
         </div>
+        <input value={region} onChange={(e) => setRegion(e.target.value)} placeholder="Region" className="px-3 py-2 rounded-lg border text-sm" style={inputStyle} />
+        <input value={church} onChange={(e) => setChurch(e.target.value)} placeholder="Church" className="px-3 py-2 rounded-lg border text-sm" style={inputStyle} />
         <input value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="How you know them" className="sm:col-span-2 px-3 py-2 rounded-lg border text-sm" style={inputStyle} />
       </div>
       <TagPicker tags={tags} selected={tagIds} onChange={setTagIds} />
       <button
         onClick={async () => {
           setBusy(true);
-          await onSave({ name, email, phone, city, state, relationship_notes: notes, tagIds });
+          await onSave({ name, email, phone, city, state, region, church, relationship_notes: notes, tagIds });
           setBusy(false);
         }}
         disabled={busy}

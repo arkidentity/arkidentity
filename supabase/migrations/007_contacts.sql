@@ -48,6 +48,7 @@ alter table contacts
 
 -- Segment filters are state + tag; both need to be cheap.
 create index if not exists contacts_state_idx on contacts (upper(state)) where status = 'active';
+create index if not exists contacts_region_idx on contacts (region) where region is not null;
 create index if not exists contacts_status_idx on contacts (status);
 create index if not exists contacts_phone_idx on contacts (lower(phone)) where phone is not null;
 

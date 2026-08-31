@@ -1,11 +1,13 @@
-import { listTags, listStates, listEvents } from '@/lib/contacts';
+import { listTags, listStates, listRegions, listChurches, listEvents } from '@/lib/contacts';
 import { SegmentBuilder } from '@/components/contacts/SegmentBuilder';
 
 export const metadata = { title: 'Segments - ARK Identity' };
 export const dynamic = 'force-dynamic';
 
 export default async function SegmentsPage() {
-  const [tags, states, events] = await Promise.all([listTags(), listStates(), listEvents()]);
+  const [tags, states, regions, churches, events] = await Promise.all([
+    listTags(), listStates(), listRegions(), listChurches(), listEvents(),
+  ]);
   return (
     <div style={{ background: '#FAF8F5', minHeight: '100vh' }}>
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
@@ -18,7 +20,7 @@ export default async function SegmentsPage() {
         <p className="mb-8" style={{ color: '#8a8378' }}>
           Who to invite, and who you&rsquo;ve already asked. Copy the list into a Google Calendar invite or a text.
         </p>
-        <SegmentBuilder tags={tags} states={states} events={events} />
+        <SegmentBuilder tags={tags} states={states} regions={regions} churches={churches} events={events} />
       </div>
     </div>
   );

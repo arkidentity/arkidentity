@@ -10,7 +10,7 @@ import type { Tag } from '@/lib/contacts';
 //  3. A duplicate warns, it never blocks. A lost name costs more than a dupe.
 
 const inputStyle = { borderColor: '#d1d5db', color: '#111827' } as const;
-const inputClass = 'w-full px-4 py-3 rounded-lg border text-base';
+const inputClass = 'px-4 py-3 rounded-lg border text-base';
 
 interface Duplicate {
   id: string;
@@ -19,7 +19,15 @@ interface Duplicate {
   phone: string | null;
 }
 
-export function QuickAdd({ tags: initialTags }: { tags: Tag[] }) {
+export function QuickAdd({
+  tags: initialTags,
+  regions,
+  churches,
+}: {
+  tags: Tag[];
+  regions: string[];
+  churches: string[];
+}) {
   const [tags, setTags] = useState<Tag[]>(initialTags);
   const [selected, setSelected] = useState<string[]>([]);
 
@@ -28,6 +36,8 @@ export function QuickAdd({ tags: initialTags }: { tags: Tag[] }) {
   const [email, setEmail] = useState('');
   const [city, setCity] = useState('');
   const [state, setState] = useState('');
+  const [region, setRegion] = useState('');
+  const [church, setChurch] = useState('');
   const [notes, setNotes] = useState('');
   const [subscribed, setSubscribed] = useState(true);
 
@@ -71,7 +81,7 @@ export function QuickAdd({ tags: initialTags }: { tags: Tag[] }) {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        name, phone, email, city, state,
+        name, phone, email, city, state, region, church,
         relationship_notes: notes,
         source: 'Quick Add',
         subscribed,
@@ -122,7 +132,7 @@ export function QuickAdd({ tags: initialTags }: { tags: Tag[] }) {
               placeholder="Name"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className={inputClass}
+              className={`${inputClass} w-full`}
               style={inputStyle}
             />
             <input
@@ -131,7 +141,7 @@ export function QuickAdd({ tags: initialTags }: { tags: Tag[] }) {
               inputMode="tel"
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
-              className={inputClass}
+              className={`${inputClass} w-full`}
               style={inputStyle}
             />
             <input
@@ -141,7 +151,7 @@ export function QuickAdd({ tags: initialTags }: { tags: Tag[] }) {
               autoCapitalize="off"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className={inputClass}
+              className={`${inputClass} w-full`}
               style={inputStyle}
             />
             <div className="flex gap-3">
@@ -149,7 +159,7 @@ export function QuickAdd({ tags: initialTags }: { tags: Tag[] }) {
                 placeholder="City"
                 value={city}
                 onChange={(e) => setCity(e.target.value)}
-                className={`${inputClass} flex-1`}
+                className={`${inputClass} flex-1 min-w-0`}
                 style={inputStyle}
               />
               <input
@@ -157,15 +167,37 @@ export function QuickAdd({ tags: initialTags }: { tags: Tag[] }) {
                 maxLength={2}
                 value={state}
                 onChange={(e) => setState(e.target.value.toUpperCase())}
-                className={`${inputClass} w-20 text-center uppercase`}
+                className={`${inputClass} w-24 shrink-0 text-center uppercase`}
                 style={inputStyle}
               />
             </div>
             <input
+              placeholder="Region (optional, e.g. Midwest)"
+              list="region-options"
+              value={region}
+              onChange={(e) => setRegion(e.target.value)}
+              className={`${inputClass} w-full`}
+              style={inputStyle}
+            />
+            <datalist id="region-options">
+              {regions.map((r) => <option key={r} value={r} />)}
+            </datalist>
+            <input
+              placeholder="Church (optional)"
+              list="church-options"
+              value={church}
+              onChange={(e) => setChurch(e.target.value)}
+              className={`${inputClass} w-full`}
+              style={inputStyle}
+            />
+            <datalist id="church-options">
+              {churches.map((c) => <option key={c} value={c} />)}
+            </datalist>
+            <input
               placeholder="How you know them (optional)"
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              className={inputClass}
+              className={`${inputClass} w-full`}
               style={inputStyle}
             />
           </div>

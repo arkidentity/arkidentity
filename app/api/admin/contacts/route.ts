@@ -14,6 +14,7 @@ export async function POST(req: Request) {
     city?: string;
     state?: string;
     region?: string;
+    church?: string;
     relationship_notes?: string;
     source?: string;
     channel?: ContactChannel;
@@ -38,6 +39,7 @@ export async function POST(req: Request) {
       city: body.city,
       state: body.state,
       region: body.region,
+      church: body.church,
       relationship_notes: body.relationship_notes,
       source: body.source,
       channel: body.channel,

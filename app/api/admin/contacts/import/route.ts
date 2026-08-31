@@ -39,7 +39,8 @@ function parseCsv(text: string): string[][] {
 const norm = (s: string) => s.trim().toLowerCase();
 
 // POST /api/admin/contacts/import — body: { csv, tagIds? }
-// Header columns (any order): name, email, phone, city, state, channel, frequency.
+// Header columns (any order): name, email, phone, city, state, region, church,
+// channel, frequency.
 export async function POST(req: Request) {
   const { csv, tagIds } = (await req.json().catch(() => ({}))) as {
     csv?: string;
@@ -61,6 +62,8 @@ export async function POST(req: Request) {
     phone: header.indexOf('phone'),
     city: header.indexOf('city'),
     state: header.indexOf('state'),
+    region: header.indexOf('region'),
+    church: header.indexOf('church'),
     channel: header.indexOf('channel'),
     frequency: header.indexOf('frequency'),
   };
@@ -77,6 +80,8 @@ export async function POST(req: Request) {
       phone: idx.phone >= 0 ? r[idx.phone] : undefined,
       city: idx.city >= 0 ? r[idx.city] : undefined,
       state: idx.state >= 0 ? r[idx.state] : undefined,
+      region: idx.region >= 0 ? r[idx.region] : undefined,
+      church: idx.church >= 0 ? r[idx.church] : undefined,
       channel: (['email', 'text', 'both'].includes(channel) ? channel : undefined) as ContactChannel | undefined,
       frequency: (['weekly', 'monthly'].includes(frequency) ? frequency : undefined) as ContactFrequency | undefined,
     };

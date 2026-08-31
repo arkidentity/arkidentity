@@ -17,6 +17,7 @@ export interface Contact {
   city: string | null;
   state: string | null;
   region: string | null;
+  church: string | null;
   relationship_notes: string | null;
   source: string | null;
   status: ContactStatus;
@@ -164,6 +165,7 @@ export interface CreateContactInput {
   city?: string | null;
   state?: string | null;
   region?: string | null;
+  church?: string | null;
   relationship_notes?: string | null;
   source?: string | null;
   channel?: ContactChannel;
@@ -187,6 +189,7 @@ export async function createContact(input: CreateContactInput): Promise<Contact>
       city: input.city?.trim() || null,
       state: normState(input.state),
       region: input.region?.trim() || null,
+      church: input.church?.trim() || null,
       relationship_notes: input.relationship_notes?.trim() || null,
       source: input.source?.trim() || null,
       status: 'active',
@@ -209,8 +212,8 @@ export async function createContact(input: CreateContactInput): Promise<Contact>
 }
 
 const EDITABLE: (keyof Contact)[] = [
-  'name', 'email', 'phone', 'city', 'state', 'region', 'relationship_notes',
-  'source', 'status', 'channel', 'frequency', 'subscribed',
+  'name', 'email', 'phone', 'city', 'state', 'region', 'church',
+  'relationship_notes', 'source', 'status', 'channel', 'frequency', 'subscribed',
 ];
 
 export async function updateContact(id: string, patch: Partial<Contact>): Promise<Contact> {
@@ -338,6 +341,8 @@ export async function addTagToContacts(tagId: string, contactIds: string[]): Pro
 
 export interface SegmentFilters {
   states?: string[];
+  regions?: string[];
+  churches?: string[];
   tagIds?: string[];          // AND: a contact must carry every tag listed
   excludeEventId?: string;    // drop anyone already invited to this event
   subscribedOnly?: boolean;
@@ -369,11 +374,15 @@ export async function runSegment(filters: SegmentFilters): Promise<ContactWithTa
   if (filters.states?.length) {
     query = query.in('state', filters.states.map((s) => s.trim().toUpperCase()));
   }
+  if (filters.regions?.length) query = query.in('region', filters.regions);
+  if (filters.churches?.length) query = query.in('church', filters.churches);
   if (filters.subscribedOnly) query = query.eq('subscribed', true);
   if (allowed) query = query.in('id', [...allowed]);
   if (filters.search?.trim()) {
     const term = `%${filters.search.trim()}%`;
-    query = query.or(`name.ilike.${term},email.ilike.${term},phone.ilike.${term},city.ilike.${term}`);
+    query = query.or(
+      `name.ilike.${term},email.ilike.${term},phone.ilike.${term},city.ilike.${term},church.ilike.${term}`
+    );
   }
 
   const { data, error } = await query.order('name', { ascending: true });
@@ -394,17 +403,28 @@ export async function runSegment(filters: SegmentFilters): Promise<ContactWithTa
   return contacts.map((c) => ({ ...c, tags: tagsByContact.get(c.id) ?? [] }));
 }
 
-// States that actually appear on a contact, for the filter dropdown.
-export async function listStates(): Promise<string[]> {
+// The values that actually appear on a contact, for the filter dropdowns. Only
+// real values — an empty dropdown is better than one full of options that match
+// nobody.
+async function distinctValues(column: 'state' | 'region' | 'church'): Promise<string[]> {
   const { data, error } = await getSupabaseAdmin()
     .from('contacts')
-    .select('state')
+    .select(column)
     .eq('status', 'active')
-    .not('state', 'is', null);
+    .not(column, 'is', null);
   if (error) throw new Error(error.message);
-  const states = new Set((data ?? []).map((r) => (r.state as string).toUpperCase()));
-  return [...states].sort();
+  const rows = (data ?? []) as Record<string, string | null>[];
+  const values = new Set<string>();
+  for (const row of rows) {
+    const v = row[column]?.trim();
+    if (v) values.add(column === 'state' ? v.toUpperCase() : v);
+  }
+  return [...values].sort();
 }
+
+export const listStates = () => distinctValues('state');
+export const listRegions = () => distinctValues('region');
+export const listChurches = () => distinctValues('church');
 
 // ---------------------------------------------------------------------------
 // Events + invites — deliberately thin. RSVPs live in Google Calendar; this
@@ -566,6 +586,8 @@ export interface ImportRow {
   phone?: string;
   city?: string;
   state?: string;
+  region?: string;
+  church?: string;
   channel?: ContactChannel;
   frequency?: ContactFrequency;
 }
@@ -600,6 +622,8 @@ export async function importContacts(
         phone: row.phone,
         city: row.city,
         state: row.state,
+        region: row.region,
+        church: row.church,
         channel: row.channel,
         frequency: row.frequency,
         source: opts.source ?? 'CSV import',

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import type { EventBoard, InviteStatus, SegmentFilters, Tag } from '@/lib/contacts';
 
@@ -37,6 +37,16 @@ export function EventDetail({
   const [error, setError] = useState('');
   const [copied, setCopied] = useState('');
   const [editingAudience, setEditingAudience] = useState(!event.filters);
+
+  // useState only reads its argument on mount, so a router.refresh() that
+  // brings back a new server list would otherwise be ignored — the page would
+  // keep showing the empty list it started with. Re-sync whenever the server
+  // hands us different data.
+  useEffect(() => {
+    setInvites(event.invites);
+    setCandidates(event.candidates);
+  }, [event.invites, event.candidates]);
+
   const [busy, setBusy] = useState(false);
 
   const f = event.filters ?? {};

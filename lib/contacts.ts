@@ -337,6 +337,16 @@ export async function addTagToContacts(tagId: string, contactIds: string[]): Pro
   if (error) throw new Error(error.message);
 }
 
+export async function removeTagFromContacts(tagId: string, contactIds: string[]): Promise<void> {
+  if (contactIds.length === 0) return;
+  const { error } = await getSupabaseAdmin()
+    .from('contact_tag_links')
+    .delete()
+    .eq('tag_id', tagId)
+    .in('contact_id', contactIds);
+  if (error) throw new Error(error.message);
+}
+
 // ---------------------------------------------------------------------------
 // Segments — the core of the system. "Colorado AND worship-night AND not yet
 // invited to the September event", which Google Contacts labels can't express.

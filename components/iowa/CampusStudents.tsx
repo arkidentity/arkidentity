@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import type { CampusStudent, StudentStatus } from '@/lib/bibleStudies';
 import { DAY_NAMES, formatTime } from '@/lib/bibleStudyFormat';
@@ -92,6 +92,9 @@ export function CampusStudents({
   const [statusFilter, setStatusFilter] = useState<StudentStatus | ''>('');
   const [placement, setPlacement] = useState<Placement>('all');
   const [editing, setEditing] = useState<string | null>(null);
+
+  // Moving a student refreshes the server data; pick it up (see EventDetail).
+  useEffect(() => { setStudents(initial); }, [initial]);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
 

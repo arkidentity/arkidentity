@@ -230,7 +230,10 @@ export async function updateContact(id: string, patch: Partial<Contact>): Promis
     .eq('id', id)
     .select('*')
     .single();
-  if (error) throw new Error(error.message);
+  if (error) {
+    if (error.code === '23505') throw new Error('Another contact already uses that email.');
+    throw new Error(error.message);
+  }
   return data as Contact;
 }
 

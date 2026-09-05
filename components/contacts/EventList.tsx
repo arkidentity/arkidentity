@@ -85,7 +85,9 @@ export function EventList({ initialEvents }: { initialEvents: Row[] }) {
                   {[e.event_date, e.location].filter(Boolean).join(' · ') || 'No date set'}
                   {' · '}
                   {e.invitedCount} invited
-                  {!e.filters && <span style={{ color: '#b98900' }}> · no audience set</span>}
+                  {!e.filters && (
+                    <span style={{ color: '#b98900' }}> · no audience set — nobody to invite yet</span>
+                  )}
                 </p>
               </div>
               <select
@@ -98,6 +100,20 @@ export function EventList({ initialEvents }: { initialEvents: Row[] }) {
                   <option key={s} value={s}>{STATUS_LABEL[s]}</option>
                 ))}
               </select>
+
+              {/* The way in. A bare linked title wasn't discoverable — the work
+                  of an event happens on its own page, so say so. */}
+              <a
+                href={`/admin/contacts/events/${e.id}`}
+                className="px-4 py-2 rounded-lg font-semibold text-sm"
+                style={
+                  e.filters
+                    ? { border: '1px solid #d1d5db', color: 'var(--navy)' }
+                    : { backgroundColor: 'var(--navy)', color: 'white' }
+                }
+              >
+                {e.filters ? 'Open' : 'Set audience →'}
+              </a>
             </div>
             <input
               defaultValue={e.calendar_link ?? ''}

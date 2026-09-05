@@ -41,6 +41,41 @@ interface StudyOption {
 
 type Placement = 'all' | 'placed' | 'unplaced';
 
+function ContactFields({
+  student,
+  busy,
+  onSave,
+}: {
+  student: CampusStudent;
+  busy: boolean;
+  onSave: (patch: { name: string; phone: string | null; email: string | null }) => Promise<void>;
+}) {
+  const [name, setName] = useState(student.name);
+  const [phone, setPhone] = useState(student.phone ?? '');
+  const [email, setEmail] = useState(student.email ?? '');
+
+  return (
+    <div className="mt-3 pt-3 border-t" style={{ borderColor: '#f0ede8' }}>
+      <p className="text-xs mb-2" style={{ color: '#8a8378' }}>
+        This is their contact record — changes here show up everywhere in the database.
+      </p>
+      <div className="grid sm:grid-cols-3 gap-3">
+        <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Name" className={input} />
+        <input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="Phone" className={input} />
+        <input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email" className={input} />
+      </div>
+      <button
+        onClick={() => onSave({ name, phone: phone || null, email: email || null })}
+        disabled={busy || !name.trim()}
+        className="mt-3 px-4 py-2 rounded-lg font-semibold text-sm disabled:opacity-50"
+        style={{ backgroundColor: 'var(--navy)', color: 'white' }}
+      >
+        Save
+      </button>
+    </div>
+  );
+}
+
 export function CampusStudents({
   initial,
   studies,
@@ -56,6 +91,7 @@ export function CampusStudents({
   const [yearFilter, setYearFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState<StudentStatus | ''>('');
   const [placement, setPlacement] = useState<Placement>('all');
+  const [editing, setEditing] = useState<string | null>(null);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
 
@@ -74,7 +110,12 @@ export function CampusStudents({
     });
   }, [students, search, yearFilter, statusFilter, placement]);
 
-  async function patchStudent(contactId: string, patch: { year?: string | null; status?: StudentStatus }) {
+  // One endpoint for both records: campus facts land on campus_students, name /
+  // phone / email on the contact itself — so a fix here is a fix everywhere.
+  async function patchStudent(
+    contactId: string,
+    patch: { year?: string | null; status?: StudentStatus; name?: string; phone?: string | null; email?: string | null }
+  ) {
     setBusy(true);
     setError('');
     const res = await fetch(`/api/iowa/admin/students/${contactId}`, {
@@ -193,7 +234,26 @@ export function CampusStudents({
                     <option key={st} value={st}>{STATUS_LABEL[st]}</option>
                   ))}
                 </select>
+
+                <button
+                  onClick={() => setEditing(editing === s.contact_id ? null : s.contact_id)}
+                  className="text-sm font-semibold px-3 py-2 rounded-md border"
+                  style={{ borderColor: '#d1d5db', color: 'var(--navy)' }}
+                >
+                  {editing === s.contact_id ? 'Close' : 'Edit'}
+                </button>
               </div>
+
+              {editing === s.contact_id && (
+                <ContactFields
+                  student={s}
+                  busy={busy}
+                  onSave={async (patch) => {
+                    await patchStudent(s.contact_id, patch);
+                    setEditing(null);
+                  }}
+                />
+              )}
 
               {/* Placement */}
               <div className="mt-3 pt-3 border-t" style={{ borderColor: '#f0ede8' }}>

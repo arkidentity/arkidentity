@@ -6,6 +6,7 @@ import Image from 'next/image';
 import { supabase } from '@/lib/supabase';
 import CreedCardOfTheDay from '@/components/resources/CreedCardOfTheDay';
 import SparkOfTheDay from '@/components/resources/SparkOfTheDay';
+import LatestUpdatePreview from '@/components/resources/LatestUpdatePreview';
 
 const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
@@ -159,38 +160,7 @@ export default function ResourcesPage() {
 
       <div className="px-5 pt-4 space-y-6">
         {/* ── ARK Updates ── */}
-        <section>
-          <div className="resources-section-card">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ background: 'rgba(232,181,98,0.15)' }}>
-                <svg viewBox="0 0 24 24" fill="none" stroke="var(--ark-gold)" strokeWidth="1.5" className="w-5 h-5" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M4 11a9 9 0 0 1 9 9" />
-                  <path d="M4 4a16 16 0 0 1 16 16" />
-                  <circle cx="5" cy="19" r="1" />
-                </svg>
-              </div>
-              <div>
-                <h2 className="text-lg font-bold text-white">ARK Updates</h2>
-                <p className="text-white/50 text-sm">Stories & photos from the field</p>
-              </div>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              <Link href="/feed" className="resources-btn-gold-sm">
-                View updates
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-3.5 h-3.5" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M9 18l6-6-6-6" />
-                </svg>
-              </Link>
-              <Link
-                href="/feed/subscribe"
-                className="inline-flex items-center gap-1.5 text-sm font-semibold px-4 py-2 rounded-lg"
-                style={{ border: '1px solid rgba(232,181,98,0.5)', color: 'var(--ark-gold)' }}
-              >
-                Get updates
-              </Link>
-            </div>
-          </div>
-        </section>
+        <LatestUpdatePreview />
 
         {/* ── Creed Card of the Day ── */}
         <CreedCardOfTheDay />

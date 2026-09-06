@@ -158,7 +158,7 @@ export default function ResourcesPage() {
         </div>
       </header>
 
-      <div className="px-5 pt-4 space-y-6">
+      <div className="max-w-2xl mx-auto px-5 pt-4 space-y-6">
         {/* ── ARK Updates ── */}
         <LatestUpdatePreview />
 

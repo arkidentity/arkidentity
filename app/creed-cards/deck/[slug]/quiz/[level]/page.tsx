@@ -1,0 +1,1 @@
+export { default } from '@creed-cards/app/deck/[slug]/quiz/[level]/page';

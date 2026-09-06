@@ -87,6 +87,7 @@ export default function LatestUpdatePreview() {
 
   const para = post ? firstParagraph(post) : null;
   const { thumb, isVideo } = post ? cardMedia(post) : { thumb: null, isVideo: false };
+  const hasMedia = Boolean(thumb || isVideo);
 
   return (
     <section>
@@ -117,65 +118,57 @@ export default function LatestUpdatePreview() {
         </div>
 
         {post && (
-          <Link href={`/feed/${post.id}`} className="block mb-4 rounded-xl overflow-hidden">
-            {thumb && (
-              <div className="relative w-full" style={{ aspectRatio: '16 / 9' }}>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={thumb}
-                  alt=""
-                  loading="lazy"
-                  className="absolute inset-0 h-full w-full object-cover"
-                />
-                {isVideo && (
-                  <div className="absolute inset-0 flex items-center justify-center">
+          <Link href={`/feed/${post.id}`} className="block mb-4">
+            {/* Stacked on phones; image fixed-width beside the text on wider
+                screens so it never blows up on desktop. */}
+            <div className={hasMedia ? 'sm:flex sm:gap-4' : ''}>
+              {hasMedia && (
+                <div
+                  className="relative w-full sm:w-56 sm:shrink-0 rounded-xl overflow-hidden flex items-center justify-center"
+                  style={{ aspectRatio: '16 / 9', background: 'rgba(255,255,255,0.06)' }}
+                >
+                  {thumb && (
+                    /* eslint-disable-next-line @next/next/no-img-element */
+                    <img
+                      src={thumb}
+                      alt=""
+                      loading="lazy"
+                      className="absolute inset-0 h-full w-full object-cover"
+                    />
+                  )}
+                  {isVideo && (
                     <span
-                      className="flex items-center justify-center w-14 h-14 rounded-full"
+                      className="relative flex items-center justify-center w-14 h-14 rounded-full"
                       style={{ background: 'rgba(0,0,0,0.55)' }}
                     >
                       <svg viewBox="0 0 24 24" fill="#fff" className="w-6 h-6 ml-0.5">
                         <path d="M8 5v14l11-7z" />
                       </svg>
                     </span>
-                  </div>
+                  )}
+                </div>
+              )}
+
+              <div className={hasMedia ? 'pt-3 sm:pt-0 sm:flex-1 sm:min-w-0' : ''}>
+                {post.headline && (
+                  <h3 className="text-white font-bold text-base leading-snug mb-1">
+                    {post.headline}
+                  </h3>
+                )}
+                {para && (
+                  <p
+                    className="text-white/60 text-sm leading-relaxed"
+                    style={{
+                      display: '-webkit-box',
+                      WebkitLineClamp: 4,
+                      WebkitBoxOrient: 'vertical',
+                      overflow: 'hidden',
+                    }}
+                  >
+                    {para}
+                  </p>
                 )}
               </div>
-            )}
-            {isVideo && !thumb && (
-              <div
-                className="w-full flex items-center justify-center"
-                style={{ aspectRatio: '16 / 9', background: 'rgba(255,255,255,0.06)' }}
-              >
-                <span
-                  className="flex items-center justify-center w-14 h-14 rounded-full"
-                  style={{ background: 'rgba(0,0,0,0.55)' }}
-                >
-                  <svg viewBox="0 0 24 24" fill="#fff" className="w-6 h-6 ml-0.5">
-                    <path d="M8 5v14l11-7z" />
-                  </svg>
-                </span>
-              </div>
-            )}
-
-            <div className={thumb || isVideo ? 'pt-3' : ''}>
-              {post.headline && (
-                <h3 className="text-white font-bold text-base leading-snug mb-1">
-                  {post.headline}
-                </h3>
-              )}
-              {para && (
-                <p
-                  className="text-white/60 text-sm leading-relaxed"
-                  style={{
-                    display: '-webkit-box',
-                    WebkitLineClamp: 3,
-                    WebkitBoxOrient: 'vertical',
-                    overflow: 'hidden',
-                  }}
-                >
-                  {para}
-                </p>
-              )}
             </div>
           </Link>
         )}

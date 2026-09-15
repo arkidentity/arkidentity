@@ -51,6 +51,11 @@ export interface DigestPost {
   headline: string;
   excerpt: string;
   imageUrl: string | null;
+  // The raw YouTube/Vimeo watch URL when the post's lead media is an embedded
+  // video. Email clients can't play video inline, so imageUrl carries the
+  // poster frame and this becomes a direct "Watch the video" link that opens
+  // a real, playable YouTube/Vimeo page instead of our own post page.
+  videoUrl: string | null;
   publishedAt: string | null;
 }
 
@@ -65,16 +70,30 @@ export async function sendDigestEmail(
   const items = posts
     .map((p) => {
       const postUrl = `${siteUrl()}/feed/${p.id}`;
+      // A video thumbnail links straight to YouTube/Vimeo — that's the one tap
+      // that actually plays. The photo case still links back to our post page.
+      const imageHref = p.videoUrl || postUrl;
       return `
     <div style="margin:0 0 28px; padding:0 0 24px; border-bottom:1px solid #eee;">
       ${
         p.imageUrl
-          ? `<a href="${postUrl}"><img src="${p.imageUrl}" alt="" width="100%" style="border-radius:10px; margin-bottom:12px; max-height:260px; object-fit:cover;" /></a>`
+          ? `<a href="${imageHref}" style="display:block; position:relative;">
+               <img src="${p.imageUrl}" alt="" width="100%" style="display:block; border-radius:10px; margin-bottom:12px; max-height:260px; object-fit:cover;" />
+               ${
+                 p.videoUrl
+                   ? `<span style="position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); width:56px; height:56px; line-height:56px; text-align:center; background:rgba(0,0,0,0.6); border-radius:50%; color:#fff; font-size:20px;">▶</span>`
+                   : ''
+               }
+             </a>`
           : ''
       }
       ${p.headline ? `<h2 style="margin:0 0 8px; font-size:20px; line-height:1.3; color:#143348;">${escapeHtml(p.headline)}</h2>` : ''}
       <p style="margin:0 0 8px; font-size:16px; line-height:1.5; color:#4a4540;">${escapeHtml(p.excerpt)}</p>
-      <a href="${postUrl}" style="color:#143348; font-weight:600; text-decoration:none;">Read the full update →</a>
+      ${
+        p.videoUrl
+          ? `<a href="${p.videoUrl}" style="color:#143348; font-weight:600; text-decoration:none;">▶ Watch the video</a> &nbsp;·&nbsp; <a href="${postUrl}" style="color:#8a8378; text-decoration:none;">Read the update →</a>`
+          : `<a href="${postUrl}" style="color:#143348; font-weight:600; text-decoration:none;">Read the full update →</a>`
+      }
     </div>`;
     })
     .join('');

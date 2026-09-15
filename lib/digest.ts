@@ -1,7 +1,14 @@
 import { getSupabaseAdmin } from '@/lib/supabaseAdmin';
 import { sendDigestEmail, siteUrl, type DigestPost } from '@/lib/email';
+import { postExcerpt, postLeadImage, postLeadVideo, videoThumbnail } from '@/lib/feed';
 import type { Contact } from '@/lib/contacts';
 import type { Post } from '@/lib/feed';
+
+// A highlight digest, not a backlog dump: even if a subscriber has ten new
+// posts queued up, the email leads with the most recent and shows at most
+// this many — the rest stay on the feed for them to browse. Posts beyond the
+// cap are still marked sent (see `sends` below) and never resurface later.
+const MAX_DIGEST_POSTS = 3;
 
 // Builds and sends each due subscriber's email digest. Called by the daily cron.
 // Recipients are contacts with `subscribed` on — the newsletter is one slice of
@@ -14,18 +21,6 @@ import type { Post } from '@/lib/feed';
 
 const DAY = 24 * 60 * 60 * 1000;
 const DUE_DAYS: Record<Contact['frequency'], number> = { weekly: 7, monthly: 28 };
-
-function excerptOf(post: Post): string {
-  const body = (post.final_text || post.draft_text || '').replace(/\s+/g, ' ').trim();
-  return body.length > 220 ? body.slice(0, 217).trimEnd() + '…' : body;
-}
-
-function leadImage(post: Post): string | null {
-  const photo = (post.media ?? []).find((m) => m.type === 'photo');
-  if (photo) return photo.url;
-  if (post.media_type === 'photo') return post.display_media_url || post.raw_media_url;
-  return null;
-}
 
 export interface DigestSummary {
   sent: number;
@@ -86,7 +81,7 @@ export async function runDigests(): Promise<DigestSummary> {
       .select('*')
       .eq('status', 'published')
       .gt('published_at', sinceIso)
-      .order('published_at', { ascending: true });
+      .order('published_at', { ascending: false });
 
     const posts = (postRows as Post[]) ?? [];
     if (posts.length === 0) {
@@ -94,13 +89,22 @@ export async function runDigests(): Promise<DigestSummary> {
       continue;
     }
 
-    const digestPosts: DigestPost[] = posts.map((p) => ({
-      id: p.id,
-      headline: p.headline || '',
-      excerpt: excerptOf(p),
-      imageUrl: leadImage(p),
-      publishedAt: p.published_at,
-    }));
+    // Everything new counts as "sent" (it won't be offered again — sinceIso
+    // moves to now), but only the most recent MAX_DIGEST_POSTS actually appear
+    // in the email, newest first.
+    const featured = posts.slice(0, MAX_DIGEST_POSTS);
+
+    const digestPosts: DigestPost[] = featured.map((p) => {
+      const video = postLeadVideo(p);
+      return {
+        id: p.id,
+        headline: p.headline || '',
+        excerpt: postExcerpt(p, 220),
+        imageUrl: (video && videoThumbnail(video)) || postLeadImage(p),
+        videoUrl: video?.provider ? video.url : null,
+        publishedAt: p.published_at,
+      };
+    });
 
     const unsubscribeUrl = `${siteUrl()}/unsubscribe?token=${person.unsubscribe_token}`;
 

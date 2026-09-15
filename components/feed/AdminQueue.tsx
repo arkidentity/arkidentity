@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { videoLinkToMedia } from '@/lib/videoLinks';
 import { uploadFileToStorage, mediaTypeForFile, MAX_FILE_MB } from '@/lib/uploadMedia';
 import { useToast } from '@/components/ui/Toast';
+import { postLeadVideo } from '@/lib/feed';
 import type { Post, PostStatus, MediaItem } from '@/lib/feed';
 
 const ACTION_TOAST: Record<string, string> = {
@@ -321,13 +322,17 @@ function AdminCard({
   }
 
   // Ready-to-send SMS for a manual Gloo broadcast: a short teaser + feed link.
+  // When the post has an embedded video, the video's own watch URL is used
+  // instead of the feed link — that's the link Messages/Gloo can unfurl into
+  // a tappable, playable video, which our own post page can't offer.
   async function copyText() {
     // Link to THIS post so the text preview shows its headline + photo.
     const postUrl = `${(process.env.NEXT_PUBLIC_SITE_URL || '').replace(/\/$/, '')}/feed/${post.id}`;
     // Use the AI headline as the hook; fall back to the first sentence.
     const body = (post.final_text || '').replace(/\s+/g, ' ').trim();
     const hook = post.headline?.trim() || body.split(/(?<=[.!?])\s/)[0] || body.slice(0, 140);
-    const msg = `${hook} — Read: ${postUrl}`;
+    const video = postLeadVideo(post);
+    const msg = video?.provider ? `${hook} — Watch: ${video.url}` : `${hook} — Read: ${postUrl}`;
     try {
       await navigator.clipboard.writeText(msg);
       setCopied(true);

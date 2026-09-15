@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabase';
+import { parseVideoLink } from '@/lib/videoLinks';
 
 // Shared types + data access for the Ministry Feed.
 
@@ -42,6 +43,25 @@ export function postLeadImage(post: Post): string | null {
   if (photo) return photo.url;
   if (post.media_type === 'photo') return post.display_media_url || post.raw_media_url;
   return null;
+}
+
+// The post's lead video item (embedded YouTube/Vimeo link or uploaded file), or null.
+export function postLeadVideo(post: Post): MediaItem | null {
+  const video = (post.media ?? []).find((m) => m.type === 'video');
+  if (video) return video;
+  if (post.media_type === 'video' && (post.display_media_url || post.raw_media_url)) {
+    return { url: (post.display_media_url || post.raw_media_url) as string, type: 'video' };
+  }
+  return null;
+}
+
+// A poster-frame thumbnail for a video, when one is derivable without an API
+// call — YouTube only. Vimeo and uploaded files have no predictable public
+// thumbnail URL; callers should fall back to postLeadImage or a plain play tile.
+export function videoThumbnail(video: MediaItem): string | null {
+  if (video.provider !== 'youtube') return null;
+  const parsed = parseVideoLink(video.url);
+  return parsed?.provider === 'youtube' ? `https://img.youtube.com/vi/${parsed.id}/hqdefault.jpg` : null;
 }
 
 // A single published post by id (or null). Reads via anon key; RLS limits to

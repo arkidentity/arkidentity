@@ -4,11 +4,25 @@ import { useState } from 'react';
 import { ErrorBox, PageShell, Section, btnPrimary, btnSmall, input, useCall, type TypeOption } from '@/components/iowa/campus/ui';
 import type { SchoolPeriod, Semester } from '@/lib/campusFormat';
 import SemesterSettings from '@/components/iowa/campus/SemesterSettings';
+import ChecklistSettings from '@/components/iowa/campus/ChecklistSettings';
+import type { ChecklistTemplate } from '@/lib/eventChecklists';
 import SchoolCalendarSettings from '@/components/iowa/campus/SchoolCalendarSettings';
 
 // Editable task + event type lists. Types are hidden rather than deleted so
 // anything already using one keeps its label.
-export default function TypeSettings({ types, periods, semesters }: { types: TypeOption[]; periods: SchoolPeriod[]; semesters: Semester[] }) {
+export default function TypeSettings({
+  types,
+  periods,
+  semesters,
+  templates,
+  staff,
+}: {
+  types: TypeOption[];
+  periods: SchoolPeriod[];
+  semesters: Semester[];
+  templates: ChecklistTemplate[];
+  staff: { id: string; name: string }[];
+}) {
   const { call, busy, error } = useCall();
   return (
     <PageShell>
@@ -16,6 +30,11 @@ export default function TypeSettings({ types, periods, semesters }: { types: Typ
         Settings
       </h1>
       <p className="text-sm text-[#8a8378] mb-8">The school calendar, and the types you can pick for tasks and events.</p>
+      <ChecklistSettings
+        templates={templates}
+        staff={staff}
+        eventTypes={types.filter((t) => t.kind === 'event' && t.active).map((t) => ({ id: t.id, name: t.name }))}
+      />
       <SemesterSettings semesters={semesters} />
       <SchoolCalendarSettings periods={periods} />
       <ErrorBox error={error} />

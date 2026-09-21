@@ -40,7 +40,9 @@ export default function CampusCalendar({
   sync,
   periods,
   semesters,
+  templates,
 }: {
+  templates: { id: string; name: string; itemCount: number }[];
   periods: SchoolPeriod[];
   semesters: Semester[];
   held: HeldEvent[];
@@ -64,7 +66,6 @@ export default function CampusCalendar({
     [weekStart, studies, events, tasks, staff, types, meId, mineOnly, periods, semesters]
   );
   const editingEvent = editing && editing !== 'new' ? events.find((e) => e.id === editing) : undefined;
-  const linkedTasks = editingEvent ? tasks.filter((t) => t.event_id === editingEvent.id && t.status !== 'done') : [];
 
   return (
     <PageShell>
@@ -180,34 +181,15 @@ export default function CampusCalendar({
           ) : (
             <EventForm key={editingEvent.id} event={editingEvent} staff={staff} types={types} meId={meId} busy={busy} call={call} onDone={() => setEditing(null)} periods={periods} />
           )}
-          <div className="mt-4 rounded-lg border border-gray-200 bg-white p-4">
-            <div className="flex items-baseline justify-between mb-2">
-              <p className="text-sm font-bold" style={{ color: 'var(--navy)' }}>
-                Tasks for this event
-              </p>
-              <a href={`/iowa/admin/tasks?new=1&event=${editingEvent.id}`} className="text-sm font-semibold hover:underline" style={{ color: 'var(--navy)' }}>
-                + Add a task
-              </a>
-            </div>
-            {linkedTasks.length === 0 ? (
-              <p className="text-sm text-[#8a8378]">No open tasks.</p>
-            ) : (
-              <ul className="text-sm space-y-1">
-                {linkedTasks.map((t) => (
-                  <li key={t.id}>
-                    <a href={`/iowa/admin/tasks?task=${t.id}`} className="hover:underline" style={{ color: 'var(--navy)' }}>
-                      {t.title}
-                    </a>
-                    <span className="text-[#8a8378]">
-                      {' · '}
-                      {staff.find((s) => s.id === t.owner_id)?.name ?? 'Unowned'}
-                      {t.due_date ? ` · due ${formatDate(t.due_date)}` : ''}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
+          <EventChecklist
+            event={editingEvent}
+            tasks={tasks.filter((t) => t.event_id === editingEvent.id)}
+            templates={templates}
+            staff={staff}
+            meId={meId}
+            busy={busy}
+            call={call}
+          />
         </div>
       )}
     </PageShell>
@@ -517,6 +499,131 @@ function BreakWarnings({
       {!online && (
         <p className="mt-2 text-xs">Online instead? Paste a Meet link and leave the location blank; online events run through breaks.</p>
       )}
+    </div>
+  );
+}
+
+// Checklist for one event: apply a template (Mission trip, Taco Night…), see
+// its tasks with their timing, and add one-off tasks timed to the event.
+function EventChecklist({
+  event,
+  tasks,
+  templates,
+  staff,
+  meId,
+  busy,
+  call,
+}: {
+  event: CampusEvent;
+  tasks: CampusTask[];
+  templates: { id: string; name: string; itemCount: number }[];
+  staff: StaffOption[];
+  meId: string | null;
+  busy: boolean;
+  call: CallFn;
+}) {
+  const [pick, setPick] = useState(event.checklist_template_id ?? '');
+  const [f, setF] = useState({ title: '', days: '7', when: 'before', owner_id: meId ?? '' });
+  const current = templates.find((t) => t.id === event.checklist_template_id);
+  const when = (n: number | null) =>
+    n === null ? '' : n === 0 ? 'day of' : n < 0 ? `${-n}d before` : `${n}d after`;
+  const open = tasks.filter((t) => t.status !== 'done').sort((a, b) => (a.due_date ?? '').localeCompare(b.due_date ?? ''));
+  const done = tasks.length - open.length;
+
+  return (
+    <div className="mt-4 rounded-lg border border-gray-200 bg-white p-4 space-y-4">
+      <div className="flex flex-wrap items-end justify-between gap-2">
+        <div>
+          <p className="text-sm font-bold" style={{ color: 'var(--navy)' }}>Checklist</p>
+          <p className="text-xs text-[#8a8378]">
+            {current
+              ? `${current.name}${event.repeat_weekly ? ': made fresh for each date, about two weeks ahead' : ''}.`
+              : 'Tasks due before or after this event. They move if the event moves.'}
+          </p>
+        </div>
+        <span className="flex gap-2">
+          <select value={pick} onChange={(e) => setPick(e.target.value)} className="px-2 py-1.5 border border-gray-300 rounded-md text-sm bg-white">
+            <option value="">No template</option>
+            {templates.map((t) => (
+              <option key={t.id} value={t.id}>{t.name} ({t.itemCount})</option>
+            ))}
+          </select>
+          <button
+            disabled={busy || pick === (event.checklist_template_id ?? '')}
+            onClick={() => {
+              if (!pick && !confirm('Remove the template? Its tasks nobody has started are removed; others stay.')) return;
+              call(`/api/iowa/admin/events/${event.id}/checklist`, 'POST', { templateId: pick || null });
+            }}
+            className="px-3 py-1.5 rounded-md text-sm font-semibold text-white disabled:opacity-40"
+            style={{ backgroundColor: 'var(--navy)' }}
+          >
+            {pick ? (current ? 'Switch' : 'Apply') : 'Remove'}
+          </button>
+        </span>
+      </div>
+
+      {open.length === 0 ? (
+        <p className="text-sm text-[#8a8378]">No open tasks{done ? ` (${done} done)` : ''}.</p>
+      ) : (
+        <ul className="text-sm space-y-1">
+          {open.map((t) => (
+            <li key={t.id} className="flex flex-wrap gap-x-2">
+              <span className="w-24 shrink-0 text-[#8a8378]">{t.due_date ? formatDate(t.due_date, { month: 'short', day: 'numeric' }) : ''}</span>
+              <a href={`/iowa/admin/tasks?task=${t.id}`} className="hover:underline" style={{ color: 'var(--navy)' }}>
+                {t.title}
+              </a>
+              <span className="text-[#8a8378]">
+                · {when(t.offset_days)}
+                {event.repeat_weekly && t.event_occurrence ? ` of ${formatDate(t.event_occurrence, { month: 'short', day: 'numeric' })}` : ''}
+                {' · '}
+                {staff.find((s) => s.id === t.owner_id)?.name.split(' ')[0] ?? 'Unowned'}
+              </span>
+            </li>
+          ))}
+          {done > 0 && <li className="text-xs text-[#8a8378]">{done} done</li>}
+        </ul>
+      )}
+
+      <div className="pt-3 border-t border-gray-100 flex flex-wrap items-center gap-2 text-sm">
+        <input
+          className="flex-1 min-w-[12rem] px-2 py-1.5 border border-gray-300 rounded-md bg-white"
+          placeholder="Add a task, e.g. Book the vans"
+          value={f.title}
+          onChange={(e) => setF({ ...f, title: e.target.value })}
+        />
+        {f.when !== 'dayof' && (
+          <input
+            type="number"
+            min={0}
+            className="w-16 px-2 py-1.5 border border-gray-300 rounded-md bg-white"
+            value={f.days}
+            onChange={(e) => setF({ ...f, days: e.target.value })}
+          />
+        )}
+        <select className="px-2 py-1.5 border border-gray-300 rounded-md bg-white" value={f.when} onChange={(e) => setF({ ...f, when: e.target.value })}>
+          <option value="before">days before</option>
+          <option value="after">days after</option>
+          <option value="dayof">day of</option>
+        </select>
+        <select className="px-2 py-1.5 border border-gray-300 rounded-md bg-white" value={f.owner_id} onChange={(e) => setF({ ...f, owner_id: e.target.value })}>
+          <option value="">Unowned</option>
+          {staff.filter((p) => p.active).map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+        </select>
+        <button
+          disabled={busy || !f.title.trim()}
+          onClick={async () => {
+            const n = Math.abs(parseInt(f.days, 10) || 0);
+            const offset = f.when === 'dayof' ? 0 : f.when === 'before' ? -n : n;
+            if (await call(`/api/iowa/admin/events/${event.id}/tasks`, 'POST', { title: f.title, offset_days: offset, owner_id: f.owner_id || null })) {
+              setF({ ...f, title: '' });
+            }
+          }}
+          className="px-3 py-1.5 rounded-md font-semibold text-white disabled:opacity-40"
+          style={{ backgroundColor: 'var(--navy)' }}
+        >
+          Add
+        </button>
+      </div>
     </div>
   );
 }

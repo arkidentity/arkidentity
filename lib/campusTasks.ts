@@ -40,6 +40,8 @@ export interface CampusTask {
   completed_at: string | null;
   helper_ids: string[];
   auto_kind: string | null; // set on tasks the automation made (migration 015)
+  event_occurrence: string | null; // event checklists (migration 019): which date of the event
+  offset_days: number | null; // due = event_occurrence + offset_days
 }
 
 export interface TaskActivity {
@@ -67,6 +69,7 @@ export interface CampusEvent {
   staff_ids: string[];
   source: 'app' | 'google'; // 'google' = owned by Google Calendar, read-only here (migration 014)
   skip_dates: string[]; // weeks a repeating event doesn't happen (migration 016)
+  checklist_template_id: string | null; // migration 019
   google_event_id: string | null;
   google_html_link: string | null;
 }

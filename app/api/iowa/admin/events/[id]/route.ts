@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { deleteEvent, updateEvent, type EventInput } from '@/lib/campusTasks';
 import { queueEventDelete, queueEventSync } from '@/lib/calendarSync';
+import { realignEvent } from '@/lib/eventChecklists';
 
 export const dynamic = 'force-dynamic';
 
@@ -11,6 +12,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   try {
     const event = await updateEvent(id, body);
     queueEventSync(event.id);
+    await realignEvent(event.id); // moved / skipped weeks → checklist due dates follow
     return NextResponse.json({ event });
   } catch (e) {
     return NextResponse.json({ error: (e as Error).message }, { status: 400 });

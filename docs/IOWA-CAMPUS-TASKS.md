@@ -154,6 +154,24 @@ early registration starts Nov 9 and runs ~3 weeks by class standing), Summer 202
 - Schedule-changed re-invites now fire when next semester opens, not when it starts.
 - **Breaks don't block signup** (Travis): pages only note "on break, meets again the week of …".
 
+## Event checklists (migration 019)
+
+Code: `lib/eventChecklists.ts`. Templates (`iowa_checklist_templates` + `_items`) are reusable lists;
+each item is due `offset_days` from the event (negative = before) with an optional default owner
+(else the first staff member going) and priority. Seeded starters: Taco Night, Prayer & Worship Night,
+Mission trip (examples; edit in Settings → Checklists).
+
+- **Apply** a template on the Calendar's event panel → real tasks (type "Event prep", linked to the
+  event) with `event_occurrence` + `offset_days`. Applied late → due today, noting the real date.
+- **Custom tasks** on an event: "Book the vans · 30 days before · owner".
+- **Moves:** editing the event's date/repeat/skipped weeks (admin or via Google sync) re-times open
+  tasks (`realignEvent`); a skipped week's untouched checklist tasks are dropped.
+- **Repeating events:** a fresh set per occurrence, made once its earliest task is due within 14 days
+  (max 3 ahead) by the morning run.
+- **By event type:** tie a template to a type and every new event of that type gets it.
+- Removing a template deletes its not-started future tasks; started ones stay.
+- Events repeat weekly only; a monthly Taco Night is one event per month (type-tied template helps).
+
 ## Email rhythm (2026-09-21, Travis)
 
 **One email per person per morning, Monday–Saturday, ~8 AM CT, skipped entirely when empty. No

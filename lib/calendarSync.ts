@@ -2,6 +2,7 @@ import { after } from 'next/server';
 import { getSupabaseAdmin } from '@/lib/supabaseAdmin';
 import { getStudyWithMembers, listStudies, type StudyWithMembers } from '@/lib/bibleStudies';
 import { semesterContext } from '@/lib/semesters';
+import { realignEvent } from '@/lib/eventChecklists';
 import { listStaff } from '@/lib/iowaStaff';
 import { formatSlot, formatTime, DAY_NAMES } from '@/lib/bibleStudyFormat';
 import { addDays, dayOfWeek, nextMeetingOnOrAfter, studyPausedBy, type SchoolPeriod, type Semester } from '@/lib/campusFormat';
@@ -484,6 +485,8 @@ export async function pullFromGoogle(): Promise<{ imported: number; held: number
       ? await db.from('iowa_events').update(row).eq('id', id)
       : await db.from('iowa_events').insert(row);
     if (error) throw error;
+    // Moved or re-skipped in Google → its checklist tasks follow.
+    if (id) await realignEvent(id).catch((e) => console.error('[iowa calendar] realign failed', e));
     imported++;
   }
 

@@ -4,6 +4,7 @@ import { sendTaskAssignedNow as notifyTaskAssignedNow } from '@/lib/taskNotify';
 import { getStudyWithMembers, listStudies, type StudyMember, type StudyWithMembers } from '@/lib/bibleStudies';
 import { semesterContext } from '@/lib/semesters';
 import { endPastSemesterStudies, sendDuePlanLinks, unplannedStudies } from '@/lib/semesterPlan';
+import { generateAllChecklists } from '@/lib/eventChecklists';
 import { listStaff, type IowaStaff } from '@/lib/iowaStaff';
 import { DAY_NAMES, formatSlot, formatTime } from '@/lib/bibleStudyFormat';
 import {
@@ -339,6 +340,9 @@ export async function runMorning(): Promise<Record<string, number | string>> {
   for (const s of unplannedStudies(studies, ctx)) {
     if (s.point_staff_id) unplannedByStaff.set(s.point_staff_id, [...(unplannedByStaff.get(s.point_staff_id) ?? []), s]);
   }
+
+  // Repeating events: make the next occurrence's checklist tasks as they come due.
+  summary.checklistTasks = await generateAllChecklists();
 
   // --- 4. Stale students ---------------------------------------------------
   // Re-invites aim at the semester students can sign up for next: the open

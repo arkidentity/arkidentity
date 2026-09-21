@@ -113,9 +113,10 @@ export function compareTasks(
 // ---------------------------------------------------------------------------
 
 // Every date in [from, to] (inclusive) that an event falls on. A weekly event
-// repeats on the same weekday from event_date until repeat_until (or forever).
+// repeats on the same weekday from event_date until repeat_until (or forever),
+// minus any skip_dates (a week off, finals week).
 export function eventDatesInRange(
-  e: { event_date: string; repeat_weekly: boolean; repeat_until: string | null },
+  e: { event_date: string; repeat_weekly: boolean; repeat_until: string | null; skip_dates?: string[] | null },
   from: string,
   to: string
 ): string[] {
@@ -129,5 +130,6 @@ export function eventDatesInRange(
     if (d < from) d = addDays(d, 7);
   }
   for (; d <= last; d = addDays(d, 7)) out.push(d);
-  return out;
+  const skip = new Set(e.skip_dates ?? []);
+  return skip.size ? out.filter((x) => !skip.has(x)) : out;
 }

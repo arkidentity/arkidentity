@@ -125,7 +125,7 @@ export default function WeekView({
 }: {
   days: string[];
   items: WeekItem[];
-  onEventClick?: (eventId: string) => void;
+  onEventClick?: (eventId: string, date: string) => void;
 }) {
   const today = chicagoToday();
   return (
@@ -164,7 +164,7 @@ export default function WeekView({
                 return (
                   <li key={i.key}>
                     {i.eventId && onEventClick ? (
-                      <button className={cls} style={st} onClick={() => onEventClick(i.eventId!)}>
+                      <button className={cls} style={st} onClick={() => onEventClick(i.eventId!, i.date)}>
                         {body}
                       </button>
                     ) : i.href ? (

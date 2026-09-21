@@ -42,6 +42,7 @@ export default function CampusCalendar({
 }) {
   const [mineOnly, setMineOnly] = useState(false);
   const [editing, setEditing] = useState<string | 'new' | null>(null);
+  const [clickedDate, setClickedDate] = useState<string | null>(null); // which week's box was clicked
   const { call, busy, error } = useCall();
   const days = weekDays(weekStart);
   const items = useMemo(
@@ -131,7 +132,14 @@ export default function CampusCalendar({
       <div className="mb-3">
         <WeekLegend />
       </div>
-      <WeekView days={days} items={items} onEventClick={(id) => setEditing(id)} />
+      <WeekView
+        days={days}
+        items={items}
+        onEventClick={(id, date) => {
+          setEditing(id);
+          setClickedDate(date);
+        }}
+      />
 
       {editingEvent && (
         <div className="mt-6">
@@ -149,6 +157,9 @@ export default function CampusCalendar({
                 Join meeting ↗
               </a>
             </p>
+          )}
+          {editingEvent.repeat_weekly && (
+            <SkipDates event={editingEvent} clickedDate={clickedDate} busy={busy} call={call} />
           )}
           {editingEvent.source === 'google' ? (
             <GoogleEventDetails event={editingEvent} />
@@ -366,6 +377,79 @@ function GoogleEventDetails({ event }: { event: CampusEvent }) {
           </>
         )}
       </p>
+    </div>
+  );
+}
+
+// One week off from a weekly event (finals, a break). Admin events: skip or
+// restore here and Google follows. Google events: cancel that week in Google.
+function SkipDates({
+  event,
+  clickedDate,
+  busy,
+  call,
+}: {
+  event: CampusEvent;
+  clickedDate: string | null;
+  busy: boolean;
+  call: CallFn;
+}) {
+  const skipped = event.skip_dates ?? [];
+  const save = (dates: string[]) => call(`/api/iowa/admin/events/${event.id}`, 'PATCH', { skip_dates: dates });
+  const google = event.source === 'google';
+
+  return (
+    <div className="mb-4 rounded-lg border border-gray-200 bg-white p-4 text-sm">
+      {clickedDate && !skipped.includes(clickedDate) && (
+        google ? (
+          <p className="text-[#4a4540]">
+            Not happening on {formatDate(clickedDate)}? Open that week in Google Calendar and delete just
+            “This event.” The admin picks it up on the next sync.
+          </p>
+        ) : (
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <span className="text-[#4a4540]">
+              Not happening on <strong>{formatDate(clickedDate)}</strong>? Skip just that week. The rest of the series stays.
+            </span>
+            <button
+              disabled={busy}
+              onClick={() => {
+                if (confirm(`Skip ${event.title} on ${formatDate(clickedDate)}? It comes off Google Calendar too.`)) {
+                  save([...skipped, clickedDate]);
+                }
+              }}
+              className="px-3 py-1.5 rounded-md text-sm font-semibold text-white disabled:opacity-50"
+              style={{ backgroundColor: '#b91c1c' }}
+            >
+              Skip {formatDate(clickedDate, { month: 'short', day: 'numeric' })}
+            </button>
+          </div>
+        )
+      )}
+      {skipped.length > 0 && (
+        <div className={clickedDate && !skipped.includes(clickedDate) ? 'mt-3 pt-3 border-t border-gray-100' : ''}>
+          <p className="text-xs font-semibold uppercase tracking-wide mb-1" style={{ color: '#8a8378' }}>
+            Skipped weeks
+          </p>
+          <ul className="flex flex-wrap gap-2">
+            {skipped.map((d) => (
+              <li key={d} className="flex items-center gap-1 rounded-full bg-gray-100 px-2.5 py-1 text-xs">
+                <span className="line-through text-[#8a8378]">{formatDate(d)}</span>
+                {!google && (
+                  <button
+                    disabled={busy}
+                    onClick={() => save(skipped.filter((x) => x !== d))}
+                    className="ml-1 font-semibold underline disabled:opacity-50"
+                    style={{ color: 'var(--navy)' }}
+                  >
+                    Restore
+                  </button>
+                )}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
     </div>
   );
 }

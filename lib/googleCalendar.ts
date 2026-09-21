@@ -93,16 +93,19 @@ export interface GEvent {
   end?: { date?: string; dateTime?: string; timeZone?: string };
   recurrence?: string[];
   recurringEventId?: string;
+  originalStartTime?: { date?: string; dateTime?: string; timeZone?: string };
   extendedProperties?: { private?: Record<string, string> };
 }
 
 // Every event from `timeMin` on (recurring events come back as their master,
-// not expanded), following pages.
+// not expanded), following pages. showDeleted so single weeks cancelled out of
+// a series come back as status 'cancelled' exceptions — that's how a skipped
+// week in Google reaches the admin.
 export async function listCalendarEvents(timeMin: string): Promise<GEvent[]> {
   const out: GEvent[] = [];
   let pageToken: string | undefined;
   do {
-    const qs = new URLSearchParams({ timeMin, singleEvents: 'false', maxResults: '250', showDeleted: 'false' });
+    const qs = new URLSearchParams({ timeMin, singleEvents: 'false', maxResults: '250', showDeleted: 'true' });
     if (pageToken) qs.set('pageToken', pageToken);
     const page = await gcal<{ items?: GEvent[]; nextPageToken?: string }>(`/events?${qs}`);
     out.push(...(page?.items ?? []));

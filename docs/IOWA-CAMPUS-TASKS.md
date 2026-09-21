@@ -68,6 +68,12 @@ Code: `lib/googleCalendar.ts` (auth + REST, no deps), `lib/calendarSync.ts` (all
 Env: `GOOGLE_SERVICE_ACCOUNT_EMAIL`, `GOOGLE_SERVICE_ACCOUNT_KEY`, `IOWA_GOOGLE_CALENDAR_ID`. Without
 them every sync is a no-op.
 
+**Skipping one week (migration 016):** `iowa_events.skip_dates`. Admin events: click that week on
+the Calendar → "Skip {date}" (Restore from the skipped list); pushed to Google as EXDATEs. Google
+events: delete just that week in Google; the importer reads cancelled instances (`showDeleted`) and
+EXDATE lines into `skip_dates`. Every expansion (`eventDatesInRange`) honors it: calendar, dashboard,
+morning email.
+
 ## Phase 2 — Follow-up automation (built, migration 015)
 
 Code: `lib/campusAutomation.ts`. Every auto task has an `auto_key`, so nothing ever doubles.

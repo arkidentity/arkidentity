@@ -66,6 +66,7 @@ export interface CampusEvent {
   created_at: string;
   staff_ids: string[];
   source: 'app' | 'google'; // 'google' = owned by Google Calendar, read-only here (migration 014)
+  skip_dates: string[]; // weeks a repeating event doesn't happen (migration 016)
   google_event_id: string | null;
   google_html_link: string | null;
 }
@@ -346,6 +347,7 @@ export interface EventInput {
   notes?: string | null;
   repeat_weekly?: boolean;
   repeat_until?: string | null;
+  skip_dates?: string[];
   staff_ids?: string[];
 }
 
@@ -378,6 +380,11 @@ function cleanEventInput(input: EventInput, creating: boolean): Record<string, u
   if ('repeat_until' in input) {
     if (input.repeat_until && !isValidDate(input.repeat_until)) throw new Error('Repeat-until must be a date.');
     out.repeat_until = input.repeat_until || null;
+  }
+  if ('skip_dates' in input) {
+    const dates = input.skip_dates ?? [];
+    if (!Array.isArray(dates) || !dates.every(isValidDate)) throw new Error('Skipped dates must be dates.');
+    out.skip_dates = [...new Set(dates)].sort();
   }
   return out;
 }

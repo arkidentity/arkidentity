@@ -174,6 +174,7 @@ interface EventRow {
   notes: string | null;
   repeat_weekly: boolean;
   repeat_until: string | null;
+  skip_dates: string[] | null;
   google_event_id: string | null;
   type: { name: string } | null;
   staff: { staff_id: string }[] | null;
@@ -205,7 +206,15 @@ function appEvent(e: EventRow, names: Map<string, string>): GEvent {
     description: lines.join('\n'),
     start,
     end,
-    recurrence: e.repeat_weekly ? [`RRULE:FREQ=WEEKLY${until}`] : [],
+    recurrence: e.repeat_weekly
+      ? [
+          `RRULE:FREQ=WEEKLY${until}`,
+          // Skipped weeks (finals, a break).
+          ...(e.skip_dates ?? []).map((d) =>
+            timed ? `EXDATE;TZID=${TZ}:${compact(d)}T${e.start_time!.replace(/:/g, '').padEnd(6, '0')}` : `EXDATE;VALUE=DATE:${compact(d)}`
+          ),
+        ]
+      : [],
     extendedProperties: { private: { arkSource: 'event', arkId: e.id } },
   };
 }
@@ -267,6 +276,7 @@ interface Parsed {
   notes: string | null;
   repeat_weekly: boolean;
   repeat_until: string | null;
+  skip_dates: string[];
   google_html_link: string | null;
 }
 
@@ -320,6 +330,14 @@ export function parseGoogle(g: GEvent): Parsed | null {
     }
   }
 
+  // EXDATE lines on the series → skipped weeks (cancelled single instances are
+  // merged in by pullFromGoogle).
+  const skip_dates = (g.recurrence ?? [])
+    .filter((r) => r.startsWith('EXDATE'))
+    .flatMap((r) => r.slice(r.indexOf(':') + 1).split(','))
+    .map(googleStampToDate)
+    .filter((d): d is string => !!d);
+
   const video = g.conferenceData?.entryPoints?.find((p) => p.entryPointType === 'video')?.uri;
   const linkInLocation = g.location && /^https?:\/\//i.test(g.location.trim()) ? g.location.trim() : null;
   return {
@@ -332,8 +350,27 @@ export function parseGoogle(g: GEvent): Parsed | null {
     notes: [g.description?.trim(), extraNote].filter(Boolean).join('\n\n') || null,
     repeat_weekly,
     repeat_until,
+    skip_dates,
     google_html_link: g.htmlLink ?? null,
   };
+}
+
+// An EXDATE/UNTIL-style stamp ('20260930', '20260930T190000', '20260930T000000Z')
+// → Chicago local date. Floating times are already local to the event's zone,
+// which for this calendar is Chicago.
+function googleStampToDate(v: string): string | null {
+  const m = v.trim().match(/^(\d{4})(\d{2})(\d{2})(?:T(\d{2})(\d{2})(\d{2})(Z)?)?$/);
+  if (!m) return null;
+  if (m[7]) return chicagoParts(new Date(`${m[1]}-${m[2]}-${m[3]}T${m[4]}:${m[5]}:${m[6]}Z`)).date;
+  return `${m[1]}-${m[2]}-${m[3]}`;
+}
+
+// The local date of a cancelled instance's original slot.
+function originalDate(g: GEvent): string | null {
+  const o = g.originalStartTime;
+  if (!o) return null;
+  if (o.dateTime) return chicagoParts(new Date(o.dateTime)).date;
+  return o.date ?? null;
 }
 
 // Same weekday + start time as a study the admin owns, and it looks like a
@@ -362,6 +399,16 @@ export async function pullFromGoogle(): Promise<{ imported: number; held: number
   const existing = new Map((existingRes.data ?? []).map((r) => [r.google_event_id as string, r.id as string]));
   const decisions = new Map((heldRes.data ?? []).map((r) => [r.google_event_id as string, r.decision as string | null]));
   const liveStudies = studies.filter((s) => s.status !== 'ended');
+
+  // Weeks cancelled out of a series in Google arrive as cancelled exceptions
+  // pointing at their master.
+  const cancelledWeeks = new Map<string, string[]>();
+  for (const g of google) {
+    if (g.status === 'cancelled' && g.recurringEventId) {
+      const d = originalDate(g);
+      if (d) cancelledWeeks.set(g.recurringEventId, [...(cancelledWeeks.get(g.recurringEventId) ?? []), d]);
+    }
+  }
 
   const seen = new Set<string>();
   let imported = 0;
@@ -396,7 +443,8 @@ export async function pullFromGoogle(): Promise<{ imported: number; held: number
       await db.from('iowa_calendar_held').delete().eq('google_event_id', g.id);
       decisions.delete(g.id);
     }
-    const row = { ...p, source: 'google', google_event_id: g.id };
+    const skips = [...new Set([...p.skip_dates, ...(cancelledWeeks.get(g.id) ?? [])])].sort();
+    const row = { ...p, skip_dates: skips, source: 'google', google_event_id: g.id };
     const id = existing.get(g.id);
     const { error } = id
       ? await db.from('iowa_events').update(row).eq('id', id)

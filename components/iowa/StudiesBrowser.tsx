@@ -22,7 +22,15 @@ interface PublicStudy {
   leader_name: string | null;
 }
 
-export default function StudiesBrowser({ initial }: { initial: PublicStudy[] }) {
+// During a school break (Settings → School calendar) in-person studies are
+// hidden and only online ones list; `pause` says which break and when it ends.
+export default function StudiesBrowser({
+  initial,
+  pause = null,
+}: {
+  initial: PublicStudy[];
+  pause?: { name: string; resumes: string } | null;
+}) {
   const [studies, setStudies] = useState<PublicStudy[]>(initial);
   const [cells, setCells] = useState<Set<string>>(new Set());
   const [openJoin, setOpenJoin] = useState<string | null>(null);
@@ -70,6 +78,17 @@ export default function StudiesBrowser({ initial }: { initial: PublicStudy[] }) 
 
   return (
     <div className="space-y-10">
+      {pause && (
+        <div className="rounded-xl px-5 py-4" style={{ backgroundColor: '#f1ede7', border: '1px solid #e2ddd5' }}>
+          <p className="font-semibold" style={{ color: 'var(--navy)' }}>
+            Bible studies are off for {pause.name.toLowerCase()}.
+          </p>
+          <p className="text-[#4a4540] mt-1">
+            They start again {new Intl.DateTimeFormat('en-US', { month: 'long', day: 'numeric', timeZone: 'UTC' }).format(new Date(`${pause.resumes}T00:00:00Z`))}.
+            {studies.length > 0 ? ' Online studies are still meeting. Join one below.' : ' Pick a time below and we’ll get you in when they’re back.'}
+          </p>
+        </div>
+      )}
       {/* Filter grid */}
       <div>
         <span className="block text-sm font-semibold mb-1" style={{ color: 'var(--navy)' }}>

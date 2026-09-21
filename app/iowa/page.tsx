@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { listListableStudies, studyCounts } from '@/lib/bibleStudies';
+import { currentBreak, listListableStudies, studyCounts } from '@/lib/bibleStudies';
 import IowaPageContent from './page-content';
 
 export const dynamic = 'force-dynamic';
@@ -26,10 +26,11 @@ export default async function IowaPage() {
   // whole marketing page.
   let studies: Awaited<ReturnType<typeof listListableStudies>> = [];
   let counts = { running: 0, open: 0 };
+  let pause: Awaited<ReturnType<typeof currentBreak>> = null;
   try {
-    [studies, counts] = await Promise.all([listListableStudies(), studyCounts()]);
+    [studies, counts, pause] = await Promise.all([listListableStudies(), studyCounts(), currentBreak()]);
   } catch (e) {
     console.error('[iowa page] study data unavailable', e);
   }
-  return <IowaPageContent studies={studies} counts={counts} />;
+  return <IowaPageContent studies={studies} counts={counts} pause={pause} />;
 }

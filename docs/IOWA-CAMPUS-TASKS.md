@@ -120,6 +120,11 @@ Settings → School calendar; add each new year when the registrar posts it.
   one-click "Skip the N break weeks". Events with a Meet link and no location count as online and
   get no warnings. Events are never auto-skipped, only warned about.
 - Changing the school calendar re-syncs every study to Google.
+- **Public signup during a break:** in-person studies are hidden from `/iowa` and `/iowa/studies`
+  (online ones still list), a banner says which break and the date they start again (back-to-back
+  periods chain, so finals then winter break reads "Jan 19"), a study's own page says "on break", and
+  joins are refused with the same message. "Start a new study" stays open. `currentBreak()` in
+  `lib/bibleStudies.ts`.
 
 ## Email rhythm (2026-09-21, Travis)
 

@@ -2,6 +2,8 @@ import { getSupabaseAdmin } from '@/lib/supabaseAdmin';
 import { findOrCreateContact, ensureTag } from '@/lib/contacts';
 // Re-exported below for callers, but also needed locally.
 import { DAY_NAMES as DAYS, formatTime as fmtTime } from '@/lib/bibleStudyFormat';
+import { listPeriods } from '@/lib/schoolCalendar';
+import { addDays, chicagoToday } from '@/lib/campusFormat';
 
 // Data layer for the ARK Iowa Bible Study system. Server-only — every function
 // here uses the service-role client and must be called from a route handler or
@@ -97,6 +99,8 @@ export interface PublicStudy {
   status: StudyStatus;
   spotsLeft: number;
   leader_name: string | null;
+  online: boolean;
+  resumes: string | null; // in-person study during a school break: first day back
 }
 
 // Renamed from `Contact` in migration 007 — that name now belongs to a person
@@ -159,10 +163,25 @@ function spotsLeft(capacity: number, activeCount: number): number {
   return Math.max(0, capacity - activeCount);
 }
 
+// If today is inside a pausing school period (break, finals, summer), which one
+// and the first day after it — chaining back-to-back periods, so finals week
+// straight into winter break reads as one gap. null = in session.
+export async function currentBreak(today = chicagoToday()): Promise<{ name: string; resumes: string } | null> {
+  const periods = (await listPeriods()).filter((p) => p.pauses_in_person);
+  const now = periods.find((p) => today >= p.starts_on && today <= p.ends_on);
+  if (!now) return null;
+  let end = now.ends_on;
+  for (let next = periods.find((p) => p.starts_on <= addDays(end, 1) && p.ends_on > end); next; next = periods.find((p) => p.starts_on <= addDays(end, 1) && p.ends_on > end)) {
+    end = next.ends_on;
+  }
+  return { name: now.name, resumes: addDays(end, 1) };
+}
+
 // A study a student can browse to and join: has room, is accepting, and its
 // status is one that takes signups. `pending_setup`, `full`, `paused`, `ended`
-// never show.
-export function isListable(study: BibleStudy, activeCount: number): boolean {
+// never show — and during a school break only online studies do.
+export function isListable(study: BibleStudy, activeCount: number, onBreak = false): boolean {
+  if (onBreak && !study.online) return false;
   if (!study.accepting_signups) return false;
   if (study.status !== 'forming' && study.status !== 'activated') return false;
   if (!study.location) return false;
@@ -226,20 +245,20 @@ export async function listStudies(semester = CURRENT_SEMESTER): Promise<StudyWit
 export async function studyCounts(
   semester = CURRENT_SEMESTER
 ): Promise<{ running: number; open: number }> {
-  const all = await listStudies(semester);
+  const [all, pause] = await Promise.all([listStudies(semester), currentBreak()]);
   return {
     running: all.filter(
       (s) => s.status === 'forming' || s.status === 'full' || s.status === 'activated'
     ).length,
-    open: all.filter((s) => isListable(s, s.activeCount)).length,
+    open: all.filter((s) => isListable(s, s.activeCount, !!pause)).length,
   };
 }
 
 // Student browser: only studies with an open seat, no PII.
 export async function listListableStudies(semester = CURRENT_SEMESTER): Promise<PublicStudy[]> {
-  const all = await listStudies(semester);
+  const [all, pause] = await Promise.all([listStudies(semester), currentBreak()]);
   return all
-    .filter((s) => isListable(s, s.activeCount))
+    .filter((s) => isListable(s, s.activeCount, !!pause))
     .map((s) => ({
       id: s.id,
       day_of_week: s.day_of_week,
@@ -249,6 +268,8 @@ export async function listListableStudies(semester = CURRENT_SEMESTER): Promise<
       status: s.status,
       spotsLeft: spotsLeft(s.capacity, s.activeCount),
       leader_name: s.leader_name,
+      online: s.online,
+      resumes: null,
     }));
 }
 
@@ -284,6 +305,7 @@ export async function getPublicStudy(id: string): Promise<PublicStudy | null> {
   const s = await getStudyWithMembers(id);
   if (!s) return null;
   if (s.status === 'pending_setup' || s.status === 'ended' || !s.location) return null;
+  const pause = s.online ? null : await currentBreak();
   return {
     id: s.id,
     day_of_week: s.day_of_week,
@@ -293,6 +315,8 @@ export async function getPublicStudy(id: string): Promise<PublicStudy | null> {
     status: s.status,
     spotsLeft: spotsLeft(s.capacity, s.activeCount),
     leader_name: s.leader_name,
+    online: s.online,
+    resumes: pause?.resumes ?? null,
   };
 }
 
@@ -340,6 +364,11 @@ export async function joinStudy(input: JoinInput): Promise<JoinResult> {
   const db = getSupabaseAdmin();
   const study = await getStudyWithMembers(input.studyId);
   if (!study) throw new Error('That study no longer exists.');
+  const pause = study.online ? null : await currentBreak();
+  if (pause) {
+    const back = new Intl.DateTimeFormat('en-US', { month: 'long', day: 'numeric', timeZone: 'UTC' }).format(new Date(`${pause.resumes}T00:00:00Z`));
+    throw new Error(`Bible studies are off for ${pause.name.toLowerCase()}. They start again ${back}.`);
+  }
   if (!isListable(study, study.activeCount)) {
     throw new Error('That study just filled — pick another open time or start one.');
   }

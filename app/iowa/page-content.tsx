@@ -23,6 +23,7 @@ interface PublicStudy {
 interface Props {
   studies: PublicStudy[];
   counts: { running: number; open: number };
+  pause?: { name: string; resumes: string } | null;
 }
 
 function PrimaryButton({ className = '' }: { className?: string }) {
@@ -37,7 +38,7 @@ function PrimaryButton({ className = '' }: { className?: string }) {
   );
 }
 
-export default function IowaPageContent({ studies, counts }: Props) {
+export default function IowaPageContent({ studies, counts, pause = null }: Props) {
   return (
     <>
       {/* 1 — HEADER */}
@@ -116,7 +117,7 @@ export default function IowaPageContent({ studies, counts }: Props) {
             being first.
           </p>
 
-          {counts.running > 0 && (
+          {counts.running > 0 && !pause && (
             <div className="bg-white rounded-xl border border-gray-100 shadow-sm px-6 py-5 mb-10">
               <p className="text-[#4a4540]">
                 <span className="font-semibold" style={{ color: 'var(--maroon)' }}>
@@ -303,7 +304,7 @@ export default function IowaPageContent({ studies, counts }: Props) {
             </p>
           </div>
 
-          <StudiesBrowser initial={studies} />
+          <StudiesBrowser initial={studies} pause={pause} />
         </div>
       </section>
 

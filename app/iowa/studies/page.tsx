@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { listListableStudies } from '@/lib/bibleStudies';
+import { currentBreak, listListableStudies } from '@/lib/bibleStudies';
 import StudiesBrowser from '@/components/iowa/StudiesBrowser';
 
 export const dynamic = 'force-dynamic';
@@ -11,7 +11,7 @@ export const metadata: Metadata = {
 };
 
 export default async function IowaStudiesPage() {
-  const studies = await listListableStudies();
+  const [studies, pause] = await Promise.all([listListableStudies(), currentBreak()]);
 
   return (
     <div style={{ background: '#FAF8F5', minHeight: '100vh' }}>
@@ -23,7 +23,7 @@ export default async function IowaStudiesPage() {
           One hour a week, four students, all semester. Join one that’s open, or start a new one at a
           time that works for you.
         </p>
-        <StudiesBrowser initial={studies} />
+        <StudiesBrowser initial={studies} pause={pause} />
       </div>
     </div>
   );

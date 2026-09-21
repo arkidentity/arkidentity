@@ -1,10 +1,11 @@
 'use client';
 
-import type { StudyWithMembers } from '@/lib/bibleStudies';
+import { useState } from 'react';
+import type { StudyMember, StudyWithMembers } from '@/lib/bibleStudies';
 import { DAY_NAMES, formatTime } from '@/lib/bibleStudyFormat';
 import { formatDate } from '@/lib/campusFormat';
 import { DROP_REASONS } from '@/lib/campusFormat';
-import { Modal, type StaffOption } from '@/components/iowa/campus/ui';
+import { Modal, useCall, type CallFn, type StaffOption } from '@/components/iowa/campus/ui';
 
 const tel = (p: string) => `tel:${p.replace(/[^\d+]/g, '')}`;
 const sms = (p: string) => `sms:${p.replace(/[^\d+]/g, '')}`;
@@ -16,13 +17,16 @@ export default function StudyCard({
   study: s,
   date,
   staff,
+  others = [],
   onClose,
 }: {
   study: StudyWithMembers;
   date: string;
   staff: StaffOption[];
+  others?: StudyWithMembers[]; // for Move
   onClose: () => void;
 }) {
+  const { call, busy, error } = useCall();
   const nameOf = (id: string | null) => (id ? staff.find((p) => p.id === id)?.name ?? null : null);
   const active = s.members.filter((m) => m.status === 'active');
   const dropped = s.members.filter((m) => m.status === 'dropped');
@@ -75,6 +79,7 @@ export default function StudyCard({
       </dl>
 
       <p className="text-sm font-bold mb-2" style={{ color: 'var(--navy)' }}>Roster</p>
+      {error && <p className="text-sm text-red-700 mb-2">{error}</p>}
       {active.length === 0 ? (
         <p className="text-sm text-[#8a8378] mb-4">No students yet.</p>
       ) : (
@@ -105,6 +110,7 @@ export default function StudyCard({
                     <a href={`mailto:${m.email}`} className="underline text-[#4a4540] break-all">{m.email}</a>
                   )}
                 </div>
+                <SeatActions m={m} studyId={s.id} others={others} busy={busy} call={call} />
               </li>
             );
           })}
@@ -116,10 +122,20 @@ export default function StudyCard({
           <summary className="text-sm text-[#8a8378] cursor-pointer">Dropped ({dropped.length})</summary>
           <ul className="mt-2 text-sm text-[#8a8378] space-y-1">
             {dropped.map((m) => (
-              <li key={m.id}>
-                {m.name}
-                {m.drop_reason ? ` · ${DROP_REASONS.find((r) => r.key === m.drop_reason)?.label ?? m.drop_reason}` : ''}
-                {m.drop_note ? `: ${m.drop_note}` : ''}
+              <li key={m.id} className="flex flex-wrap items-center gap-2">
+                <span>
+                  {m.name}
+                  {m.drop_reason ? ` · ${DROP_REASONS.find((r) => r.key === m.drop_reason)?.label ?? m.drop_reason}` : ''}
+                  {m.drop_note ? `: ${m.drop_note}` : ''}
+                </span>
+                <button
+                  disabled={busy}
+                  onClick={() => call(`/api/iowa/admin/members/${m.id}`, 'PATCH', { status: 'active' })}
+                  className="text-xs font-semibold px-2 py-1 rounded border border-gray-300 bg-white disabled:opacity-50"
+                  style={{ color: '#15803d' }}
+                >
+                  Restore
+                </button>
               </li>
             ))}
           </ul>
@@ -134,5 +150,80 @@ export default function StudyCard({
         Edit in Studies →
       </a>
     </Modal>
+  );
+}
+
+// Move / Drop for one student, same as the Studies page. Drop asks why (it
+// drives re-invites next semester).
+function SeatActions({
+  m,
+  studyId,
+  others,
+  busy,
+  call,
+}: {
+  m: StudyMember;
+  studyId: string;
+  others: StudyWithMembers[];
+  busy: boolean;
+  call: CallFn;
+}) {
+  const [mode, setMode] = useState<'none' | 'move' | 'drop'>('none');
+  const [reason, setReason] = useState('');
+  const [note, setNote] = useState('');
+  const btn = 'text-xs font-semibold px-2.5 py-1 rounded border border-gray-300 bg-white disabled:opacity-50';
+  const field = 'px-2 py-1.5 border border-gray-300 rounded-md text-sm text-gray-900 bg-white';
+  const targets = others.filter((o) => o.id !== studyId && ['pending_setup', 'forming', 'full', 'activated'].includes(o.status));
+
+  return (
+    <div className="mt-2">
+      <div className="flex gap-2">
+        <button disabled={busy} onClick={() => setMode(mode === 'move' ? 'none' : 'move')} className={btn} style={{ color: 'var(--navy)' }}>
+          {mode === 'move' ? 'Cancel' : 'Move'}
+        </button>
+        <button disabled={busy} onClick={() => setMode(mode === 'drop' ? 'none' : 'drop')} className={btn} style={{ color: '#b91c1c' }}>
+          {mode === 'drop' ? 'Cancel' : 'Drop'}
+        </button>
+      </div>
+      {mode === 'move' && (
+        <select
+          defaultValue=""
+          disabled={busy}
+          onChange={async (e) => {
+            if (e.target.value && (await call(`/api/iowa/admin/members/${m.id}`, 'PATCH', { studyId: e.target.value }))) setMode('none');
+          }}
+          className={`${field} mt-2 w-full`}
+        >
+          <option value="">Move {m.name.split(' ')[0]} to…</option>
+          {targets.map((o) => (
+            <option key={o.id} value={o.id}>
+              {DAY_NAMES[o.day_of_week]} {formatTime(o.start_time)}
+              {o.location ? ` · ${o.location}` : ''} ({o.activeCount}/{o.capacity}){o.semester !== others.find((x) => x.id === studyId)?.semester ? ` · ${o.semester}` : ''}
+            </option>
+          ))}
+        </select>
+      )}
+      {mode === 'drop' && (
+        <div className="mt-2 flex flex-wrap gap-2 items-center">
+          <select value={reason} onChange={(e) => setReason(e.target.value)} className={field}>
+            <option value="">Why are they leaving?</option>
+            {DROP_REASONS.map((r) => (
+              <option key={r.key} value={r.key}>{r.label}</option>
+            ))}
+          </select>
+          <input value={note} onChange={(e) => setNote(e.target.value)} placeholder="Note (optional)" className={`${field} flex-1 min-w-[9rem]`} />
+          <button
+            disabled={busy || !reason}
+            onClick={async () => {
+              if (await call(`/api/iowa/admin/members/${m.id}`, 'PATCH', { status: 'dropped', dropReason: reason, dropNote: note })) setMode('none');
+            }}
+            className="px-3 py-1.5 rounded-md text-sm font-semibold text-white disabled:opacity-50"
+            style={{ backgroundColor: '#b91c1c' }}
+          >
+            Drop {m.name.split(' ')[0]}
+          </button>
+        </div>
+      )}
+    </div>
   );
 }

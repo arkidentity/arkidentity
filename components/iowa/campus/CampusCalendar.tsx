@@ -174,6 +174,7 @@ export default function CampusCalendar({
           study={studies.find((x) => x.id === studyOpen.id)!}
           date={studyOpen.date}
           staff={staff}
+          others={studies}
           onClose={() => setStudyOpen(null)}
         />
       )}

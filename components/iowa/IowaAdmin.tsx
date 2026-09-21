@@ -16,6 +16,12 @@ const STATUS_COLOR: Record<StudyStatus, string> = {
   ended: '#b91c1c',
 };
 
+export interface StaffOption {
+  id: string;
+  name: string;
+  active: boolean;
+}
+
 const input = 'w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-gray-900 bg-white';
 const THREE_WEEKS = 21 * 24 * 60 * 60 * 1000;
 
@@ -31,13 +37,25 @@ function needsAttention(s: StudyWithMembers): string | null {
 }
 
 export default function IowaAdmin({
-  initial,
+  initial: all,
   semester,
+  staff,
+  meId,
 }: {
   initial: StudyWithMembers[];
   semester: string;
+  staff: StaffOption[];
+  meId: string | null;
 }) {
   const router = useRouter();
+  const [mineOnly, setMineOnly] = useState(false);
+  const initial = useMemo(
+    () => (mineOnly ? all.filter((s) => s.point_staff_id === meId) : all),
+    [all, mineOnly, meId]
+  );
+  const staffById = useMemo(() => new Map(staff.map((p) => [p.id, p])), [staff]);
+  const me = meId ? staffById.get(meId) : undefined;
+  const myCount = all.filter((s) => s.point_staff_id === meId).length;
   const [expanded, setExpanded] = useState<string | null>(null);
   const [showNew, setShowNew] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -96,10 +114,47 @@ export default function IowaAdmin({
             Bible studies
           </h1>
           <span className="flex items-center gap-4">
+            <a href="/iowa/admin/staff" className="text-sm font-semibold hover:underline" style={{ color: 'var(--navy)' }}>
+              Staff
+            </a>
             <a href="/iowa/admin/students" className="text-sm font-semibold hover:underline" style={{ color: 'var(--navy)' }}>
               Students →
             </a>
             <span className="text-sm text-[#8a8378]">{semester}</span>
+          </span>
+        </div>
+        <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+          <div className="inline-flex rounded-lg border border-gray-300 overflow-hidden text-sm font-semibold">
+            {[
+              { v: false, label: 'All studies' },
+              { v: true, label: `Mine (${myCount})` },
+            ].map((o) => (
+              <button
+                key={o.label}
+                onClick={() => setMineOnly(o.v)}
+                className="px-3 py-1.5"
+                style={
+                  mineOnly === o.v
+                    ? { backgroundColor: 'var(--navy)', color: 'white' }
+                    : { backgroundColor: 'white', color: 'var(--navy)' }
+                }
+              >
+                {o.label}
+              </button>
+            ))}
+          </div>
+          <span className="text-sm text-[#8a8378]">
+            {me ? `Signed in as ${me.name} · ` : ''}
+            <button
+              className="font-semibold hover:underline"
+              style={{ color: 'var(--navy)' }}
+              onClick={async () => {
+                await fetch('/api/iowa/admin/logout', { method: 'POST' });
+                router.push('/iowa/admin/login');
+              }}
+            >
+              Sign out
+            </button>
           </span>
         </div>
         <p className="text-sm text-[#8a8378] mb-8">
@@ -122,7 +177,7 @@ export default function IowaAdmin({
           >
             {showNew ? 'Close' : '+ New study'}
           </button>
-          {showNew && <NewStudyForm busy={busy} onCreate={(b) => call('/api/iowa/admin/studies', 'POST', b)} />}
+          {showNew && <NewStudyForm staff={staff} meId={meId} busy={busy} onCreate={(b) => call('/api/iowa/admin/studies', 'POST', b)} />}
         </div>
 
         {pending.length > 0 && (
@@ -131,7 +186,8 @@ export default function IowaAdmin({
               <StudyRow
                 key={s.id}
                 s={s}
-                all={initial}
+                all={all}
+                staff={staffById}
                 expanded={expanded === s.id}
                 onToggle={() => setExpanded(expanded === s.id ? null : s.id)}
                 busy={busy}
@@ -148,7 +204,8 @@ export default function IowaAdmin({
                 key={s.id}
                 s={s}
                 flag={why}
-                all={initial}
+                all={all}
+                staff={staffById}
                 expanded={expanded === s.id}
                 onToggle={() => setExpanded(expanded === s.id ? null : s.id)}
                 busy={busy}
@@ -160,7 +217,9 @@ export default function IowaAdmin({
 
         <Section title="All studies">
           {initial.length === 0 && (
-            <p className="text-[#8a8378] text-sm">No studies yet. Add one above.</p>
+            <p className="text-[#8a8378] text-sm">
+              {mineOnly ? 'Nothing is assigned to you right now.' : 'No studies yet. Add one above.'}
+            </p>
           )}
           {byDay.map(([day, list]) => (
             <div key={day} className="mb-5">
@@ -178,7 +237,8 @@ export default function IowaAdmin({
                     <StudyRow
                       key={s.id}
                       s={s}
-                      all={initial}
+                      all={all}
+                staff={staffById}
                       expanded={expanded === s.id}
                       onToggle={() => setExpanded(expanded === s.id ? null : s.id)}
                       busy={busy}
@@ -224,9 +284,11 @@ function StudyRow({
   busy,
   call,
   flag,
+  staff,
 }: {
   s: StudyWithMembers;
   all: StudyWithMembers[];
+  staff: Map<string, StaffOption>;
   expanded: boolean;
   onToggle: () => void;
   busy: boolean;
@@ -246,6 +308,15 @@ function StudyRow({
           <span className="text-sm text-[#8a8378] truncate">{s.location || '— no location'}</span>
         </span>
         <span className="flex items-center gap-2 shrink-0">
+          {s.point_staff_id && staff.get(s.point_staff_id) && (
+            <span
+              className="text-xs font-semibold px-2 py-0.5 rounded-full"
+              style={{ backgroundColor: '#e8eef3', color: '#143348' }}
+              title="Staff on point"
+            >
+              {staff.get(s.point_staff_id)!.name.split(' ')[0]}
+            </span>
+          )}
           {flag && (
             <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800">
               {flag}
@@ -262,7 +333,7 @@ function StudyRow({
           </span>
         </span>
       </button>
-      {expanded && <StudyEditor s={s} all={all} busy={busy} call={call} />}
+      {expanded && <StudyEditor s={s} all={all} staff={staff} busy={busy} call={call} />}
     </div>
   );
 }
@@ -270,11 +341,13 @@ function StudyRow({
 function StudyEditor({
   s,
   all,
+  staff,
   busy,
   call,
 }: {
   s: StudyWithMembers;
   all: StudyWithMembers[];
+  staff: Map<string, StaffOption>;
   busy: boolean;
   call: CallFn;
 }) {
@@ -290,6 +363,7 @@ function StudyEditor({
     leader_email: s.leader_email ?? '',
     notes: s.notes ?? '',
     break_plan: s.break_plan ?? '',
+    point_staff_id: s.point_staff_id ?? '',
   });
 
   function studyPatch() {
@@ -299,6 +373,7 @@ function StudyEditor({
       start_time: draft.start_time,
       location: draft.location.trim() || null,
       capacity: Number(draft.capacity),
+      point_staff_id: draft.point_staff_id || null,
     };
   }
 
@@ -387,6 +462,13 @@ function StudyEditor({
             />
             Listed to students when a seat is open
           </label>
+        </Field>
+        <Field label="Staff on point">
+          <StaffSelect
+            staff={[...staff.values()]}
+            value={draft.point_staff_id}
+            onChange={(v) => setDraft({ ...draft, point_staff_id: v })}
+          />
         </Field>
         <Field label="Leader name">
           <input
@@ -601,9 +683,13 @@ function AddMemberForm({ studyId, busy, call }: { studyId: string; busy: boolean
 }
 
 function NewStudyForm({
+  staff,
+  meId,
   busy,
   onCreate,
 }: {
+  staff: StaffOption[];
+  meId: string | null;
   busy: boolean;
   onCreate: (body: unknown) => Promise<boolean>;
 }) {
@@ -617,6 +703,7 @@ function NewStudyForm({
     leaderEmail: '',
     notes: '',
     addLeaderAsMember: true,
+    pointStaffId: meId ?? '',
   });
 
   const leaderFilled = !!(f.leaderName.trim() && f.leaderPhone.trim() && f.leaderEmail.trim());
@@ -660,6 +747,13 @@ function NewStudyForm({
           className={input}
           value={f.capacity}
           onChange={(e) => setF({ ...f, capacity: Number(e.target.value) })}
+        />
+      </Field>
+      <Field label="Staff on point">
+        <StaffSelect
+          staff={staff}
+          value={f.pointStaffId}
+          onChange={(v) => setF({ ...f, pointStaffId: v })}
         />
       </Field>
       <Field label="Leader name">
@@ -742,5 +836,31 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
       </span>
       {children}
     </label>
+  );
+}
+
+// Who on staff has to be in the room. Inactive staff only show if they're
+// already the one assigned, so the current value never silently disappears.
+function StaffSelect({
+  staff,
+  value,
+  onChange,
+}: {
+  staff: StaffOption[];
+  value: string;
+  onChange: (v: string) => void;
+}) {
+  return (
+    <select className={input} value={value} onChange={(e) => onChange(e.target.value)}>
+      <option value="">Nobody — a student leader has it</option>
+      {staff
+        .filter((p) => p.active || p.id === value)
+        .map((p) => (
+          <option key={p.id} value={p.id}>
+            {p.name}
+            {p.active ? '' : ' (inactive)'}
+          </option>
+        ))}
+    </select>
   );
 }

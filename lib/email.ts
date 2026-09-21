@@ -378,3 +378,37 @@ export async function sendStudyReminderBatch(
   }
   return { sent, failed };
 }
+
+// To a staff member when a study is put on them — they're the one who has to
+// be in the room until a student leader takes it over.
+export async function sendStudyAssignment(opts: {
+  to: string;
+  name: string;
+  assignedBy: string | null;
+  study: StudyEmailInfo;
+  activeCount: number;
+  capacity: number;
+  googleUrl: string;
+  icsUrl: string;
+}) {
+  const { to, name, assignedBy, study, activeCount, capacity, googleUrl, icsUrl } = opts;
+  const where = study.location ? ` at ${escapeHtml(study.location)}` : '';
+  const by = assignedBy ? `${escapeHtml(assignedBy)} put you on point for` : 'You’re on point for';
+  const html = wrap(`
+    <h1 style="color:#143348; font-size:22px;">You're on point — ${escapeHtml(study.slot)}</h1>
+    <p>${escapeHtml(name)}, ${by} the <strong>${escapeHtml(study.slot)}</strong> Bible study${where}.
+       That means you need to be there each week until a student leader takes it over.</p>
+    <p>Roster right now: <strong>${activeCount} of ${capacity}</strong>.</p>
+    <p style="margin:24px 0;">
+      <a href="${googleUrl}" style="background:#143348; color:#fff; text-decoration:none; padding:11px 20px; border-radius:8px; font-weight:600; display:inline-block; margin:0 8px 8px 0;">Add to Google Calendar</a>
+      <a href="${icsUrl}" style="border:1px solid #143348; color:#143348; text-decoration:none; padding:11px 20px; border-radius:8px; font-weight:600; display:inline-block;">Add to any other calendar</a>
+    </p>
+    <p><a href="${siteUrl()}/iowa/admin" style="color:#143348;">Open the admin</a> to see the roster.</p>
+  `);
+  return getResend().emails.send({
+    from: fromAddress(),
+    to,
+    subject: `You're on point — ${study.slot} Bible study`,
+    html,
+  });
+}

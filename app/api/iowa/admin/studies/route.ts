@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
 import { listStudies, createStudy } from '@/lib/bibleStudies';
+import { currentStaff } from '@/lib/iowaStaff';
+import { notifyAssignment } from '@/lib/studyAssignment';
 
 export const dynamic = 'force-dynamic';
 
@@ -25,6 +27,7 @@ export async function POST(req: Request) {
     leaderEmail?: string;
     notes?: string;
     addLeaderAsMember?: boolean;
+    pointStaffId?: string;
   };
 
   const day = Number(body.dayOfWeek);
@@ -43,7 +46,9 @@ export async function POST(req: Request) {
       leader_email: body.leaderEmail,
       notes: body.notes,
       addLeaderAsMember: body.addLeaderAsMember,
+      point_staff_id: body.pointStaffId || null,
     });
+    if (study.point_staff_id) notifyAssignment(study.id, study.point_staff_id, await currentStaff());
     return NextResponse.json({ study }, { status: 201 });
   } catch (e) {
     return NextResponse.json({ error: (e as Error).message }, { status: 500 });

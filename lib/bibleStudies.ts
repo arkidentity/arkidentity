@@ -41,6 +41,7 @@ export interface BibleStudy {
   pulse_note: string | null;
   pulse_at: string | null;
   activated_at: string | null;
+  point_staff_id: string | null; // staff member who has to be there (migration 011)
   created_at: string;
 }
 
@@ -471,6 +472,7 @@ export interface CreateStudyInput {
   leader_phone?: string;
   leader_email?: string;
   notes?: string;
+  point_staff_id?: string | null;
   semester?: string;
   // When the leader is one of the four students (not Travis facilitating),
   // also seat them on the roster so the count is right.
@@ -496,6 +498,7 @@ export async function createStudy(input: CreateStudyInput): Promise<BibleStudy> 
       leader_phone: leaderPhone,
       leader_email: leaderEmail,
       notes: input.notes?.trim() || null,
+      point_staff_id: input.point_staff_id || null,
     })
     .select('*')
     .single();
@@ -510,7 +513,7 @@ export async function createStudy(input: CreateStudyInput): Promise<BibleStudy> 
 
 const EDITABLE_FIELDS = [
   'day_of_week', 'start_time', 'location', 'capacity', 'status', 'accepting_signups',
-  'leader_name', 'leader_phone', 'leader_email', 'notes', 'break_plan',
+  'leader_name', 'leader_phone', 'leader_email', 'notes', 'break_plan', 'point_staff_id',
 ] as const;
 
 export async function updateStudy(
@@ -538,6 +541,7 @@ export async function updateStudy(
     update.activated_at = new Date().toISOString();
   }
   if (typeof update.location === 'string') update.location = update.location.trim() || null;
+  if ('point_staff_id' in update) update.point_staff_id = update.point_staff_id || null;
 
   const { data, error } = await db
     .from('bible_studies')

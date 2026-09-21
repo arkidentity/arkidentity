@@ -32,7 +32,7 @@ export async function sendStudyReminders(): Promise<ReminderSummary> {
 
   const { data: studies, error } = await db
     .from('bible_studies')
-    .select('id, day_of_week, start_time, location, status')
+    .select('id, day_of_week, start_time, location, status, point_staff_id')
     .eq('semester', CURRENT_SEMESTER)
     .eq('day_of_week', dow)
     .in('status', ['forming', 'full', 'activated']);
@@ -63,6 +63,22 @@ export async function sendStudyReminders(): Promise<ReminderSummary> {
         location: s.location as string | null,
       };
     });
+
+  // Staff on point get the same nudge — they're the ones who have to show up.
+  const staffIds = [...new Set(list.map((s) => s.point_staff_id).filter(Boolean))] as string[];
+  if (staffIds.length > 0) {
+    const { data: staff, error: sErr } = await db
+      .from('iowa_staff')
+      .select('id, name, email')
+      .in('id', staffIds)
+      .eq('active', true);
+    if (sErr) throw sErr;
+    const staffById = new Map((staff ?? []).map((p) => [p.id, p]));
+    for (const s of list) {
+      const p = s.point_staff_id ? staffById.get(s.point_staff_id) : undefined;
+      if (p) items.push({ to: p.email, name: p.name, slot: formatSlot(s), location: s.location });
+    }
+  }
 
   const { sent, failed } = await sendStudyReminderBatch(items);
   return { day: DAY_NAMES[dow], studies: list.length, recipients: items.length, sent, failed };

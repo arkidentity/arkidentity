@@ -161,9 +161,6 @@ export function CampusStudents({
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
         <div className="flex flex-wrap items-center justify-between gap-3 mb-1">
           <h1 className="text-3xl font-bold" style={{ color: 'var(--navy)' }}>Students</h1>
-          <a href="/iowa/admin" className="text-sm font-semibold hover:underline" style={{ color: 'var(--navy)' }}>
-            ← Bible studies
-          </a>
         </div>
         <p className="mb-6" style={{ color: '#8a8378' }}>
           {semester} · {counts.total} students

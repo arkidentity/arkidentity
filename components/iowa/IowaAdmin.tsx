@@ -1,9 +1,22 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { createContext, useContext, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import type { StudyWithMembers, StudyMember, StudyStatus } from '@/lib/bibleStudies';
 import { DAY_NAMES, PICKER_DAYS, formatTime } from '@/lib/bibleStudyFormat';
+import { DROP_REASONS, formatDate, isOverdue, type TaskPriority, type TaskStatus } from '@/lib/campusFormat';
+import { OverdueTag, PriorityBadge, StatusPill } from '@/components/iowa/campus/ui';
+
+// Open campus tasks linked to a study, shown inside that study's editor.
+export interface StudyTask {
+  id: string;
+  title: string;
+  status: TaskStatus;
+  priority: TaskPriority;
+  due_date: string | null;
+  owner_name: string | null;
+}
+const StudyTasks = createContext<Record<string, StudyTask[]>>({});
 
 const STATUSES: StudyStatus[] = ['pending_setup', 'forming', 'full', 'activated', 'paused', 'ended'];
 
@@ -46,11 +59,13 @@ export default function IowaAdmin({
   semester,
   staff,
   meId,
+  tasksByStudy = {},
 }: {
   initial: StudyWithMembers[];
   semester: string;
   staff: StaffOption[];
   meId: string | null;
+  tasksByStudy?: Record<string, StudyTask[]>;
 }) {
   const router = useRouter();
   const [mineOnly, setMineOnly] = useState(false);
@@ -59,7 +74,6 @@ export default function IowaAdmin({
     [all, mineOnly, meId]
   );
   const staffById = useMemo(() => new Map(staff.map((p) => [p.id, p])), [staff]);
-  const me = meId ? staffById.get(meId) : undefined;
   const myCount = all.filter((s) => s.point_staff_id === meId).length;
   const [expanded, setExpanded] = useState<string | null>(null);
   const [showNew, setShowNew] = useState(false);
@@ -112,6 +126,7 @@ export default function IowaAdmin({
   }, [initial]);
 
   return (
+    <StudyTasks.Provider value={tasksByStudy}>
     <div style={{ background: '#FAF8F5', minHeight: '100vh', color: '#1f2937' }}>
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="flex items-baseline justify-between mb-2">
@@ -119,12 +134,6 @@ export default function IowaAdmin({
             Bible studies
           </h1>
           <span className="flex items-center gap-4">
-            <a href="/iowa/admin/staff" className="text-sm font-semibold hover:underline" style={{ color: 'var(--navy)' }}>
-              Staff
-            </a>
-            <a href="/iowa/admin/students" className="text-sm font-semibold hover:underline" style={{ color: 'var(--navy)' }}>
-              Students →
-            </a>
             <span className="text-sm text-[#8a8378]">{semester}</span>
           </span>
         </div>
@@ -148,19 +157,6 @@ export default function IowaAdmin({
               </button>
             ))}
           </div>
-          <span className="text-sm text-[#8a8378]">
-            {me ? `Signed in as ${me.name} · ` : ''}
-            <button
-              className="font-semibold hover:underline"
-              style={{ color: 'var(--navy)' }}
-              onClick={async () => {
-                await fetch('/api/iowa/admin/logout', { method: 'POST' });
-                router.push('/iowa/admin/login');
-              }}
-            >
-              Sign out
-            </button>
-          </span>
         </div>
         <p className="text-sm text-[#8a8378] mb-8">
           {initial.length} total · {counts.forming ?? 0} forming · {counts.full ?? 0} full ·{' '}
@@ -256,6 +252,7 @@ export default function IowaAdmin({
         </Section>
       </div>
     </div>
+    </StudyTasks.Provider>
   );
 }
 
@@ -542,6 +539,8 @@ function StudyEditor({
         Save study
       </button>
 
+      <LinkedTasks studyId={s.id} />
+
       {/* Roster */}
       <div className="pt-3 border-t border-gray-100">
         <p className="text-sm font-bold mb-2" style={{ color: 'var(--navy)' }}>
@@ -574,6 +573,10 @@ function MemberRow({
 }) {
   const dropped = m.status === 'dropped';
   const [moving, setMoving] = useState(false);
+  const [dropping, setDropping] = useState(false);
+  const [reason, setReason] = useState('');
+  const [note, setNote] = useState('');
+  const reasonLabel = DROP_REASONS.find((r) => r.key === m.drop_reason)?.label;
 
   return (
     <li className="text-sm">
@@ -585,6 +588,12 @@ function MemberRow({
             {' · '}{[m.phone, m.email].filter(Boolean).join(' · ')}
             {m.year ? ` · ${m.year}` : ''}
           </span>
+          {dropped && reasonLabel && (
+            <span className="no-underline inline-block ml-1 text-xs text-[#8a8378]" style={{ textDecoration: 'none' }}>
+              ({reasonLabel}
+              {m.drop_note ? `: ${m.drop_note}` : ''})
+            </span>
+          )}
         </span>
         <span className="flex gap-1 shrink-0">
           {!dropped && (
@@ -599,18 +608,57 @@ function MemberRow({
           )}
           <button
             onClick={() =>
-              call(`/api/iowa/admin/members/${m.id}`, 'PATCH', {
-                status: dropped ? 'active' : 'dropped',
-              })
+              dropped
+                ? call(`/api/iowa/admin/members/${m.id}`, 'PATCH', { status: 'active' })
+                : setDropping((v) => !v)
             }
             disabled={busy}
             className="text-xs font-semibold px-2 py-1 rounded border transition hover:bg-gray-50 disabled:opacity-50"
             style={{ borderColor: '#d1d5db', color: dropped ? '#15803d' : '#b91c1c' }}
           >
-            {dropped ? 'Restore' : 'Drop'}
+            {dropped ? 'Restore' : dropping ? 'Cancel' : 'Drop'}
           </button>
         </span>
       </div>
+
+      {/* Why they're leaving — feeds re-invites next semester. */}
+      {dropping && !dropped && (
+        <div className="mt-2 rounded-md border border-gray-200 bg-[#FAF8F5] p-2 flex flex-wrap gap-2 items-center">
+          <select
+            value={reason}
+            onChange={(e) => setReason(e.target.value)}
+            className="px-2 py-1.5 border border-gray-300 rounded-md text-sm text-gray-900 bg-white"
+          >
+            <option value="">Why are they leaving?</option>
+            {DROP_REASONS.map((r) => (
+              <option key={r.key} value={r.key}>
+                {r.label}
+              </option>
+            ))}
+          </select>
+          <input
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+            placeholder="Note (optional)"
+            className="flex-1 min-w-[10rem] px-2 py-1.5 border border-gray-300 rounded-md text-sm text-gray-900 bg-white"
+          />
+          <button
+            disabled={busy || !reason}
+            onClick={async () => {
+              const ok = await call(`/api/iowa/admin/members/${m.id}`, 'PATCH', {
+                status: 'dropped',
+                dropReason: reason,
+                dropNote: note,
+              });
+              if (ok) setDropping(false);
+            }}
+            className="px-3 py-1.5 rounded-md text-sm font-semibold text-white disabled:opacity-50"
+            style={{ backgroundColor: '#b91c1c' }}
+          >
+            Drop {m.name.split(' ')[0]}
+          </button>
+        </div>
+      )}
 
       {moving && (
         <select
@@ -867,5 +915,41 @@ function StaffSelect({
           </option>
         ))}
     </select>
+  );
+}
+
+function LinkedTasks({ studyId }: { studyId: string }) {
+  const tasks = useContext(StudyTasks)[studyId] ?? [];
+  return (
+    <div className="pt-3 border-t border-gray-100">
+      <div className="flex items-baseline justify-between mb-2">
+        <p className="text-sm font-bold" style={{ color: 'var(--navy)' }}>
+          Tasks
+        </p>
+        <a
+          href={`/iowa/admin/tasks?new=1&study=${studyId}`}
+          className="text-sm font-semibold hover:underline"
+          style={{ color: 'var(--navy)' }}
+        >
+          + Add a task
+        </a>
+      </div>
+      {tasks.length === 0 && <p className="text-sm text-[#8a8378]">No open tasks for this study.</p>}
+      <ul className="space-y-1.5">
+        {tasks.map((t) => (
+          <li key={t.id} className="text-sm flex flex-wrap items-center gap-2">
+            <a href={`/iowa/admin/tasks?task=${t.id}`} className="font-semibold hover:underline" style={{ color: 'var(--navy)' }}>
+              {t.title}
+            </a>
+            <PriorityBadge priority={t.priority} />
+            <StatusPill status={t.status} />
+            {isOverdue(t) && <OverdueTag />}
+            <span className="text-[#8a8378]">
+              {[t.owner_name ?? 'Unowned', t.due_date ? `due ${formatDate(t.due_date)}` : null].filter(Boolean).join(' · ')}
+            </span>
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }

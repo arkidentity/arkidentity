@@ -299,7 +299,7 @@ export async function sendStudyAdminAlert(opts: {
   const { kind, study, member, spotsLeft, alsoInStudies } = opts;
   const row = (label: string, value: string) =>
     `<p style="margin:0 0 6px;"><strong style="color:#143348;">${label}:</strong> ${escapeHtml(value)}</p>`;
-  const adminUrl = `${siteUrl()}/iowa/admin`;
+  const adminUrl = `${siteUrl()}/iowa/admin/studies`;
 
   const html = wrap(`
     <h1 style="color:#143348; font-size:22px;">${
@@ -403,7 +403,7 @@ export async function sendStudyAssignment(opts: {
       <a href="${googleUrl}" style="background:#143348; color:#fff; text-decoration:none; padding:11px 20px; border-radius:8px; font-weight:600; display:inline-block; margin:0 8px 8px 0;">Add to Google Calendar</a>
       <a href="${icsUrl}" style="border:1px solid #143348; color:#143348; text-decoration:none; padding:11px 20px; border-radius:8px; font-weight:600; display:inline-block;">Add to any other calendar</a>
     </p>
-    <p><a href="${siteUrl()}/iowa/admin" style="color:#143348;">Open the admin</a> to see the roster.</p>
+    <p><a href="${siteUrl()}/iowa/admin/studies" style="color:#143348;">Open the admin</a> to see the roster.</p>
   `);
   return getResend().emails.send({
     from: fromAddress(),
@@ -412,3 +412,79 @@ export async function sendStudyAssignment(opts: {
     html,
   });
 }
+
+// ---------------------------------------------------------------------------
+// Campus tasks (docs/IOWA-CAMPUS-TASKS.md)
+// ---------------------------------------------------------------------------
+
+export interface TaskEmailInfo {
+  id: string;
+  title: string;
+  priority: string; // label, e.g. "Urgent"
+  due: string | null; // formatted, e.g. "Thu, Sep 24"
+  description: string | null;
+  linkedTo: string | null; // e.g. "Wed 8 PM study" / "Taco Night" / "Sam Lee"
+}
+
+function taskUrl(id: string): string {
+  return `${siteUrl()}/iowa/admin/tasks?task=${id}`;
+}
+
+function taskBlock(t: TaskEmailInfo): string {
+  const meta = [t.priority, t.due ? `due ${t.due}` : null, t.linkedTo].filter(Boolean).join(' · ');
+  return `
+    <div style="border:1px solid #e5e7eb; border-radius:8px; padding:14px 16px; margin:16px 0;">
+      <p style="margin:0; font-weight:600; color:#143348;">${escapeHtml(t.title)}</p>
+      <p style="margin:4px 0 0; color:#8a8378; font-size:14px;">${escapeHtml(meta)}</p>
+      ${t.description ? `<p style="margin:10px 0 0; color:#4a4540;">${escapeHtml(t.description)}</p>` : ''}
+    </div>
+    <p><a href="${taskUrl(t.id)}" style="color:#143348; font-weight:600;">Open the task →</a></p>`;
+}
+
+export async function sendTaskAssigned(opts: { to: string; name: string; by: string | null; task: TaskEmailInfo }) {
+  const { to, name, by, task } = opts;
+  return getResend().emails.send({
+    from: fromAddress(),
+    to,
+    subject: `New task: ${task.title}`,
+    html: wrap(`
+      <p>${escapeHtml(name)}, ${by ? `${escapeHtml(by)} gave you a task` : 'you have a new task'}.</p>
+      ${taskBlock(task)}
+    `),
+  });
+}
+
+export async function sendTaskHelpOffered(opts: { to: string; name: string; helper: string; task: TaskEmailInfo }) {
+  const { to, name, helper, task } = opts;
+  return getResend().emails.send({
+    from: fromAddress(),
+    to,
+    subject: `${helper} can help with: ${task.title}`,
+    html: wrap(`
+      <p>${escapeHtml(name)}, <strong>${escapeHtml(helper)}</strong> offered to help on your task.
+         You're still the owner. Loop them in on what you need.</p>
+      ${taskBlock(task)}
+    `),
+  });
+}
+
+// One email per person, sent in a Resend batch.
+export async function sendEmailBatch(
+  items: { to: string; subject: string; html: string }[]
+): Promise<{ sent: number; failed: number }> {
+  let sent = 0;
+  let failed = 0;
+  for (let i = 0; i < items.length; i += 100) {
+    const chunk = items.slice(i, i + 100).map((it) => ({ from: fromAddress(), ...it, html: wrap(it.html) }));
+    try {
+      await getResend().batch.send(chunk);
+      sent += chunk.length;
+    } catch (e) {
+      failed += chunk.length;
+      console.error('[iowa] batch send failed', e);
+    }
+  }
+  return { sent, failed };
+}
+
+export { escapeHtml as escapeEmailHtml };

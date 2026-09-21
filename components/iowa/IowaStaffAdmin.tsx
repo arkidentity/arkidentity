@@ -14,7 +14,7 @@ export default function IowaStaffAdmin({ initial, meId }: { initial: IowaStaff[]
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
-  const [f, setF] = useState({ name: '', email: '', phone: '', password: '' });
+  const [f, setF] = useState({ name: '', email: '', phone: '', password: '', role: 'intern' });
 
   async function call(url: string, method: string, body: unknown) {
     setBusy(true);
@@ -45,9 +45,6 @@ export default function IowaStaffAdmin({ initial, meId }: { initial: IowaStaff[]
           <h1 className="text-3xl font-bold" style={{ color: 'var(--navy)' }}>
             Staff
           </h1>
-          <a href="/iowa/admin" className="text-sm font-semibold hover:underline" style={{ color: 'var(--navy)' }}>
-            ← Bible studies
-          </a>
         </div>
         <p className="text-sm text-[#8a8378] mb-8">
           Everyone here can sign in to the Iowa admin with full access, and can be put on point for a study.
@@ -75,6 +72,7 @@ export default function IowaStaffAdmin({ initial, meId }: { initial: IowaStaff[]
           <input className={input} placeholder="Name" value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} />
           <input className={input} placeholder="Email (their login)" value={f.email} onChange={(e) => setF({ ...f, email: e.target.value })} />
           <input className={input} placeholder="Phone (optional)" value={f.phone} onChange={(e) => setF({ ...f, phone: e.target.value })} />
+          <RoleSelect value={f.role} onChange={(role) => setF({ ...f, role })} />
           <input
             className={input}
             placeholder="Starting password (8+ characters)"
@@ -87,7 +85,7 @@ export default function IowaStaffAdmin({ initial, meId }: { initial: IowaStaff[]
               onClick={async () => {
                 if (await call('/api/iowa/admin/staff', 'POST', f)) {
                   setNotice(`${f.name} can now sign in at /iowa/admin with ${f.email}. Send them the password yourself.`);
-                  setF({ name: '', email: '', phone: '', password: '' });
+                  setF({ name: '', email: '', phone: '', password: '', role: 'intern' });
                 }
               }}
               className="px-4 py-2 rounded-md text-sm font-semibold text-white transition hover:opacity-90 disabled:opacity-50"
@@ -118,7 +116,7 @@ function StaffRow({
   const [resetting, setResetting] = useState(false);
   const [pw, setPw] = useState('');
   const [editing, setEditing] = useState(false);
-  const [details, setDetails] = useState({ name: p.name, phone: p.phone ?? '' });
+  const [details, setDetails] = useState({ name: p.name, phone: p.phone ?? '', role: p.role as string });
 
   return (
     <li className="rounded-lg border border-gray-200 bg-white px-4 py-3 text-sm">
@@ -128,13 +126,14 @@ function StaffRow({
             {p.name}
           </span>
           {isMe && ' (you)'}
+          <span className="ml-1 text-xs font-semibold px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 capitalize">{p.role}</span>
           <span className="text-[#8a8378]"> · {[p.email, p.phone].filter(Boolean).join(' · ')}</span>
           {!p.active && ' · login off'}
         </span>
         <span className="flex gap-1 shrink-0">
           <button
             onClick={() => {
-              setDetails({ name: p.name, phone: p.phone ?? '' });
+              setDetails({ name: p.name, phone: p.phone ?? '', role: p.role });
               setEditing((v) => !v);
             }}
             disabled={busy}
@@ -164,7 +163,7 @@ function StaffRow({
         </span>
       </div>
       {editing && (
-        <div className="mt-2 grid sm:grid-cols-[1fr_1fr_auto] gap-2">
+        <div className="mt-2 grid sm:grid-cols-[1fr_1fr_8rem_auto] gap-2">
           <input
             className={input}
             placeholder="Name"
@@ -177,6 +176,7 @@ function StaffRow({
             value={details.phone}
             onChange={(e) => setDetails({ ...details, phone: e.target.value })}
           />
+          <RoleSelect value={details.role} onChange={(role) => setDetails({ ...details, role })} />
           <button
             disabled={busy || !details.name.trim()}
             onClick={async () => {
@@ -217,5 +217,17 @@ function StaffRow({
         </div>
       )}
     </li>
+  );
+}
+
+// Everyone has full access for now; the role labels who's who and is what
+// permissions will key off once student leaders get logins.
+function RoleSelect({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  return (
+    <select className={input} value={value} onChange={(e) => onChange(e.target.value)}>
+      <option value="staff">Staff</option>
+      <option value="intern">Intern</option>
+      <option value="leader">Student leader</option>
+    </select>
   );
 }

@@ -19,6 +19,7 @@ export async function POST(req: Request) {
     email?: string;
     phone?: string;
     password?: string;
+    role?: string;
   };
   try {
     const staff = await createStaff({
@@ -26,6 +27,7 @@ export async function POST(req: Request) {
       email: body.email ?? '',
       phone: body.phone,
       password: body.password ?? '',
+      role: body.role,
     });
     return NextResponse.json({ staff }, { status: 201 });
   } catch (e) {

@@ -62,6 +62,8 @@ export interface StudyMember {
   notes: string | null;
   joined_at: string;
   left_at: string | null;
+  drop_reason: string | null; // migration 013
+  drop_note: string | null;
 }
 
 export interface StudyWithMembers extends BibleStudy {
@@ -746,14 +748,27 @@ export async function updateCampusStudent(
   if (error) throw error;
 }
 
+const DROP_REASON_KEYS = ['unresponsive', 'schedule_changed', 'not_interested', 'left_school', 'other'];
+
+// Dropping records why (feeds re-invites later); restoring clears it.
 export async function setMemberStatus(
   memberId: string,
-  status: MemberStatus
+  status: MemberStatus,
+  drop: { reason?: string; note?: string } = {}
 ): Promise<StudyMember> {
+  const dropped = status === 'dropped';
+  if (dropped && drop.reason && !DROP_REASON_KEYS.includes(drop.reason)) {
+    throw new Error('Unknown drop reason.');
+  }
   const db = getSupabaseAdmin();
   const { data, error } = await db
     .from('bible_study_members')
-    .update({ status, left_at: status === 'dropped' ? new Date().toISOString() : null })
+    .update({
+      status,
+      left_at: dropped ? new Date().toISOString() : null,
+      drop_reason: dropped ? drop.reason || null : null,
+      drop_note: dropped ? drop.note?.trim() || null : null,
+    })
     .eq('id', memberId)
     .select(MEMBER_SELECT)
     .single();

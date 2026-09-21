@@ -1,19 +1,14 @@
 import type { Metadata } from 'next';
-import { listStudies, CURRENT_SEMESTER } from '@/lib/bibleStudies';
-import { currentStaff, listStaff } from '@/lib/iowaStaff';
-import IowaAdmin from '@/components/iowa/IowaAdmin';
+import { loadCampusContext } from '@/lib/campusAdminData';
+import { listEvents } from '@/lib/campusTasks';
+import { addDays, chicagoToday, weekStart } from '@/lib/campusFormat';
+import Dashboard from '@/components/iowa/campus/Dashboard';
 
 export const dynamic = 'force-dynamic';
-export const metadata: Metadata = { title: 'ARK Iowa — Bible study admin' };
+export const metadata: Metadata = { title: 'ARK Iowa — dashboard' };
 
-export default async function IowaAdminPage() {
-  const [studies, staff, me] = await Promise.all([listStudies(), listStaff(), currentStaff()]);
-  return (
-    <IowaAdmin
-      initial={studies}
-      semester={CURRENT_SEMESTER}
-      staff={staff.map((s) => ({ id: s.id, name: s.name, active: s.active }))}
-      meId={me?.id ?? null}
-    />
-  );
+export default async function IowaDashboardPage() {
+  const start = weekStart(chicagoToday());
+  const [ctx, weekEvents] = await Promise.all([loadCampusContext(), listEvents(start, addDays(start, 6))]);
+  return <Dashboard {...ctx} weekStart={start} weekEvents={weekEvents} />;
 }

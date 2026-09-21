@@ -3,18 +3,23 @@ import { getSupabaseAdmin } from '@/lib/supabaseAdmin';
 import { IOWA_ADMIN_COOKIE, hashPassword, verifySession } from '@/lib/iowaAdminAuth';
 
 // Data layer for ARK Iowa staff logins (migration 011). Server-only.
-// Every staff member has full admin access — there are no roles.
+// Every staff member has full admin access in Phase 1; `role` labels who is
+// staff / intern / student leader for when permissions arrive (migration 013).
+
+export type StaffRole = 'staff' | 'intern' | 'leader';
+export const STAFF_ROLES: StaffRole[] = ['staff', 'intern', 'leader'];
 
 export interface IowaStaff {
   id: string;
   name: string;
   email: string;
   phone: string | null;
+  role: StaffRole; // migration 013 — all roles have full access in Phase 1
   active: boolean;
   created_at: string;
 }
 
-const PUBLIC_COLS = 'id, name, email, phone, active, created_at';
+const PUBLIC_COLS = 'id, name, email, phone, role, active, created_at';
 export const MIN_PASSWORD = 8;
 
 export async function listStaff(): Promise<IowaStaff[]> {
@@ -62,6 +67,7 @@ export async function createStaff(input: {
   email: string;
   phone?: string;
   password: string;
+  role?: string;
 }): Promise<IowaStaff> {
   const name = input.name.trim();
   const email = input.email.trim().toLowerCase();
@@ -76,6 +82,7 @@ export async function createStaff(input: {
       name,
       email,
       phone: input.phone?.trim() || null,
+      role: STAFF_ROLES.includes(input.role as StaffRole) ? input.role : 'staff',
       password_hash: await hashPassword(input.password),
     })
     .select(PUBLIC_COLS)
@@ -89,12 +96,16 @@ export async function createStaff(input: {
 
 export async function updateStaff(
   id: string,
-  patch: { name?: string; phone?: string; active?: boolean; password?: string }
+  patch: { name?: string; phone?: string; role?: string; active?: boolean; password?: string }
 ): Promise<IowaStaff> {
   const update: Record<string, unknown> = {};
   if (typeof patch.name === 'string' && patch.name.trim()) update.name = patch.name.trim();
   if (typeof patch.phone === 'string') update.phone = patch.phone.trim() || null;
   if (typeof patch.active === 'boolean') update.active = patch.active;
+  if (patch.role !== undefined) {
+    if (!STAFF_ROLES.includes(patch.role as StaffRole)) throw new Error('Unknown role.');
+    update.role = patch.role;
+  }
   if (typeof patch.password === 'string') {
     if (patch.password.length < MIN_PASSWORD) {
       throw new Error(`Password must be at least ${MIN_PASSWORD} characters.`);

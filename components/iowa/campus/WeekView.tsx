@@ -11,8 +11,11 @@ import {
   isOverdue,
   periodsOn,
   studyPausedBy,
+  roleVerb,
+  teamOn,
   type SchoolPeriod,
   type Semester,
+  type StudyTeamRow,
   type TaskPriority,
 } from '@/lib/campusFormat';
 import { PriorityDot, type StaffOption, type TypeOption } from '@/components/iowa/campus/ui';
@@ -54,8 +57,9 @@ export function buildWeekItems(opts: {
   periods?: SchoolPeriod[];
   semesters?: Semester[];
   going?: Record<string, number>; // `${eventId}:${date}` → RSVP head count
+  team?: StudyTeamRow[]; // study team (shadowing / assisting / leading)
 }): WeekItem[] {
-  const { days, studies, events, tasks, staff, types, meId, mineOnly, periods = [], semesters = [], going = {} } = opts;
+  const { days, studies, events, tasks, staff, types, meId, mineOnly, periods = [], semesters = [], going = {}, team = [] } = opts;
   const from = days[0];
   const to = days[6];
   const nameOf = (id: string | null) => staff.find((s) => s.id === id)?.name.split(' ')[0] ?? null;
@@ -63,12 +67,16 @@ export function buildWeekItems(opts: {
 
   for (const s of studies) {
     if (!LIVE_STUDY.includes(s.status)) continue;
-    if (mineOnly && s.point_staff_id !== meId) continue;
     const date = days.find((d) => dayOfWeek(d) === s.day_of_week)!;
     // Outside its semester (a spring study in December) → not on the grid.
     const sem = semesters.find((x) => x.name === s.semester);
     if (sem && (date < sem.starts_on || date > sem.ends_on)) continue;
+    // That week's team (shadowing / assisting / leading), minus declines.
+    const crew = teamOn(s.id, date, team).filter((t) => t.response !== 'declined');
+    const mineHere = s.point_staff_id === meId || crew.some((t) => t.staff_id === meId);
+    if (mineOnly && !mineHere) continue;
     const pause = studyPausedBy(s, date, periods);
+    const crewText = crew.map((t) => `${nameOf(t.staff_id)} ${roleVerb(t.role)}${t.response === 'pending' ? '?' : ''}`).join(', ');
     items.push({
       key: `s-${s.id}`,
       date,
@@ -77,7 +85,9 @@ export function buildWeekItems(opts: {
       title: `${formatSlot(s)} study${s.online ? ' (online)' : ''}`,
       sub: pause
         ? `paused · ${pause.name}`
-        : [s.location, `${s.activeCount}/${s.capacity}`, s.point_staff_id ? nameOf(s.point_staff_id) : 'no staff'].filter(Boolean).join(' · '),
+        : [s.location, `${s.activeCount}/${s.capacity}`, s.point_staff_id ? nameOf(s.point_staff_id) : 'no staff', crewText || null]
+            .filter(Boolean)
+            .join(' · '),
       href: '/iowa/admin/studies',
       studyId: s.id,
       paused: !!pause,

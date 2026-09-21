@@ -1,10 +1,12 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import type { StudyMember, StudyWithMembers } from '@/lib/bibleStudies';
 import { DAY_NAMES, formatTime } from '@/lib/bibleStudyFormat';
 import { formatDate } from '@/lib/campusFormat';
-import { DROP_REASONS } from '@/lib/campusFormat';
+import { DROP_REASONS, STUDY_ROLES, roleVerb, teamOn, type StudyRole, type StudyTeamRow } from '@/lib/campusFormat';
+import DeclineForm from '@/components/iowa/DeclineForm';
 import { Modal, useCall, type CallFn, type StaffOption } from '@/components/iowa/campus/ui';
 
 const tel = (p: string) => `tel:${p.replace(/[^\d+]/g, '')}`;
@@ -18,12 +20,16 @@ export default function StudyCard({
   date,
   staff,
   others = [],
+  team = [],
+  meId = null,
   onClose,
 }: {
   study: StudyWithMembers;
   date: string;
   staff: StaffOption[];
   others?: StudyWithMembers[]; // for Move
+  team?: StudyTeamRow[];
+  meId?: string | null;
   onClose: () => void;
 }) {
   const { call, busy, error } = useCall();
@@ -77,6 +83,8 @@ export default function StudyCard({
           </>
         )}
       </dl>
+
+      <TeamSection s={s} date={date} staff={staff} team={team} meId={meId} busy={busy} call={call} />
 
       <p className="text-sm font-bold mb-2" style={{ color: 'var(--navy)' }}>Roster</p>
       {error && <p className="text-sm text-red-700 mb-2">{error}</p>}
@@ -224,6 +232,117 @@ function SeatActions({
           </button>
         </div>
       )}
+    </div>
+  );
+}
+
+// Who's with the person on point: Shadowing / Assisting / Leading, for this
+// date or every week. Adding someone invites them (accept / decline).
+function TeamSection({
+  s,
+  date,
+  staff,
+  team,
+  meId,
+  busy,
+  call,
+}: {
+  s: StudyWithMembers;
+  date: string;
+  staff: StaffOption[];
+  team: StudyTeamRow[];
+  meId: string | null;
+  busy: boolean;
+  call: CallFn;
+}) {
+  const [f, setF] = useState({ staff_id: '', role: 'shadow' as StudyRole, scope: 'once' as 'once' | 'weekly' });
+  const [declining, setDeclining] = useState(false);
+  const router = useRouter();
+  const crew = teamOn(s.id, date, team);
+  const nameOf = (id: string) => staff.find((p) => p.id === id)?.name ?? 'Someone';
+  const mine = crew.find((t) => t.staff_id === meId && t.response === 'pending');
+  const field = 'px-2 py-1.5 border border-gray-300 rounded-md text-sm text-gray-900 bg-white';
+  const shortDate = formatDate(date, { month: 'short', day: 'numeric' });
+
+  return (
+    <div className="mb-5 rounded-lg border border-gray-200 bg-white p-3">
+      <p className="text-sm font-bold mb-2" style={{ color: 'var(--navy)' }}>Team · {shortDate}</p>
+      <ul className="text-[15px] md:text-sm space-y-1 mb-3">
+        <li className="text-[#4a4540]">
+          <span className="font-semibold">{s.point_staff_id ? nameOf(s.point_staff_id) : 'Nobody'}</span>
+          <span className="text-[#8a8378]"> · on point</span>
+        </li>
+        {crew.map((t) => (
+          <li key={t.id} className="flex flex-wrap items-center gap-x-2">
+            <span className="font-bold" style={{ color: t.response === 'accepted' ? '#15803d' : t.response === 'declined' ? '#b91c1c' : '#b45309' }}>
+              {t.response === 'accepted' ? '✓' : t.response === 'declined' ? '✗' : '?'}
+            </span>
+            <span className="text-[#4a4540]">{nameOf(t.staff_id)}</span>
+            <span className="text-[#8a8378]">
+              · {roleVerb(t.role)} {t.occurrence ? 'this week' : 'every week'}
+              {t.response === 'pending' ? ' · hasn’t answered' : ''}
+              {t.response === 'declined' ? ` · can’t${t.note ? `: ${t.note}` : ''}` : ''}
+            </span>
+            <button disabled={busy} onClick={() => call(`/api/iowa/admin/study-team?id=${t.id}`, 'DELETE')} className="text-xs text-[#b0a99e]" title="Remove">
+              ✕
+            </button>
+          </li>
+        ))}
+      </ul>
+
+      {mine && (
+        <div className="mb-3 space-y-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-sm font-semibold text-amber-800">You’re invited to {roleVerb(mine.role)}.</span>
+            <button
+              disabled={busy}
+              onClick={() => call(`/api/iowa/admin/study-team/${mine.id}/respond`, 'POST', { response: 'accepted' })}
+              className="px-3 py-1.5 rounded-md text-sm font-semibold text-white disabled:opacity-50"
+              style={{ backgroundColor: '#15803d' }}
+            >
+              I’m in
+            </button>
+            <button onClick={() => setDeclining((v) => !v)} className="text-sm font-semibold" style={{ color: '#b91c1c' }}>
+              Can’t do it
+            </button>
+          </div>
+          {declining && <DeclineForm endpoint={`/api/iowa/admin/study-team/${mine.id}/respond`} compact onDone={() => router.refresh()} />}
+        </div>
+      )}
+
+      <div className="flex flex-wrap items-center gap-2">
+        <select className={field} value={f.staff_id} onChange={(e) => setF({ ...f, staff_id: e.target.value })}>
+          <option value="">Add someone…</option>
+          {staff
+            .filter((p) => p.active && p.id !== s.point_staff_id)
+            .map((p) => (
+              <option key={p.id} value={p.id}>{p.name}</option>
+            ))}
+        </select>
+        <select className={field} value={f.role} onChange={(e) => setF({ ...f, role: e.target.value as StudyRole })}>
+          {STUDY_ROLES.map((r) => <option key={r.key} value={r.key}>{r.label}</option>)}
+        </select>
+        <select className={field} value={f.scope} onChange={(e) => setF({ ...f, scope: e.target.value as 'once' | 'weekly' })}>
+          <option value="once">Just {shortDate}</option>
+          <option value="weekly">Every week</option>
+        </select>
+        <button
+          disabled={busy || !f.staff_id}
+          onClick={async () => {
+            const ok = await call('/api/iowa/admin/study-team', 'POST', {
+              study_id: s.id,
+              staff_id: f.staff_id,
+              role: f.role,
+              occurrence: f.scope === 'once' ? date : null,
+            });
+            if (ok) setF({ ...f, staff_id: '' });
+          }}
+          className="px-3 py-1.5 rounded-md text-sm font-semibold text-white disabled:opacity-40"
+          style={{ backgroundColor: 'var(--navy)' }}
+        >
+          Invite
+        </button>
+      </div>
     </div>
   );
 }

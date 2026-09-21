@@ -2,7 +2,8 @@ import { semesterContext } from '@/lib/semesters';
 import { getSupabaseAdmin } from '@/lib/supabaseAdmin';
 import { listEvents, type CampusTask } from '@/lib/campusTasks';
 import { formatSlot, formatTime } from '@/lib/bibleStudyFormat';
-import { PRIORITY, addDays, eventDatesInRange, formatDate, isOverdue, studyMeetsOn } from '@/lib/campusFormat';
+import { PRIORITY, addDays, eventDatesInRange, formatDate, isOverdue, roleVerb, studyMeetsOn, teamOn } from '@/lib/campusFormat';
+import { listStudyTeam } from '@/lib/studyTeam';
 import { escapeEmailHtml as esc, siteUrl } from '@/lib/email';
 
 // Building blocks for the one morning email (lib/campusAutomation.ts →
@@ -46,8 +47,7 @@ export async function schedulesFor(
       .from('bible_studies')
       .select('id, day_of_week, start_time, location, point_staff_id, online, semester')
       .in('semester', ctx.active)
-      .in('status', ['forming', 'full', 'activated'])
-      .not('point_staff_id', 'is', null),
+      .in('status', ['forming', 'full', 'activated']),
   ]);
   if (studiesRes.error) throw studiesRes.error;
 
@@ -57,13 +57,15 @@ export async function schedulesFor(
   const out = new Map<string, ScheduleLine[]>();
   const push = (id: string, line: ScheduleLine) => out.set(id, [...(out.get(id) ?? []), line]);
 
+  const team = opts.studies ? await listStudyTeam((studiesRes.data ?? []).map((s) => s.id as string)) : [];
   for (const st of opts.studies ? studiesRes.data ?? [] : []) {
     for (const date of days.filter((d) => studyMeetsOn(st, d, ctx.periods, ctx.semesters))) {
-      push(st.point_staff_id as string, {
-        date,
-        time: st.start_time,
-        text: `${formatSlot(st)} Bible study${st.location ? ` · ${st.location}` : ''}`,
-      });
+      const base = `${formatSlot(st)} Bible study${st.location ? ` · ${st.location}` : ''}`;
+      if (st.point_staff_id) push(st.point_staff_id as string, { date, time: st.start_time, text: base });
+      // Shadowing / assisting / leading that week.
+      for (const t of teamOn(st.id as string, date, team).filter((x) => x.response !== 'declined' && x.staff_id !== st.point_staff_id)) {
+        push(t.staff_id, { date, time: st.start_time, text: `${base} (${roleVerb(t.role)}${t.response === 'pending' ? ', not answered yet' : ''})` });
+      }
     }
   }
   for (const e of events) {

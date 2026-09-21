@@ -5,6 +5,7 @@ import type { StudyWithMembers } from '@/lib/bibleStudies';
 import type { CampusEvent, CampusTask } from '@/lib/campusTasks';
 import type { HeldEvent } from '@/lib/calendarSync';
 import type { Rsvp } from '@/lib/eventInvites';
+import type { StudyTeamRow } from '@/lib/campusFormat';
 import EventPeople from '@/components/iowa/campus/EventPeople';
 import StudyCard from '@/components/iowa/campus/StudyCard';
 import { formatTime } from '@/lib/bibleStudyFormat';
@@ -46,7 +47,9 @@ export default function CampusCalendar({
   templates,
   rsvps = [],
   students = [],
+  team = [],
 }: {
+  team?: StudyTeamRow[];
   templates: { id: string; name: string; itemCount: number }[];
   rsvps?: Rsvp[];
   students?: { id: string; label: string }[];
@@ -74,10 +77,10 @@ export default function CampusCalendar({
     () => {
       const going: Record<string, number> = {};
       for (const r of rsvps) if (r.response === 'yes') going[`${r.event_id}:${r.occurrence}`] = (going[`${r.event_id}:${r.occurrence}`] ?? 0) + 1 + r.guests;
-      return buildWeekItems({ days, studies, events, tasks, staff, types, meId, mineOnly, periods, semesters, going });
+      return buildWeekItems({ days, studies, events, tasks, staff, types, meId, mineOnly, periods, semesters, going, team });
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [weekStart, studies, events, tasks, staff, types, meId, mineOnly, periods, semesters, rsvps]
+    [weekStart, studies, events, tasks, staff, types, meId, mineOnly, periods, semesters, rsvps, team]
   );
   const editingEvent = editing && editing !== 'new' ? events.find((e) => e.id === editing) : undefined;
 
@@ -175,6 +178,8 @@ export default function CampusCalendar({
           date={studyOpen.date}
           staff={staff}
           others={studies}
+          team={team}
+          meId={meId}
           onClose={() => setStudyOpen(null)}
         />
       )}

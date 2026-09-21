@@ -205,6 +205,17 @@ intern, the intern can say yes or no.
 - Deferred from the same conversation: per-person weekly schedule + conflict warnings (#1), and a
   light scheduled-ministry-hours view vs the 7/9 target (#4).
 
+## Study team (migration 021)
+
+Code: `lib/studyTeam.ts`, `teamOn()` in campusFormat. The staff member on point stays responsible; others
+join a study as **Shadowing / Assisting / Leading** (the internship path: watch → take a piece →
+facilitate), for **one date** (`occurrence`) or **every week** (null). A date row beats an every-week
+row for the same person that week. Joining is an invite (email with I'm in / Can't do it →
+`/iowa/admin/study-invite/<row>`, "Needs your answer", morning email); answers email whoever invited.
+Managed from the Bible study pop-up's Team section on the calendar. Effects: shows on their week grid /
+Mine / morning schedule with the role; whoever is **Leading** an accepted week also gets that study's
+confirm email (tap-to-text). **Internal only** (Travis): students' reminders never mention it.
+
 ## Email rhythm (2026-09-21, Travis)
 
 **One email per person per morning, Monday–Saturday, ~8 AM CT, skipped entirely when empty. No

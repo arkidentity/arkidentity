@@ -12,9 +12,9 @@ export default function PendingInvites({ invites }: { invites: PendingInvite[] }
   const [busy, setBusy] = useState(false);
   if (invites.length === 0) return null;
 
-  async function accept(id: string) {
+  async function accept(api: string) {
     setBusy(true);
-    await fetch(`/api/iowa/admin/events/${id}/respond`, {
+    await fetch(api, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ response: 'accepted' }),
@@ -28,7 +28,7 @@ export default function PendingInvites({ invites }: { invites: PendingInvite[] }
       <p className="font-bold text-amber-900 mb-2">Needs your answer ({invites.length})</p>
       <ul className="space-y-3">
         {invites.map((i) => (
-          <li key={i.event_id} className="rounded-md bg-white border border-amber-200 p-3">
+          <li key={i.key} className="rounded-md bg-white border border-amber-200 p-3">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <span>
                 <span className="font-semibold" style={{ color: 'var(--navy)' }}>{i.title}</span>
@@ -39,17 +39,17 @@ export default function PendingInvites({ invites }: { invites: PendingInvite[] }
                 </span>
               </span>
               <span className="flex gap-2">
-                <button disabled={busy} onClick={() => accept(i.event_id)} className="px-3 py-1.5 rounded-md text-sm font-semibold text-white disabled:opacity-50" style={{ backgroundColor: '#15803d' }}>
+                <button disabled={busy} onClick={() => accept(i.respond_api)} className="px-3 py-1.5 rounded-md text-sm font-semibold text-white disabled:opacity-50" style={{ backgroundColor: '#15803d' }}>
                   I’m in
                 </button>
-                <button onClick={() => setDeclining(declining === i.event_id ? null : i.event_id)} className="px-3 py-1.5 rounded-md text-sm font-semibold border border-gray-300" style={{ color: '#b91c1c' }}>
+                <button onClick={() => setDeclining(declining === i.key ? null : i.key)} className="px-3 py-1.5 rounded-md text-sm font-semibold border border-gray-300" style={{ color: '#b91c1c' }}>
                   Can’t do it
                 </button>
               </span>
             </div>
-            {declining === i.event_id && (
+            {declining === i.key && (
               <div className="mt-2">
-                <DeclineForm eventId={i.event_id} compact onDone={() => router.refresh()} />
+                <DeclineForm endpoint={i.respond_api} compact onDone={() => router.refresh()} />
               </div>
             )}
           </li>

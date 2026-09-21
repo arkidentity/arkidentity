@@ -5,11 +5,13 @@ import { useState } from 'react';
 // Decline an invite (whole series) or one date, with an optional note.
 export default function DeclineForm({
   eventId,
+  endpoint,
   occurrence,
   onDone,
   compact,
 }: {
-  eventId: string;
+  eventId?: string;
+  endpoint?: string; // defaults to the event respond endpoint
   occurrence?: string;
   onDone?: () => void;
   compact?: boolean;
@@ -22,7 +24,7 @@ export default function DeclineForm({
   async function send() {
     setBusy(true);
     setError('');
-    const res = await fetch(`/api/iowa/admin/events/${eventId}/respond`, {
+    const res = await fetch(endpoint ?? `/api/iowa/admin/events/${eventId}/respond`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(occurrence ? { occurrence, away: true, note } : { response: 'declined', note }),

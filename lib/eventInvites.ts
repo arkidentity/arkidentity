@@ -191,12 +191,17 @@ export async function setAbsence(eventId: string, staff: IowaStaff, occurrence: 
   }
 }
 
+// Waiting on someone's answer — an event invite, or a study-team invite
+// (lib/studyTeam.ts). respond_api takes { response, note }; page is the
+// email landing page (append ?r=accept|decline).
 export interface PendingInvite {
-  event_id: string;
+  key: string;
   title: string;
   when: string;
   where: string | null;
   invited_by: string | null;
+  respond_api: string;
+  page: string;
 }
 
 export async function pendingInvitesFor(staffId: string): Promise<PendingInvite[]> {
@@ -213,7 +218,9 @@ export async function pendingInvitesFor(staffId: string): Promise<PendingInvite[
     .map((r) => r.event)
     .filter((e): e is EventLite => !!e && (e.repeat_weekly ? !e.repeat_until || e.repeat_until >= today : e.event_date >= today))
     .map((e) => ({
-      event_id: e.id,
+      key: `event:${e.id}`,
+      respond_api: `/api/iowa/admin/events/${e.id}/respond`,
+      page: `/iowa/admin/invite/${e.id}`,
       title: e.title,
       when: whenText(e),
       where: e.location ?? (e.meeting_link ? 'Online' : null),

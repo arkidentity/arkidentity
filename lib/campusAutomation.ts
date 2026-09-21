@@ -6,6 +6,8 @@ import { semesterContext } from '@/lib/semesters';
 import { endPastSemesterStudies, sendDuePlanLinks, unplannedStudies } from '@/lib/semesterPlan';
 import { generateAllChecklists } from '@/lib/eventChecklists';
 import { pendingInvitesFor, type PendingInvite } from '@/lib/eventInvites';
+import { listStudyTeam, pendingStudyInvitesFor } from '@/lib/studyTeam';
+import { teamOn } from '@/lib/campusFormat';
 import { listStaff, type IowaStaff } from '@/lib/iowaStaff';
 import { DAY_NAMES, formatSlot, formatTime } from '@/lib/bibleStudyFormat';
 import {
@@ -258,6 +260,7 @@ export async function runMorning(): Promise<Record<string, number | string>> {
   const { periods, semesters } = ctx;
   const semester = ctx.current?.name ?? '';
   const [studies, staff] = await Promise.all([listStudies(ctx.active), listStaff()]);
+  const team = await listStudyTeam(studies.map((s) => s.id));
   const activeStaff = staff.filter((s) => s.active);
   const summary: Record<string, number | string> = {};
   const bump = (k: string) => (summary[k] = ((summary[k] as number) ?? 0) + 1);
@@ -306,9 +309,16 @@ export async function runMorning(): Promise<Record<string, number | string>> {
         })
       ) bump('confirmTasks');
 
-      const list = confirmByStaff.get(s.point_staff_id) ?? [];
-      list.push({ study: s, meetDate: target, members });
-      confirmByStaff.set(s.point_staff_id, list);
+      // On point gets it; so does whoever's leading that week (internal: the
+      // students never hear who's facilitating).
+      const leaders = teamOn(s.id, target, team)
+        .filter((t) => t.role === 'lead' && t.response === 'accepted' && activeStaff.some((p) => p.id === t.staff_id))
+        .map((t) => t.staff_id);
+      for (const who of [...new Set([s.point_staff_id, ...leaders])]) {
+        const list = confirmByStaff.get(who) ?? [];
+        list.push({ study: s, meetDate: target, members });
+        confirmByStaff.set(who, list);
+      }
     }
   }
 
@@ -362,7 +372,13 @@ export async function runMorning(): Promise<Record<string, number | string>> {
   const openTasks = (await listTasks()).filter((t) => t.status !== 'done');
 
   const pendingBy = new Map<string, PendingInvite[]>();
-  for (const p of activeStaff) pendingBy.set(p.id, await pendingInvitesFor(p.id).catch(() => []));
+  for (const p of activeStaff) {
+    const [ev, st] = await Promise.all([
+      pendingInvitesFor(p.id).catch(() => []),
+      pendingStudyInvitesFor(p.id).catch(() => []),
+    ]);
+    pendingBy.set(p.id, [...st, ...ev]);
+  }
 
   const emails = activeStaff
     .map((p) => {
@@ -498,8 +514,8 @@ function morningEmail(o: {
         .map(
           (i) =>
             `<li style="margin:0 0 8px;"><strong>${esc(i.title)}</strong> <span style="color:#8a8378;">· ${esc(i.when)}</span><br/>
-             <a href="${siteUrl()}/iowa/admin/invite/${i.event_id}?r=accept" style="color:#15803d; font-weight:600;">I'm in</a> ·
-             <a href="${siteUrl()}/iowa/admin/invite/${i.event_id}?r=decline" style="color:#b91c1c; font-weight:600;">Can't do it</a></li>`
+             <a href="${siteUrl()}${i.page}?r=accept" style="color:#15803d; font-weight:600;">I'm in</a> ·
+             <a href="${siteUrl()}${i.page}?r=decline" style="color:#b91c1c; font-weight:600;">Can't do it</a></li>`
         )
         .join('')}</ul>`
     );

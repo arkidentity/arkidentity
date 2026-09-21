@@ -261,3 +261,35 @@ export function nextMeetingOnOrAfter(
   }
   return null;
 }
+
+// ---------------------------------------------------------------------------
+// Study team (migration 021)
+// ---------------------------------------------------------------------------
+
+export type StudyRole = 'shadow' | 'assist' | 'lead';
+export const STUDY_ROLES: { key: StudyRole; label: string; verb: string }[] = [
+  { key: 'shadow', label: 'Shadowing', verb: 'shadowing' },
+  { key: 'assist', label: 'Assisting', verb: 'assisting' },
+  { key: 'lead', label: 'Leading', verb: 'leading' },
+];
+export const roleVerb = (r: StudyRole) => STUDY_ROLES.find((x) => x.key === r)!.verb;
+
+export interface StudyTeamRow {
+  id: string;
+  study_id: string;
+  staff_id: string;
+  role: StudyRole;
+  occurrence: string | null; // null = every week
+  response: 'pending' | 'accepted' | 'declined';
+  note: string | null;
+}
+
+// Who's on a study's team on a given date: every-week rows plus that date's,
+// with a date-specific row winning for the same person (e.g. usually
+// shadowing, leading this week).
+export function teamOn(studyId: string, date: string, team: StudyTeamRow[]): StudyTeamRow[] {
+  const rows = team.filter((t) => t.study_id === studyId && (t.occurrence === null || t.occurrence === date));
+  const byStaff = new Map<string, StudyTeamRow>();
+  for (const r of rows.sort((a, b) => (a.occurrence ? 1 : 0) - (b.occurrence ? 1 : 0))) byStaff.set(r.staff_id, r);
+  return [...byStaff.values()];
+}

@@ -2,7 +2,8 @@ import { CURRENT_SEMESTER } from '@/lib/bibleStudies';
 import { getSupabaseAdmin } from '@/lib/supabaseAdmin';
 import { listEvents, type CampusTask } from '@/lib/campusTasks';
 import { formatSlot, formatTime } from '@/lib/bibleStudyFormat';
-import { PRIORITY, addDays, dayOfWeek, eventDatesInRange, formatDate, isOverdue } from '@/lib/campusFormat';
+import { PRIORITY, addDays, dayOfWeek, eventDatesInRange, formatDate, isOverdue, studyPausedBy } from '@/lib/campusFormat';
+import { listPeriods } from '@/lib/schoolCalendar';
 import { escapeEmailHtml as esc, siteUrl } from '@/lib/email';
 
 // Building blocks for the one morning email (lib/campusAutomation.ts →
@@ -39,11 +40,12 @@ export async function schedulesFor(
   staffIds: string[],
   opts: { studies: boolean } = { studies: true }
 ): Promise<Map<string, ScheduleLine[]>> {
-  const [events, studiesRes] = await Promise.all([
+  const [events, periods, studiesRes] = await Promise.all([
     listEvents(from, to),
+    listPeriods(),
     getSupabaseAdmin()
       .from('bible_studies')
-      .select('id, day_of_week, start_time, location, point_staff_id')
+      .select('id, day_of_week, start_time, location, point_staff_id, online')
       .eq('semester', CURRENT_SEMESTER)
       .in('status', ['forming', 'full', 'activated'])
       .not('point_staff_id', 'is', null),
@@ -57,7 +59,7 @@ export async function schedulesFor(
   const push = (id: string, line: ScheduleLine) => out.set(id, [...(out.get(id) ?? []), line]);
 
   for (const st of opts.studies ? studiesRes.data ?? [] : []) {
-    for (const date of days.filter((d) => dayOfWeek(d) === st.day_of_week)) {
+    for (const date of days.filter((d) => dayOfWeek(d) === st.day_of_week && !studyPausedBy(st, d, periods))) {
       push(st.point_staff_id as string, {
         date,
         time: st.start_time,

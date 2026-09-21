@@ -2,6 +2,8 @@ import { getSupabaseAdmin } from '@/lib/supabaseAdmin';
 import { CURRENT_SEMESTER, formatSlot } from '@/lib/bibleStudies';
 import { DAY_NAMES } from '@/lib/bibleStudyFormat';
 import { sendStudyReminderBatch } from '@/lib/email';
+import { addDays, chicagoToday, studyPausedBy } from '@/lib/campusFormat';
+import { listPeriods } from '@/lib/schoolCalendar';
 
 // One reminder the evening before. Invoked by the daily Vercel cron
 // (/api/cron/iowa-reminders). See docs/IOWA-BIBLE-STUDY-SYSTEM.md §13.
@@ -32,13 +34,16 @@ export async function sendStudyReminders(): Promise<ReminderSummary> {
 
   const { data: studies, error } = await db
     .from('bible_studies')
-    .select('id, day_of_week, start_time, location, status, point_staff_id')
+    .select('id, day_of_week, start_time, location, status, point_staff_id, online')
     .eq('semester', CURRENT_SEMESTER)
     .eq('day_of_week', dow)
     .in('status', ['forming', 'full', 'activated']);
   if (error) throw error;
 
-  const list = studies ?? [];
+  // In-person studies are off during breaks / finals / summer — no reminder.
+  const tomorrow = addDays(chicagoToday(), 1);
+  const periods = await listPeriods();
+  const list = (studies ?? []).filter((s) => !studyPausedBy(s, tomorrow, periods));
   if (list.length === 0) {
     return { day: DAY_NAMES[dow], studies: 0, recipients: 0, sent: 0, failed: 0 };
   }

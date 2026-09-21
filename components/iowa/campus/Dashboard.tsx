@@ -3,7 +3,7 @@
 import { useMemo, useState } from 'react';
 import type { StudyWithMembers } from '@/lib/bibleStudies';
 import type { CampusEvent } from '@/lib/campusTasks';
-import { addDays, chicagoToday, formatDate, isOverdue, weekDays } from '@/lib/campusFormat';
+import { addDays, chicagoToday, formatDate, isOverdue, weekDays, type SchoolPeriod } from '@/lib/campusFormat';
 import WeekView, { MineToggle, WeekLegend, buildWeekItems } from '@/components/iowa/campus/WeekView';
 import TaskList, { type TaskListProps } from '@/components/iowa/campus/TaskList';
 import { PageShell, Section } from '@/components/iowa/campus/ui';
@@ -11,18 +11,18 @@ import { PageShell, Section } from '@/components/iowa/campus/ui';
 // The first screen: this week at a glance, my tasks, and the counts that show
 // trouble early (overdue, unowned, who's carrying what).
 export default function Dashboard(
-  props: TaskListProps & { weekStart: string; studiesFull: StudyWithMembers[]; weekEvents: CampusEvent[] }
+  props: TaskListProps & { weekStart: string; studiesFull: StudyWithMembers[]; weekEvents: CampusEvent[]; periods: SchoolPeriod[] }
 ) {
-  const { weekStart, studiesFull, weekEvents, tasks, staff, types, meId } = props;
+  const { weekStart, studiesFull, weekEvents, tasks, staff, types, meId, periods } = props;
   const [mineOnly, setMineOnly] = useState(true);
   const days = weekDays(weekStart);
   const today = chicagoToday();
   const me = staff.find((s) => s.id === meId);
 
   const items = useMemo(
-    () => buildWeekItems({ days, studies: studiesFull, events: weekEvents, tasks, staff, types, meId, mineOnly }),
+    () => buildWeekItems({ days, studies: studiesFull, events: weekEvents, tasks, staff, types, meId, mineOnly, periods }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [weekStart, studiesFull, weekEvents, tasks, staff, types, meId, mineOnly]
+    [weekStart, studiesFull, weekEvents, tasks, staff, types, meId, mineOnly, periods]
   );
 
   const open = tasks.filter((t) => t.status !== 'done');
@@ -88,7 +88,7 @@ export default function Dashboard(
         <div className="mb-3">
           <WeekLegend />
         </div>
-        <WeekView days={days} items={items} />
+        <WeekView days={days} items={items} periods={periods} />
       </Section>
 
       <div className="grid lg:grid-cols-3 gap-8">

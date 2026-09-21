@@ -133,3 +133,74 @@ export function eventDatesInRange(
   const skip = new Set(e.skip_dates ?? []);
   return skip.size ? out.filter((x) => !skip.has(x)) : out;
 }
+
+// ---------------------------------------------------------------------------
+// School calendar (migration 017) — breaks, finals, summer
+// ---------------------------------------------------------------------------
+
+export interface SchoolPeriod {
+  id: string;
+  name: string;
+  kind: 'break' | 'finals' | 'holiday' | 'between_semesters' | 'other';
+  starts_on: string;
+  ends_on: string;
+  pauses_in_person: boolean;
+  note: string | null;
+}
+
+export function periodsOn(date: string, periods: SchoolPeriod[]): SchoolPeriod[] {
+  return periods.filter((p) => date >= p.starts_on && date <= p.ends_on);
+}
+
+// The pausing period an in-person study is off for on `date`, if any. Online
+// studies never pause.
+export function studyPausedBy(
+  study: { online?: boolean | null },
+  date: string,
+  periods: SchoolPeriod[]
+): SchoolPeriod | null {
+  if (study.online) return null;
+  return periodsOn(date, periods).find((p) => p.pauses_in_person) ?? null;
+}
+
+const WARN_AHEAD_DAYS = 7;
+
+// Heads-up lines for scheduling something in person on these dates: inside a
+// break / finals / summer, or in the week before one starts ("students are
+// about to leave"). Online things get no warnings — they're meant to run then.
+export function scheduleWarnings(dates: string[], periods: SchoolPeriod[], online = false): string[] {
+  if (online) return [];
+  const out = new Map<string, string>();
+  for (const d of dates) {
+    for (const p of periods) {
+      const range = p.starts_on === p.ends_on ? formatDate(p.starts_on) : `${formatDate(p.starts_on)} – ${formatDate(p.ends_on)}`;
+      if (d >= p.starts_on && d <= p.ends_on) {
+        const gone = p.kind === 'between_semesters' || p.kind === 'break';
+        out.set(
+          p.id,
+          p.kind === 'finals'
+            ? `${formatDate(d)} is during ${p.name.toLowerCase()} (${range}). Students are cramming.`
+            : gone
+              ? `${formatDate(d)} is during ${p.name.toLowerCase()} (${range}). Most students are gone.`
+              : `${formatDate(d)} is ${p.name} (${range}).`
+        );
+      } else if (p.pauses_in_person && d < p.starts_on && d >= addDays(p.starts_on, -WARN_AHEAD_DAYS) && !out.has(p.id)) {
+        out.set(p.id, `${formatDate(d)} is the week before ${p.name.toLowerCase()} (starts ${formatDate(p.starts_on)}).`);
+      }
+    }
+  }
+  return [...out.values()];
+}
+
+// Every date of a weekly series (within the next year) that lands in a pausing
+// period — for the "skip the break weeks" button.
+export function breakDatesForSeries(
+  e: { event_date: string; repeat_weekly: boolean; repeat_until: string | null; skip_dates?: string[] | null },
+  periods: SchoolPeriod[],
+  from = chicagoToday()
+): string[] {
+  const to = addDays(from, 366);
+  return eventDatesInRange({ ...e, skip_dates: [] }, from, to).filter((d) =>
+    periodsOn(d, periods).some((p) => p.pauses_in_person)
+  );
+}

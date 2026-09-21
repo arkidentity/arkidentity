@@ -5,7 +5,15 @@ import type { StudyWithMembers } from '@/lib/bibleStudies';
 import type { CampusEvent, CampusTask } from '@/lib/campusTasks';
 import type { HeldEvent } from '@/lib/calendarSync';
 import { formatTime } from '@/lib/bibleStudyFormat';
-import { addDays, formatDate, weekDays } from '@/lib/campusFormat';
+import {
+  addDays,
+  breakDatesForSeries,
+  eventDatesInRange,
+  formatDate,
+  scheduleWarnings,
+  weekDays,
+  type SchoolPeriod,
+} from '@/lib/campusFormat';
 import WeekView, { MineToggle, WeekLegend, buildWeekItems } from '@/components/iowa/campus/WeekView';
 import {
   ErrorBox,
@@ -29,7 +37,9 @@ export default function CampusCalendar({
   meId,
   held,
   sync,
+  periods,
 }: {
+  periods: SchoolPeriod[];
   held: HeldEvent[];
   sync: { configured: boolean; lastPulledAt: string | null; lastError: string | null };
   weekStart: string;
@@ -46,9 +56,9 @@ export default function CampusCalendar({
   const { call, busy, error } = useCall();
   const days = weekDays(weekStart);
   const items = useMemo(
-    () => buildWeekItems({ days, studies, events, tasks, staff, types, meId, mineOnly }),
+    () => buildWeekItems({ days, studies, events, tasks, staff, types, meId, mineOnly, periods }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [weekStart, studies, events, tasks, staff, types, meId, mineOnly]
+    [weekStart, studies, events, tasks, staff, types, meId, mineOnly, periods]
   );
   const editingEvent = editing && editing !== 'new' ? events.find((e) => e.id === editing) : undefined;
   const linkedTasks = editingEvent ? tasks.filter((t) => t.event_id === editingEvent.id && t.status !== 'done') : [];
@@ -125,7 +135,7 @@ export default function CampusCalendar({
 
       {editing === 'new' && (
         <div className="mb-6">
-          <EventForm staff={staff} types={types} meId={meId} busy={busy} call={call} onDone={() => setEditing(null)} defaultDate={days[0]} />
+          <EventForm staff={staff} types={types} meId={meId} busy={busy} call={call} onDone={() => setEditing(null)} defaultDate={days[0]} periods={periods} />
         </div>
       )}
 
@@ -135,6 +145,7 @@ export default function CampusCalendar({
       <WeekView
         days={days}
         items={items}
+        periods={periods}
         onEventClick={(id, date) => {
           setEditing(id);
           setClickedDate(date);
@@ -164,7 +175,7 @@ export default function CampusCalendar({
           {editingEvent.source === 'google' ? (
             <GoogleEventDetails event={editingEvent} />
           ) : (
-            <EventForm key={editingEvent.id} event={editingEvent} staff={staff} types={types} meId={meId} busy={busy} call={call} onDone={() => setEditing(null)} />
+            <EventForm key={editingEvent.id} event={editingEvent} staff={staff} types={types} meId={meId} busy={busy} call={call} onDone={() => setEditing(null)} periods={periods} />
           )}
           <div className="mt-4 rounded-lg border border-gray-200 bg-white p-4">
             <div className="flex items-baseline justify-between mb-2">
@@ -209,7 +220,9 @@ function EventForm({
   call,
   onDone,
   defaultDate,
+  periods,
 }: {
+  periods: SchoolPeriod[];
   event?: CampusEvent;
   staff: StaffOption[];
   types: TypeOption[];
@@ -231,6 +244,7 @@ function EventForm({
     repeat_weekly: event?.repeat_weekly ?? false,
     repeat_until: event?.repeat_until ?? '',
     staff_ids: event?.staff_ids ?? (meId ? [meId] : []),
+    skip_dates: event?.skip_dates ?? ([] as string[]),
   });
   const set = (patch: Partial<typeof f>) => setF((cur) => ({ ...cur, ...patch }));
   const eventTypes = types.filter((t) => t.kind === 'event' && (t.active || t.id === f.type_id));
@@ -306,6 +320,7 @@ function EventForm({
       <Field label="Notes" className="sm:col-span-2">
         <textarea rows={2} className={input} value={f.notes} onChange={(e) => set({ notes: e.target.value })} />
       </Field>
+      <BreakWarnings f={f} periods={periods} onSkip={(dates) => set({ skip_dates: [...new Set([...f.skip_dates, ...dates])].sort() })} />
       <div className="sm:col-span-2 flex gap-2">
         <button disabled={busy || !f.title.trim() || !f.event_date} onClick={save} className={btnPrimary} style={{ backgroundColor: 'var(--navy)' }}>
           {event ? 'Save event' : 'Create event'}
@@ -449,6 +464,55 @@ function SkipDates({
             ))}
           </ul>
         </div>
+      )}
+    </div>
+  );
+}
+
+// "Heads up, that's finals week." In-person only — an event with a meeting link
+// and no location is online and meant to run through breaks. For a weekly
+// event, one click skips every break week in the next year (saved with the form).
+function BreakWarnings({
+  f,
+  periods,
+  onSkip,
+}: {
+  f: { event_date: string; repeat_weekly: boolean; repeat_until: string; location: string; meeting_link: string; skip_dates: string[] };
+  periods: SchoolPeriod[];
+  onSkip: (dates: string[]) => void;
+}) {
+  if (!f.event_date) return null;
+  const online = !!f.meeting_link.trim() && !f.location.trim();
+  const series = { event_date: f.event_date, repeat_weekly: f.repeat_weekly, repeat_until: f.repeat_until || null, skip_dates: f.skip_dates };
+  const dates = f.repeat_weekly
+    ? eventDatesInRange(series, f.event_date, addDays(f.event_date, 366))
+    : [f.event_date];
+  const warnings = scheduleWarnings(dates, periods, online);
+  const breakWeeks = f.repeat_weekly && !online
+    ? breakDatesForSeries(series, periods, f.event_date).filter((d) => !f.skip_dates.includes(d))
+    : [];
+  if (warnings.length === 0 && breakWeeks.length === 0) return null;
+  return (
+    <div className="sm:col-span-2 rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
+      <p className="font-semibold mb-1">Heads up</p>
+      <ul className="list-disc pl-5 space-y-0.5">
+        {warnings.map((w) => (
+          <li key={w}>{w}</li>
+        ))}
+      </ul>
+      {breakWeeks.length > 0 && (
+        <button
+          type="button"
+          onClick={() => onSkip(breakWeeks)}
+          className="mt-2 px-3 py-1.5 rounded-md text-xs font-semibold bg-white border border-amber-400"
+        >
+          Skip the {breakWeeks.length} break week{breakWeeks.length === 1 ? '' : 's'} (
+          {breakWeeks.slice(0, 4).map((d) => formatDate(d, { month: 'short', day: 'numeric' })).join(', ')}
+          {breakWeeks.length > 4 ? ', …' : ''})
+        </button>
+      )}
+      {!online && (
+        <p className="mt-2 text-xs">Online instead? Paste a Meet link and leave the location blank; online events run through breaks.</p>
       )}
     </div>
   );

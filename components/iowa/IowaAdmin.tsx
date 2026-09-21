@@ -366,6 +366,7 @@ function StudyEditor({
     notes: s.notes ?? '',
     break_plan: s.break_plan ?? '',
     point_staff_id: s.point_staff_id ?? '',
+    online: s.online,
   });
 
   function studyPatch() {
@@ -464,6 +465,9 @@ function StudyEditor({
             />
             Listed to students when a seat is open
           </label>
+        </Field>
+        <Field label="Online">
+          <OnlineBox checked={draft.online} onChange={(online) => setDraft({ ...draft, online })} />
         </Field>
         <Field label="Staff on point">
           <StaffSelect
@@ -792,6 +796,7 @@ function NewStudyForm({
     notes: '',
     addLeaderAsMember: true,
     pointStaffId: meId ?? '',
+    online: false,
   });
 
   const leaderFilled = !!(f.leaderName.trim() && f.leaderPhone.trim() && f.leaderEmail.trim());
@@ -836,6 +841,9 @@ function NewStudyForm({
           value={f.capacity}
           onChange={(e) => setF({ ...f, capacity: Number(e.target.value) })}
         />
+      </Field>
+      <Field label="Online">
+        <OnlineBox checked={f.online} onChange={(online) => setF({ ...f, online })} />
       </Field>
       <Field label="Staff on point">
         <StaffSelect
@@ -986,5 +994,21 @@ function LinkedTasks({ studyId }: { studyId: string }) {
         ))}
       </ul>
     </div>
+  );
+}
+
+// In-person studies pause for breaks, finals and summer (Settings → School
+// calendar). Online ones keep going — the online community through the year.
+function OnlineBox({ checked, onChange }: { checked: boolean; onChange: (v: boolean) => void }) {
+  return (
+    <label className="flex items-start gap-2 text-sm py-2 text-gray-700">
+      <input type="checkbox" className="mt-0.5" checked={checked} onChange={(e) => onChange(e.target.checked)} />
+      <span>
+        Meets on Google Meet
+        <span className="block text-xs text-[#8a8378]">
+          {checked ? 'Keeps meeting through breaks and summer.' : 'In person: pauses for breaks, finals and summer.'}
+        </span>
+      </span>
+    </label>
   );
 }

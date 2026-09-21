@@ -3,7 +3,8 @@ import { getSupabaseAdmin } from '@/lib/supabaseAdmin';
 import { getStudyWithMembers, listStudies, CURRENT_SEMESTER, type StudyWithMembers } from '@/lib/bibleStudies';
 import { listStaff } from '@/lib/iowaStaff';
 import { formatSlot, formatTime, DAY_NAMES } from '@/lib/bibleStudyFormat';
-import { addDays, dayOfWeek } from '@/lib/campusFormat';
+import { addDays, dayOfWeek, studyPausedBy, type SchoolPeriod } from '@/lib/campusFormat';
+import { listPeriods } from '@/lib/schoolCalendar';
 import { siteUrl } from '@/lib/email';
 import {
   calendarConfigured,
@@ -70,7 +71,8 @@ function studyEligible(s: StudyWithMembers): boolean {
 export function studyEvent(
   s: StudyWithMembers,
   onPoint: string | null,
-  staffNames: Map<string, string> = new Map()
+  staffNames: Map<string, string> = new Map(),
+  periods: SchoolPeriod[] = []
 ): GEvent {
   const metBy = (m: StudyWithMembers['members'][number]) =>
     m.met_by_staff_id && staffNames.get(m.met_by_staff_id)
@@ -91,6 +93,7 @@ export function studyEvent(
   ];
   if (s.leader_name) lines.push('', `Student leader: ${[s.leader_name, s.leader_phone].filter(Boolean).join(' — ')}`);
   lines.push('', `On point: ${onPoint ?? 'nobody (student-led)'}`);
+  if (s.online) lines.push('Online: keeps meeting through breaks and summer.');
   if (s.notes) lines.push('', `Notes: ${s.notes}`);
   lines.push('', `Managed in the ARK Iowa admin, so edits made here get overwritten: ${siteUrl()}/iowa/admin/studies`);
 
@@ -100,12 +103,27 @@ export function studyEvent(
     description: lines.join('\n'),
     start: { dateTime: `${first}T${start}`, timeZone: TZ },
     end: { dateTime: `${first}T${plusHour(start)}`, timeZone: TZ },
-    recurrence: ['RRULE:FREQ=WEEKLY'],
+    recurrence: ['RRULE:FREQ=WEEKLY', ...breakExdates(s, first, start, periods)],
     extendedProperties: { private: { arkSource: 'study', arkId: s.id } },
   };
 }
 
-async function pushStudy(s: StudyWithMembers, staffNames: Map<string, string>): Promise<void> {
+// In-person studies don't meet during pausing school periods (breaks, finals,
+// summer): take those weeks off the Google series.
+function breakExdates(s: StudyWithMembers, first: string, start: string, periods: SchoolPeriod[]): string[] {
+  if (s.online) return [];
+  const out: string[] = [];
+  for (const p of periods.filter((x) => x.pauses_in_person && x.ends_on >= first)) {
+    for (let d = p.starts_on < first ? first : p.starts_on; d <= p.ends_on; d = addDays(d, 1)) {
+      if (dayOfWeek(d) === s.day_of_week && studyPausedBy(s, d, [p])) {
+        out.push(`EXDATE;TZID=${TZ}:${compact(d)}T${start.replace(/:/g, '')}`);
+      }
+    }
+  }
+  return out;
+}
+
+async function pushStudy(s: StudyWithMembers, staffNames: Map<string, string>, periods: SchoolPeriod[]): Promise<void> {
   const db = getSupabaseAdmin();
   if (!studyEligible(s)) {
     if (s.google_event_id) {
@@ -114,7 +132,7 @@ async function pushStudy(s: StudyWithMembers, staffNames: Map<string, string>): 
     }
     return;
   }
-  const event = studyEvent(s, s.point_staff_id ? staffNames.get(s.point_staff_id) ?? null : null, staffNames);
+  const event = studyEvent(s, s.point_staff_id ? staffNames.get(s.point_staff_id) ?? null : null, staffNames, periods);
   // Deleted by hand in Google? patch returns null — put it back.
   const saved = (s.google_event_id && (await patchCalendarEvent(s.google_event_id, event))) || (await insertCalendarEvent(event));
   if (saved.id !== s.google_event_id) {
@@ -128,11 +146,11 @@ async function staffNameMap(): Promise<Map<string, string>> {
 
 export async function syncStudies(studyIds: string[]): Promise<void> {
   if (!calendarConfigured()) return;
-  const names = await staffNameMap();
+  const [names, periods] = await Promise.all([staffNameMap(), listPeriods()]);
   for (const id of [...new Set(studyIds.filter(Boolean))]) {
     try {
       const s = await getStudyWithMembers(id);
-      if (s) await pushStudy(s, names);
+      if (s) await pushStudy(s, names, periods);
     } catch (e) {
       await logError(`study ${id}`, e);
     }
@@ -141,14 +159,19 @@ export async function syncStudies(studyIds: string[]): Promise<void> {
 
 export async function syncAllStudies(): Promise<void> {
   if (!calendarConfigured()) return;
-  const names = await staffNameMap();
+  const [names, periods] = await Promise.all([staffNameMap(), listPeriods()]);
   for (const s of await listStudies(CURRENT_SEMESTER)) {
     try {
-      await pushStudy(s, names);
+      await pushStudy(s, names, periods);
     } catch (e) {
       await logError(`study ${s.id}`, e);
     }
   }
+}
+
+// School calendar changed → every study's break weeks may have moved.
+export function queueAllStudiesSync() {
+  if (calendarConfigured()) after(() => syncAllStudies());
 }
 
 // Fire-and-forget from route handlers (after the response is sent).

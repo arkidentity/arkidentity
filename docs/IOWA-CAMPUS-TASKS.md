@@ -101,6 +101,26 @@ Code: `lib/campusAutomation.ts`. Every auto task has an `auto_key`, so nothing e
   outings) in the coming 3 weeks and suggests a **prayer call from a student** ("You signed up for a
   Bible study; how can I pray for you?"), naming their old study's student leader when there is one.
 
+## School calendar (migration 017)
+
+`iowa_school_periods`, seeded from the U of Iowa registrar's General Catalog
+(catalog.registrar.uiowa.edu/calendar, read 2026-09-21): Labor Day (heads-up only), Thanksgiving
+break Nov 22–29, finals Dec 14–18, winter break Dec 19–Jan 18, spring break Mar 14–21, finals May
+10–14, summer May 15–Aug 22 2027 (end estimated, since Fall 2027's start isn't published). Edited in
+Settings → School calendar; add each new year when the registrar posts it.
+
+- **Pausing periods** (`pauses_in_person`) switch off **in-person** studies on those dates: no
+  student evening reminder, no confirm email/task, first-study date slides past the break, and the
+  weeks are EXDATEd off the Google series. Week grids show the period on the day and the study
+  struck through "paused".
+- **Online studies** (`bible_studies.online`, "Meets on Google Meet") ignore breaks. That's the
+  online community: breaks, summer programs, prayer calls.
+- **Scheduling heads-up** on the event form: inside a period ("finals week, students are
+  cramming" / "most students are gone") or the week before a pausing one. Weekly events get a
+  one-click "Skip the N break weeks". Events with a Meet link and no location count as online and
+  get no warnings. Events are never auto-skipped, only warned about.
+- Changing the school calendar re-syncs every study to Google.
+
 ## Email rhythm (2026-09-21, Travis)
 
 **One email per person per morning, Monday–Saturday, ~8 AM CT, skipped entirely when empty. No

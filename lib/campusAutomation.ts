@@ -4,7 +4,18 @@ import { sendTaskAssignedNow as notifyTaskAssignedNow } from '@/lib/taskNotify';
 import { CURRENT_SEMESTER, getStudyWithMembers, listStudies, type StudyMember, type StudyWithMembers } from '@/lib/bibleStudies';
 import { listStaff, type IowaStaff } from '@/lib/iowaStaff';
 import { DAY_NAMES, formatSlot, formatTime } from '@/lib/bibleStudyFormat';
-import { addDays, chicagoToday, compareTasks, dayOfWeek, eventDatesInRange, formatDate, isOverdue } from '@/lib/campusFormat';
+import {
+  addDays,
+  chicagoToday,
+  compareTasks,
+  dayOfWeek,
+  eventDatesInRange,
+  formatDate,
+  isOverdue,
+  studyPausedBy,
+  type SchoolPeriod,
+} from '@/lib/campusFormat';
+import { listPeriods } from '@/lib/schoolCalendar';
 import { listEvents, listTasks, type CampusTask } from '@/lib/campusTasks';
 import { schedulesFor, scheduleHtml, taskLine, type ScheduleLine } from '@/lib/taskDigest';
 import { escapeEmailHtml as esc, sendEmailBatch, siteUrl } from '@/lib/email';
@@ -41,12 +52,19 @@ function chicagoDateTime(iso: string): { date: string; time: string } {
 }
 
 // The first meeting a student could make: the study's next weekday on/after
-// the day they joined — a week later if they joined after it started that day.
-export function firstMeetingDate(joinedAt: string, study: { day_of_week: number; start_time: string }): string {
+// the day they joined — a week later if they joined after it started that day,
+// and past any break weeks an in-person study doesn't meet.
+export function firstMeetingDate(
+  joinedAt: string,
+  study: { day_of_week: number; start_time: string; online?: boolean | null },
+  periods: SchoolPeriod[] = []
+): string {
   const { date, time } = chicagoDateTime(joinedAt);
   let delta = (study.day_of_week - dayOfWeek(date) + 7) % 7;
   if (delta === 0 && time >= study.start_time.slice(0, 5)) delta = 7;
-  return addDays(date, delta);
+  let d = addDays(date, delta);
+  for (let i = 0; i < 26 && studyPausedBy(study, d, periods); i++) d = addDays(d, 7);
+  return d;
 }
 
 function smsHref(phone: string, body: string): string {
@@ -170,13 +188,13 @@ export async function onStudentSeated(memberId: string): Promise<string | null> 
     .eq('contact_id', seat.contact_id);
   if ((count ?? 0) > 1) return null;
 
-  const [study, staff] = await Promise.all([getStudyWithMembers(seat.study_id), listStaff()]);
+  const [study, staff, periods] = await Promise.all([getStudyWithMembers(seat.study_id), listStaff(), listPeriods()]);
   const m = study?.members.find((x) => x.id === memberId);
   if (!study || !m) return null;
 
   const owner = ownerFor(m, study, staff);
   const ownerName = staff.find((s) => s.id === owner)?.name;
-  const meet = firstMeetingDate(m.joined_at, study);
+  const meet = firstMeetingDate(m.joined_at, study, periods);
   const where = study.location ? ` at ${study.location}` : '';
   const text = `Hey ${first(m.name)}, it's ${ownerName ? first(ownerName) : '___'} from ARK Iowa. So glad you signed up! Looking forward to seeing you at your first Bible study ${DAY_NAMES[study.day_of_week]} at ${formatTime(study.start_time)}${where}.`;
 
@@ -234,7 +252,7 @@ export async function runMorning(): Promise<Record<string, number | string>> {
   if (dow === 0) return { skipped: 'Sunday' };
   const targets = dow === 6 ? [addDays(today, 2), addDays(today, 3)] : [addDays(today, 2)];
   const semester = CURRENT_SEMESTER;
-  const [studies, staff] = await Promise.all([listStudies(semester), listStaff()]);
+  const [studies, staff, periods] = await Promise.all([listStudies(semester), listStaff(), listPeriods()]);
   const activeStaff = staff.filter((s) => s.active);
   const summary: Record<string, number | string> = {};
   const bump = (k: string) => (summary[k] = ((summary[k] as number) ?? 0) + 1);
@@ -254,11 +272,12 @@ export async function runMorning(): Promise<Record<string, number | string>> {
   for (const target of targets) {
     for (const s of studies) {
       if (!LIVE.includes(s.status) || s.day_of_week !== dayOfWeek(target)) continue;
+      if (studyPausedBy(s, target, periods)) continue; // break week — nothing to confirm
       if (!s.point_staff_id || s.leader_name?.trim() || !s.location) continue; // student leader has it
       if (!activeStaff.some((p) => p.id === s.point_staff_id)) continue;
       const members = s.members
         .filter((m) => m.status === 'active')
-        .map((m) => ({ ...m, isNew: firstMeetingDate(m.joined_at, s) === target }));
+        .map((m) => ({ ...m, isNew: firstMeetingDate(m.joined_at, s, periods) === target }));
       if (members.length === 0) continue;
 
       // Due the day before — or Saturday, when the day before is the Sunday off.
@@ -295,7 +314,7 @@ export async function runMorning(): Promise<Record<string, number | string>> {
     if (!LIVE.includes(s.status)) continue;
     for (const m of s.members) {
       if (m.status !== 'active' || m.first_showed !== null || m.first_show_asked_on) continue;
-      const firstDate = firstMeetingDate(m.joined_at, s);
+      const firstDate = firstMeetingDate(m.joined_at, s, periods);
       if (firstDate >= today || firstDate < addDays(today, -3)) continue;
       const ask = [s.point_staff_id, m.met_by_staff_id].find((id) => id && activeStaff.some((p) => p.id === id));
       if (!ask) continue;

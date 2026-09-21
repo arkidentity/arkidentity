@@ -2,17 +2,20 @@
 
 import { useState } from 'react';
 import { ErrorBox, PageShell, Section, btnPrimary, btnSmall, input, useCall, type TypeOption } from '@/components/iowa/campus/ui';
+import type { SchoolPeriod } from '@/lib/campusFormat';
+import SchoolCalendarSettings from '@/components/iowa/campus/SchoolCalendarSettings';
 
 // Editable task + event type lists. Types are hidden rather than deleted so
 // anything already using one keeps its label.
-export default function TypeSettings({ types }: { types: TypeOption[] }) {
+export default function TypeSettings({ types, periods }: { types: TypeOption[]; periods: SchoolPeriod[] }) {
   const { call, busy, error } = useCall();
   return (
     <PageShell>
       <h1 className="text-3xl font-bold mb-1" style={{ color: 'var(--navy)' }}>
         Settings
       </h1>
-      <p className="text-sm text-[#8a8378] mb-8">The types you can pick for tasks and events.</p>
+      <p className="text-sm text-[#8a8378] mb-8">The school calendar, and the types you can pick for tasks and events.</p>
+      <SchoolCalendarSettings periods={periods} />
       <ErrorBox error={error} />
       <div className="grid md:grid-cols-2 gap-8">
         {(['event', 'task'] as const).map((kind) => (

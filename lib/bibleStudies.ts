@@ -53,6 +53,7 @@ export interface BibleStudy {
   activated_at: string | null;
   point_staff_id: string | null; // staff member who has to be there (migration 011)
   google_event_id: string | null; // mirrored ARK Campus calendar event (migration 014)
+  online: boolean; // Google Meet study — keeps meeting through breaks and summer (migration 017)
   created_at: string;
 }
 
@@ -502,6 +503,7 @@ export interface CreateStudyInput {
   leader_email?: string;
   notes?: string;
   point_staff_id?: string | null;
+  online?: boolean;
   semester?: string;
   // When the leader is one of the four students (not Travis facilitating),
   // also seat them on the roster so the count is right.
@@ -528,6 +530,7 @@ export async function createStudy(input: CreateStudyInput): Promise<BibleStudy> 
       leader_email: leaderEmail,
       notes: input.notes?.trim() || null,
       point_staff_id: input.point_staff_id || null,
+      online: !!input.online,
     })
     .select('*')
     .single();
@@ -542,7 +545,7 @@ export async function createStudy(input: CreateStudyInput): Promise<BibleStudy> 
 
 const EDITABLE_FIELDS = [
   'day_of_week', 'start_time', 'location', 'capacity', 'status', 'accepting_signups',
-  'leader_name', 'leader_phone', 'leader_email', 'notes', 'break_plan', 'point_staff_id',
+  'leader_name', 'leader_phone', 'leader_email', 'notes', 'break_plan', 'point_staff_id', 'online',
 ] as const;
 
 export async function updateStudy(

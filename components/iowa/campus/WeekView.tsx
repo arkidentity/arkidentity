@@ -9,6 +9,9 @@ import {
   eventDatesInRange,
   formatDate,
   isOverdue,
+  periodsOn,
+  studyPausedBy,
+  type SchoolPeriod,
   type TaskPriority,
 } from '@/lib/campusFormat';
 import { PriorityDot, type StaffOption, type TypeOption } from '@/components/iowa/campus/ui';
@@ -24,6 +27,7 @@ export interface WeekItem {
   eventId?: string;
   priority?: TaskPriority;
   overdue?: boolean;
+  paused?: boolean; // in-person study on a break week
 }
 
 const KIND_STYLE: Record<WeekItem['kind'], { bar: string; bg: string }> = {
@@ -45,8 +49,9 @@ export function buildWeekItems(opts: {
   types: TypeOption[];
   meId: string | null;
   mineOnly: boolean;
+  periods?: SchoolPeriod[];
 }): WeekItem[] {
-  const { days, studies, events, tasks, staff, types, meId, mineOnly } = opts;
+  const { days, studies, events, tasks, staff, types, meId, mineOnly, periods = [] } = opts;
   const from = days[0];
   const to = days[6];
   const nameOf = (id: string | null) => staff.find((s) => s.id === id)?.name.split(' ')[0] ?? null;
@@ -56,14 +61,18 @@ export function buildWeekItems(opts: {
     if (!LIVE_STUDY.includes(s.status)) continue;
     if (mineOnly && s.point_staff_id !== meId) continue;
     const date = days.find((d) => dayOfWeek(d) === s.day_of_week)!;
+    const pause = studyPausedBy(s, date, periods);
     items.push({
       key: `s-${s.id}`,
       date,
       time: s.start_time,
       kind: 'study',
-      title: `${formatSlot(s)} study`,
-      sub: [s.location, `${s.activeCount}/${s.capacity}`, s.point_staff_id ? nameOf(s.point_staff_id) : 'no staff'].filter(Boolean).join(' · '),
+      title: `${formatSlot(s)} study${s.online ? ' (online)' : ''}`,
+      sub: pause
+        ? `paused · ${pause.name}`
+        : [s.location, `${s.activeCount}/${s.capacity}`, s.point_staff_id ? nameOf(s.point_staff_id) : 'no staff'].filter(Boolean).join(' · '),
       href: '/iowa/admin/studies',
+      paused: !!pause,
     });
   }
 
@@ -122,9 +131,11 @@ export default function WeekView({
   days,
   items,
   onEventClick,
+  periods = [],
 }: {
   days: string[];
   items: WeekItem[];
+  periods?: SchoolPeriod[];
   onEventClick?: (eventId: string, date: string) => void;
 }) {
   const today = chicagoToday();
@@ -146,6 +157,16 @@ export default function WeekView({
               <span>{formatDate(d, { weekday: 'short' })}</span>
               <span>{formatDate(d, { month: 'numeric', day: 'numeric' })}</span>
             </div>
+            {periodsOn(d, periods).map((p) => (
+              <div
+                key={p.id}
+                className="mx-1.5 mt-1.5 rounded px-1.5 py-0.5 text-[11px] font-semibold"
+                style={{ backgroundColor: p.kind === 'finals' ? '#fee2e2' : '#fef3c7', color: p.kind === 'finals' ? '#b91c1c' : '#92400e' }}
+                title={p.note ?? undefined}
+              >
+                {p.name}
+              </div>
+            ))}
             <ul className="p-1.5 space-y-1">
               {dayItems.length === 0 && <li className="text-xs text-[#c4bdb2] px-1 md:hidden">Nothing</li>}
               {dayItems.map((i) => {
@@ -160,7 +181,11 @@ export default function WeekView({
                   </>
                 );
                 const cls = 'block w-full text-left rounded px-1.5 py-1 text-xs hover:brightness-95';
-                const st = { backgroundColor: style.bg, borderLeft: `3px solid ${i.overdue ? '#b91c1c' : style.bar}` };
+                const st = {
+                  backgroundColor: style.bg,
+                  borderLeft: `3px solid ${i.overdue ? '#b91c1c' : style.bar}`,
+                  ...(i.paused ? { opacity: 0.45, textDecoration: 'line-through' } : {}),
+                };
                 return (
                   <li key={i.key}>
                     {i.eventId && onEventClick ? (

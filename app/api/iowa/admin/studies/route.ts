@@ -29,6 +29,7 @@ export async function POST(req: Request) {
     notes?: string;
     addLeaderAsMember?: boolean;
     pointStaffId?: string;
+    online?: boolean;
   };
 
   const day = Number(body.dayOfWeek);
@@ -48,6 +49,7 @@ export async function POST(req: Request) {
       notes: body.notes,
       addLeaderAsMember: body.addLeaderAsMember,
       point_staff_id: body.pointStaffId || null,
+      online: !!body.online,
     });
     if (study.point_staff_id) notifyAssignment(study.id, study.point_staff_id, await currentStaff());
     queueStudySync(study.id);

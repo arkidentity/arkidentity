@@ -117,6 +117,8 @@ function StaffRow({
 }) {
   const [resetting, setResetting] = useState(false);
   const [pw, setPw] = useState('');
+  const [editing, setEditing] = useState(false);
+  const [details, setDetails] = useState({ name: p.name, phone: p.phone ?? '' });
 
   return (
     <li className="rounded-lg border border-gray-200 bg-white px-4 py-3 text-sm">
@@ -130,6 +132,17 @@ function StaffRow({
           {!p.active && ' · login off'}
         </span>
         <span className="flex gap-1 shrink-0">
+          <button
+            onClick={() => {
+              setDetails({ name: p.name, phone: p.phone ?? '' });
+              setEditing((v) => !v);
+            }}
+            disabled={busy}
+            className="text-xs font-semibold px-2 py-1 rounded border transition hover:bg-gray-50 disabled:opacity-50"
+            style={{ borderColor: '#d1d5db', color: '#143348' }}
+          >
+            {editing ? 'Cancel' : 'Edit'}
+          </button>
           <button
             onClick={() => setResetting((v) => !v)}
             disabled={busy}
@@ -150,6 +163,35 @@ function StaffRow({
           )}
         </span>
       </div>
+      {editing && (
+        <div className="mt-2 grid sm:grid-cols-[1fr_1fr_auto] gap-2">
+          <input
+            className={input}
+            placeholder="Name"
+            value={details.name}
+            onChange={(e) => setDetails({ ...details, name: e.target.value })}
+          />
+          <input
+            className={input}
+            placeholder="Phone (optional)"
+            value={details.phone}
+            onChange={(e) => setDetails({ ...details, phone: e.target.value })}
+          />
+          <button
+            disabled={busy || !details.name.trim()}
+            onClick={async () => {
+              if (await call(`/api/iowa/admin/staff/${p.id}`, 'PATCH', details)) {
+                setEditing(false);
+                onNotice(`Saved ${details.name.trim()}.`);
+              }
+            }}
+            className="shrink-0 px-3 py-2 rounded-md text-sm font-semibold text-white disabled:opacity-50"
+            style={{ backgroundColor: 'var(--navy)' }}
+          >
+            Save
+          </button>
+        </div>
+      )}
       {resetting && (
         <div className="mt-2 flex gap-2">
           <input

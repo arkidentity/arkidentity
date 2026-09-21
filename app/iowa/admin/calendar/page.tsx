@@ -4,6 +4,7 @@ import { currentStaff, listStaff } from '@/lib/iowaStaff';
 import { listEvents, listTasks, listTypes } from '@/lib/campusTasks';
 import { addDays, chicagoToday, isValidDate, weekStart } from '@/lib/campusFormat';
 import CampusCalendar from '@/components/iowa/campus/CampusCalendar';
+import { listHeld, pullIfStale, syncStatus } from '@/lib/calendarSync';
 
 export const dynamic = 'force-dynamic';
 export const metadata: Metadata = { title: 'ARK Iowa — calendar' };
@@ -16,13 +17,16 @@ export default async function IowaCalendarPage({
 }) {
   const { week } = await searchParams;
   const start = weekStart(isValidDate(week) ? week : chicagoToday());
-  const [studies, events, tasks, staff, types, me] = await Promise.all([
+  await pullIfStale();
+  const [studies, events, tasks, staff, types, me, held, sync] = await Promise.all([
     listStudies(),
     listEvents(start, addDays(start, 6)),
     listTasks(),
     listStaff(),
     listTypes(),
     currentStaff(),
+    listHeld(),
+    syncStatus(),
   ]);
   return (
     <CampusCalendar
@@ -34,6 +38,8 @@ export default async function IowaCalendarPage({
       staff={staff.map((s) => ({ id: s.id, name: s.name, active: s.active }))}
       types={types}
       meId={me?.id ?? null}
+      held={held.filter((h) => !h.decision)}
+      sync={sync}
     />
   );
 }

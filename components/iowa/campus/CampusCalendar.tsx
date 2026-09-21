@@ -3,6 +3,8 @@
 import { useMemo, useState } from 'react';
 import type { StudyWithMembers } from '@/lib/bibleStudies';
 import type { CampusEvent, CampusTask } from '@/lib/campusTasks';
+import type { HeldEvent } from '@/lib/calendarSync';
+import { formatTime } from '@/lib/bibleStudyFormat';
 import { addDays, formatDate, weekDays } from '@/lib/campusFormat';
 import WeekView, { MineToggle, WeekLegend, buildWeekItems } from '@/components/iowa/campus/WeekView';
 import {
@@ -25,7 +27,11 @@ export default function CampusCalendar({
   staff,
   types,
   meId,
+  held,
+  sync,
 }: {
+  held: HeldEvent[];
+  sync: { configured: boolean; lastPulledAt: string | null; lastError: string | null };
   weekStart: string;
   studies: StudyWithMembers[];
   events: CampusEvent[];
@@ -77,6 +83,45 @@ export default function CampusCalendar({
 
       <ErrorBox error={error} />
 
+      <SyncBar sync={sync} busy={busy} onSync={() => call('/api/iowa/admin/calendar-sync', 'POST', {})} />
+
+      {held.length > 0 && (
+        <div className="mb-6 rounded-lg border border-amber-300 bg-amber-50 p-4">
+          <p className="font-bold text-amber-900 mb-1">Looks like a duplicate ({held.length})</p>
+          <p className="text-sm text-amber-900 mb-3">
+            These Google events land on the same day and time as a Bible study the admin already puts on the
+            calendar for you, so they weren’t imported. Delete them in Google Calendar and they’ll drop off
+            this list, or decide here.
+          </p>
+          <ul className="space-y-2">
+            {held.map((h) => (
+              <li key={h.google_event_id} className="flex flex-wrap items-center justify-between gap-2 bg-white rounded-md border border-amber-200 px-3 py-2 text-sm">
+                <span>
+                  <span className="font-semibold">{h.summary}</span>
+                  <span className="text-[#8a8378]"> · {h.starts_label}</span>
+                </span>
+                <span className="flex gap-2">
+                  <button
+                    disabled={busy}
+                    onClick={() => call('/api/iowa/admin/calendar-sync', 'POST', { heldId: h.google_event_id, decision: 'import' })}
+                    className="text-xs font-semibold px-2 py-1 rounded border border-gray-300 hover:bg-gray-50 disabled:opacity-50"
+                  >
+                    Not a duplicate, import it
+                  </button>
+                  <button
+                    disabled={busy}
+                    onClick={() => call('/api/iowa/admin/calendar-sync', 'POST', { heldId: h.google_event_id, decision: 'ignore' })}
+                    className="text-xs font-semibold px-2 py-1 rounded border border-gray-300 hover:bg-gray-50 disabled:opacity-50"
+                  >
+                    Keep it out of the admin
+                  </button>
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
       {editing === 'new' && (
         <div className="mb-6">
           <EventForm staff={staff} types={types} meId={meId} busy={busy} call={call} onDone={() => setEditing(null)} defaultDate={days[0]} />
@@ -105,7 +150,11 @@ export default function CampusCalendar({
               </a>
             </p>
           )}
-          <EventForm key={editingEvent.id} event={editingEvent} staff={staff} types={types} meId={meId} busy={busy} call={call} onDone={() => setEditing(null)} />
+          {editingEvent.source === 'google' ? (
+            <GoogleEventDetails event={editingEvent} />
+          ) : (
+            <EventForm key={editingEvent.id} event={editingEvent} staff={staff} types={types} meId={meId} busy={busy} call={call} onDone={() => setEditing(null)} />
+          )}
           <div className="mt-4 rounded-lg border border-gray-200 bg-white p-4">
             <div className="flex items-baseline justify-between mb-2">
               <p className="text-sm font-bold" style={{ color: 'var(--navy)' }}>
@@ -264,6 +313,59 @@ function EventForm({
           </button>
         )}
       </div>
+    </div>
+  );
+}
+
+function SyncBar({
+  sync,
+  busy,
+  onSync,
+}: {
+  sync: { configured: boolean; lastPulledAt: string | null; lastError: string | null };
+  busy: boolean;
+  onSync: () => void;
+}) {
+  if (!sync.configured) {
+    return <p className="mb-4 text-xs text-[#8a8378]">Google Calendar isn’t connected yet.</p>;
+  }
+  const when = sync.lastPulledAt
+    ? new Date(sync.lastPulledAt).toLocaleString('en-US', { timeZone: 'America/Chicago', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })
+    : 'never';
+  return (
+    <div className="mb-4 text-xs text-[#8a8378] flex flex-wrap items-center gap-2">
+      <span>Synced with the ARK Campus Google calendar · last pulled {when}</span>
+      <button disabled={busy} onClick={onSync} className="font-semibold underline disabled:opacity-50" style={{ color: 'var(--navy)' }}>
+        {busy ? 'Syncing…' : 'Sync now'}
+      </button>
+      {sync.lastError && <span className="w-full text-red-700">Last sync problem: {sync.lastError}</span>}
+    </div>
+  );
+}
+
+// Events that came from Google are owned by Google: show them, link out to edit.
+function GoogleEventDetails({ event }: { event: CampusEvent }) {
+  const when = [
+    event.repeat_weekly ? `Weekly from ${formatDate(event.event_date)}` : formatDate(event.event_date),
+    event.start_time ? `${formatTime(event.start_time)}${event.end_time ? `–${formatTime(event.end_time)}` : ''}` : 'All day',
+    event.repeat_until ? `until ${formatDate(event.repeat_until)}` : null,
+  ].filter(Boolean).join(' · ');
+  return (
+    <div className="rounded-lg border border-gray-200 bg-white p-4 text-sm space-y-2">
+      <p className="text-[#4a4540]">{when}</p>
+      {event.location && <p className="text-[#4a4540]">{event.location}</p>}
+      {event.notes && <p className="text-[#8a8378] whitespace-pre-wrap">{event.notes}</p>}
+      <p className="text-xs text-[#8a8378]">
+        This event lives in Google Calendar. Change it there and the admin picks it up.
+        {event.google_html_link && (
+          <>
+            {' '}
+            <a href={event.google_html_link} target="_blank" rel="noreferrer" className="font-semibold underline" style={{ color: 'var(--navy)' }}>
+              Open in Google Calendar ↗
+            </a>
+          </>
+        )}
+      </p>
     </div>
   );
 }

@@ -39,12 +39,34 @@ Student-leader logins (scoped to their own studies' students) are Phase 3.
 - **Emails**: task assigned to you (by someone else) · someone offered to help on your task · due
   tomorrow (nightly cron) · Monday digest of your week (studies, events, open tasks).
 
-## Phase 1.5 — Google Calendar
+## Phase 1.5 — Google Calendar (built, migration 014)
 
-A dedicated shared **"ARK Campus"** Google calendar (Travis is on Gmail, not Workspace). Shared with a
-service account; two-way sync — events put on it in Google (with Meet links) appear in the admin,
-events created in the admin appear in Google. Personal calendar never touched. The app can't mint
-Meet links on Gmail — create them in Google, they flow in. `iowa_events.google_event_id` reserved.
+Shared **ARK Campus** Google calendar (Gmail, not Workspace), accessed by a service account the
+calendar is shared with ("Make changes to events"). Travis's personal calendar is never read.
+Code: `lib/googleCalendar.ts` (auth + REST, no deps), `lib/calendarSync.ts` (all rules).
+
+**One owner per item — how duplicates are prevented:**
+- **Bible studies: admin → Google.** A study is on the calendar only while it's forming/full/activated
+  AND has at least one active student. Weekly event titled `Bible study · Wed 8 PM · Travis`; the
+  description holds the roster (name, phone, email, year), student leader, staff on point, notes.
+  Pushed instantly on join / add / drop / move / study edit; removed when it pauses, ends or empties.
+- **Admin-created events: admin → Google** (who's going + meeting link go in the description; the
+  app can't mint Meet links or invite people on Gmail).
+- **Google-created events: Google → admin**, read-only in the admin (edit in Google), everyone's
+  (no attendee info). Plain weekly rules map to our weekly repeat; anything fancier imports as its
+  first date with a note.
+- Everything the app writes carries `extendedProperties.private.arkSource`; the importer skips it.
+- **Held back:** a Google event on the same weekday + start time as a study (weekly, or "bible"/
+  "study" in the title) isn't imported — it's listed on the Calendar page as "Looks like a duplicate"
+  (Travis's pre-sync manual entries). Delete it in Google, or "import it" / "keep it out".
+
+**When:** pushes are instant (`after()`); pulls happen when the dashboard/calendar opens (≤ every
+2 min), on "Sync now", and in the daily cron (full both-way reconcile).
+
+**Privacy:** descriptions contain student phone numbers + emails — the calendar must never be public.
+
+Env: `GOOGLE_SERVICE_ACCOUNT_EMAIL`, `GOOGLE_SERVICE_ACCOUNT_KEY`, `IOWA_GOOGLE_CALENDAR_ID`. Without
+them every sync is a no-op.
 
 ## Phase 2 — Automation
 

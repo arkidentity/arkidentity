@@ -42,6 +42,7 @@ export interface BibleStudy {
   pulse_at: string | null;
   activated_at: string | null;
   point_staff_id: string | null; // staff member who has to be there (migration 011)
+  google_event_id: string | null; // mirrored ARK Campus calendar event (migration 014)
   created_at: string;
 }
 

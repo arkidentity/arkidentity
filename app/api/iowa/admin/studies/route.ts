@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { listStudies, createStudy } from '@/lib/bibleStudies';
 import { currentStaff } from '@/lib/iowaStaff';
 import { notifyAssignment } from '@/lib/studyAssignment';
+import { queueStudySync } from '@/lib/calendarSync';
 
 export const dynamic = 'force-dynamic';
 
@@ -49,6 +50,7 @@ export async function POST(req: Request) {
       point_staff_id: body.pointStaffId || null,
     });
     if (study.point_staff_id) notifyAssignment(study.id, study.point_staff_id, await currentStaff());
+    queueStudySync(study.id);
     return NextResponse.json({ study }, { status: 201 });
   } catch (e) {
     return NextResponse.json({ error: (e as Error).message }, { status: 500 });

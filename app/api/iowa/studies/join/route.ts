@@ -2,6 +2,7 @@ import { NextResponse, after } from 'next/server';
 import { joinStudy, formatSlot } from '@/lib/bibleStudies';
 import { sendStudyConfirmation, sendStudyRosterAlerts, sendStudyAdminAlert } from '@/lib/email';
 import { googleCalendarUrl } from '@/lib/ics';
+import { queueStudySync } from '@/lib/calendarSync';
 import { siteUrl } from '@/lib/email';
 
 export const dynamic = 'force-dynamic';
@@ -42,6 +43,7 @@ export async function POST(req: Request) {
       year: body.year,
     });
 
+    queueStudySync(study.id); // roster changed → refresh the Google description
     const slot = formatSlot(study);
     const info = { id: study.id, slot, location: study.location };
     const icsUrl = `${siteUrl()}/api/iowa/studies/${study.id}/ics`;

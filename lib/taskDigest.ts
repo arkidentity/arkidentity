@@ -93,7 +93,8 @@ export async function sendWeeklyDigests(): Promise<{ recipients: number; sent: n
           text: `${formatSlot(st)} Bible study${st.location ? ` · ${st.location}` : ''}`,
         });
       }
-      for (const e of events.filter((x) => x.staff_ids.includes(s.id))) {
+      // Google-owned events don't know who's going, so they go to everyone.
+      for (const e of events.filter((x) => x.source === 'google' || x.staff_ids.includes(s.id))) {
         for (const date of eventDatesInRange(e, start, end)) {
           lines.push({
             date,

@@ -68,7 +68,8 @@ export function buildWeekItems(opts: {
   }
 
   for (const e of events) {
-    if (mineOnly && !e.staff_ids.includes(meId ?? '')) continue;
+    // Google-owned events don't know who's going — they're everyone's.
+    if (mineOnly && e.source !== 'google' && !e.staff_ids.includes(meId ?? '')) continue;
     const type = types.find((t) => t.id === e.type_id)?.name;
     for (const date of eventDatesInRange(e, from, to)) {
       items.push({

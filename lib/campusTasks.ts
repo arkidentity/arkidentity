@@ -64,6 +64,9 @@ export interface CampusEvent {
   created_by: string | null;
   created_at: string;
   staff_ids: string[];
+  source: 'app' | 'google'; // 'google' = owned by Google Calendar, read-only here (migration 014)
+  google_event_id: string | null;
+  google_html_link: string | null;
 }
 
 const PRIORITY_KEYS = Object.keys(PRIORITY) as TaskPriority[];
@@ -405,7 +408,15 @@ export async function createEvent(input: EventInput, actor: IowaStaff | null): P
   return getEvent(data.id);
 }
 
+async function assertAppOwned(id: string) {
+  const { data, error } = await getSupabaseAdmin().from('iowa_events').select('source').eq('id', id).maybeSingle();
+  if (error) throw error;
+  if (!data) throw new Error('Event not found.');
+  if (data.source === 'google') throw new Error('This event comes from Google Calendar. Edit it there.');
+}
+
 export async function updateEvent(id: string, input: EventInput): Promise<CampusEvent> {
+  await assertAppOwned(id);
   const update = cleanEventInput(input, false);
   if (Object.keys(update).length > 0) {
     const { error } = await getSupabaseAdmin().from('iowa_events').update(update).eq('id', id);
@@ -415,7 +426,15 @@ export async function updateEvent(id: string, input: EventInput): Promise<Campus
   return getEvent(id);
 }
 
-export async function deleteEvent(id: string): Promise<void> {
-  const { error } = await getSupabaseAdmin().from('iowa_events').delete().eq('id', id);
+// Returns the Google event id so the caller can remove it from Google too.
+export async function deleteEvent(id: string): Promise<string | null> {
+  await assertAppOwned(id);
+  const { data, error } = await getSupabaseAdmin()
+    .from('iowa_events')
+    .delete()
+    .eq('id', id)
+    .select('google_event_id')
+    .maybeSingle();
   if (error) throw error;
+  return (data?.google_event_id as string | null) ?? null;
 }

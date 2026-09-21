@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { deleteEvent, updateEvent, type EventInput } from '@/lib/campusTasks';
+import { queueEventDelete, queueEventSync } from '@/lib/calendarSync';
 
 export const dynamic = 'force-dynamic';
 
@@ -8,7 +9,9 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   const { id } = await params;
   const body = (await req.json().catch(() => ({}))) as EventInput;
   try {
-    return NextResponse.json({ event: await updateEvent(id, body) });
+    const event = await updateEvent(id, body);
+    queueEventSync(event.id);
+    return NextResponse.json({ event });
   } catch (e) {
     return NextResponse.json({ error: (e as Error).message }, { status: 400 });
   }
@@ -18,7 +21,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
 export async function DELETE(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   try {
-    await deleteEvent(id);
+    queueEventDelete(await deleteEvent(id));
     return NextResponse.json({ ok: true });
   } catch (e) {
     return NextResponse.json({ error: (e as Error).message }, { status: 400 });

@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
 import { setMemberStatus, moveMember } from '@/lib/bibleStudies';
+import { getSupabaseAdmin } from '@/lib/supabaseAdmin';
+import { queueStudySync } from '@/lib/calendarSync';
 
 export const dynamic = 'force-dynamic';
 
@@ -20,8 +22,15 @@ export async function PATCH(
   };
 
   try {
+    // Moving touches two rosters; note where they were before.
+    const { data: before } = await getSupabaseAdmin()
+      .from('bible_study_members')
+      .select('study_id')
+      .eq('id', id)
+      .maybeSingle();
     if (body.studyId) {
       const member = await moveMember(id, body.studyId);
+      queueStudySync(before?.study_id, member.study_id);
       return NextResponse.json({ member });
     }
     if (body.status !== 'active' && body.status !== 'dropped') {
@@ -31,6 +40,7 @@ export async function PATCH(
       reason: body.dropReason,
       note: body.dropNote,
     });
+    queueStudySync(member.study_id);
     return NextResponse.json({ member });
   } catch (e) {
     return NextResponse.json({ error: (e as Error).message }, { status: 400 });

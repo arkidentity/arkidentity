@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { updateStudy } from '@/lib/bibleStudies';
 import { currentStaff } from '@/lib/iowaStaff';
 import { notifyAssignment } from '@/lib/studyAssignment';
+import { queueStudySync } from '@/lib/calendarSync';
 import { getSupabaseAdmin } from '@/lib/supabaseAdmin';
 
 export const dynamic = 'force-dynamic';
@@ -25,6 +26,7 @@ export async function PATCH(
     if (study.point_staff_id && study.point_staff_id !== before?.point_staff_id) {
       notifyAssignment(study.id, study.point_staff_id, await currentStaff());
     }
+    queueStudySync(study.id);
     return NextResponse.json({ study });
   } catch (e) {
     return NextResponse.json({ error: (e as Error).message }, { status: 400 });

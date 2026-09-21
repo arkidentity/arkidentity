@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { addMember } from '@/lib/bibleStudies';
+import { queueStudySync } from '@/lib/calendarSync';
 
 export const dynamic = 'force-dynamic';
 
@@ -29,6 +30,7 @@ export async function POST(req: Request) {
       source: body.source,
       notes: body.notes,
     });
+    queueStudySync(member.study_id);
     return NextResponse.json({ member }, { status: 201 });
   } catch (e) {
     return NextResponse.json({ error: (e as Error).message }, { status: 400 });

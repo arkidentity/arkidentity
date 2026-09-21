@@ -25,9 +25,14 @@ export interface StaffOption {
 const input = 'w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-gray-900 bg-white';
 const THREE_WEEKS = 21 * 24 * 60 * 60 * 1000;
 
+// A study is built to land on four; capacity (default 5) leaves a seat for a
+// flake. So a full/activated study is only "down" once it drops below four.
+const TARGET_SIZE = 4;
+
 function needsAttention(s: StudyWithMembers): string | null {
-  if ((s.status === 'full' || s.status === 'activated') && s.activeCount < s.capacity) {
-    return `Down to ${s.activeCount}/${s.capacity}`;
+  const settled = Math.min(TARGET_SIZE, s.capacity);
+  if ((s.status === 'full' || s.status === 'activated') && s.activeCount < settled) {
+    return `Down to ${s.activeCount}/${settled}`;
   }
   if (s.status === 'forming' && Date.now() - new Date(s.created_at).getTime() > THREE_WEEKS) {
     return 'Forming 3+ weeks, still not full';
@@ -697,7 +702,7 @@ function NewStudyForm({
     dayOfWeek: '',
     startTime: '',
     location: '',
-    capacity: 4,
+    capacity: 5,
     leaderName: '',
     leaderPhone: '',
     leaderEmail: '',

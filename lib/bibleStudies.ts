@@ -343,7 +343,8 @@ export async function joinStudy(input: JoinInput): Promise<JoinResult> {
   }
 
   const fresh = (await getStudyWithMembers(input.studyId))!;
-  // If four are now active and it was still forming, move it to full.
+  // Once capacity (default 5) is reached while forming, close it. Staff close a
+  // study that settled at four by setting status to full themselves.
   if (fresh.status === 'forming' && fresh.activeCount >= fresh.capacity) {
     await db.from('bible_studies').update({ status: 'full' }).eq('id', input.studyId);
     fresh.status = 'full';
@@ -492,7 +493,7 @@ export async function createStudy(input: CreateStudyInput): Promise<BibleStudy> 
       day_of_week: input.day_of_week,
       start_time: input.start_time,
       location: input.location.trim(),
-      capacity: input.capacity ?? 4,
+      capacity: input.capacity ?? 5,
       status: 'forming',
       leader_name: leaderName,
       leader_phone: leaderPhone,

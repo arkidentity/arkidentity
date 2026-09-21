@@ -51,24 +51,16 @@ export default async function IowaStudyPage({
               {study.leader_name ? ` · led by ${study.leader_name}` : ''}
             </p>
 
-            {study.resumes ? (
-              <div className="rounded-2xl border border-gray-200 bg-white px-6 py-8 text-center">
-                <p className="font-semibold" style={{ color: 'var(--navy)' }}>
-                  This study is on break.
-                </p>
-                <p className="text-[#4a4540] mt-2">
-                  It picks back up the week of{' '}
-                  {new Intl.DateTimeFormat('en-US', { month: 'long', day: 'numeric', timeZone: 'UTC' }).format(
-                    new Date(`${study.resumes}T00:00:00Z`)
-                  )}
-                  .{' '}
-                  <Link href="/iowa/studies" className="underline" style={{ color: 'var(--navy)' }}>
-                    See what’s meeting online
-                  </Link>
-                  .
-                </p>
-              </div>
-            ) : study.spotsLeft > 0 ? (
+            {study.resumes && (
+              <p className="mb-4 rounded-xl px-4 py-3 text-[#4a4540]" style={{ backgroundColor: '#f1ede7' }}>
+                On break right now. It meets again the week of{' '}
+                {new Intl.DateTimeFormat('en-US', { month: 'long', day: 'numeric', timeZone: 'UTC' }).format(
+                  new Date(`${study.resumes}T00:00:00Z`)
+                )}
+                . Sign up and you’re in from the first week back.
+              </p>
+            )}
+            {study.spotsLeft > 0 ? (
               <JoinForm
                 studyId={study.id}
                 slotLabel={`${DAY_NAMES[study.day_of_week]} · ${formatTime(study.start_time)}`}

@@ -13,6 +13,7 @@ import {
   scheduleWarnings,
   weekDays,
   type SchoolPeriod,
+  type Semester,
 } from '@/lib/campusFormat';
 import WeekView, { MineToggle, WeekLegend, buildWeekItems } from '@/components/iowa/campus/WeekView';
 import {
@@ -38,8 +39,10 @@ export default function CampusCalendar({
   held,
   sync,
   periods,
+  semesters,
 }: {
   periods: SchoolPeriod[];
+  semesters: Semester[];
   held: HeldEvent[];
   sync: { configured: boolean; lastPulledAt: string | null; lastError: string | null };
   weekStart: string;
@@ -56,9 +59,9 @@ export default function CampusCalendar({
   const { call, busy, error } = useCall();
   const days = weekDays(weekStart);
   const items = useMemo(
-    () => buildWeekItems({ days, studies, events, tasks, staff, types, meId, mineOnly, periods }),
+    () => buildWeekItems({ days, studies, events, tasks, staff, types, meId, mineOnly, periods, semesters }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [weekStart, studies, events, tasks, staff, types, meId, mineOnly, periods]
+    [weekStart, studies, events, tasks, staff, types, meId, mineOnly, periods, semesters]
   );
   const editingEvent = editing && editing !== 'new' ? events.find((e) => e.id === editing) : undefined;
   const linkedTasks = editingEvent ? tasks.filter((t) => t.event_id === editingEvent.id && t.status !== 'done') : [];

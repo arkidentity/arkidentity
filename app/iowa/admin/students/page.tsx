@@ -1,4 +1,5 @@
-import { listCampusStudents, listStudies, CURRENT_SEMESTER } from '@/lib/bibleStudies';
+import { listCampusStudents, listStudies } from '@/lib/bibleStudies';
+import { currentSemesterName } from '@/lib/semesters';
 import { listStaff } from '@/lib/iowaStaff';
 import { CampusStudents } from '@/components/iowa/CampusStudents';
 
@@ -22,7 +23,7 @@ export default async function CampusStudentsPage() {
         activeCount: s.activeCount,
         capacity: s.capacity,
       }))}
-      semester={CURRENT_SEMESTER}
+      semester={await currentSemesterName()}
     />
   );
 }

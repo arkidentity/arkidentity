@@ -3,7 +3,7 @@
 import { useMemo, useState } from 'react';
 import type { StudyWithMembers } from '@/lib/bibleStudies';
 import type { CampusEvent } from '@/lib/campusTasks';
-import { addDays, chicagoToday, formatDate, isOverdue, weekDays, type SchoolPeriod } from '@/lib/campusFormat';
+import { addDays, chicagoToday, formatDate, isOverdue, weekDays, type SchoolPeriod, type Semester } from '@/lib/campusFormat';
 import WeekView, { MineToggle, WeekLegend, buildWeekItems } from '@/components/iowa/campus/WeekView';
 import TaskList, { type TaskListProps } from '@/components/iowa/campus/TaskList';
 import { PageShell, Section } from '@/components/iowa/campus/ui';
@@ -11,18 +11,18 @@ import { PageShell, Section } from '@/components/iowa/campus/ui';
 // The first screen: this week at a glance, my tasks, and the counts that show
 // trouble early (overdue, unowned, who's carrying what).
 export default function Dashboard(
-  props: TaskListProps & { weekStart: string; studiesFull: StudyWithMembers[]; weekEvents: CampusEvent[]; periods: SchoolPeriod[] }
+  props: TaskListProps & { weekStart: string; studiesFull: StudyWithMembers[]; weekEvents: CampusEvent[]; periods: SchoolPeriod[]; semesters: Semester[] }
 ) {
-  const { weekStart, studiesFull, weekEvents, tasks, staff, types, meId, periods } = props;
+  const { weekStart, studiesFull, weekEvents, tasks, staff, types, meId, periods, semesters } = props;
   const [mineOnly, setMineOnly] = useState(true);
   const days = weekDays(weekStart);
   const today = chicagoToday();
   const me = staff.find((s) => s.id === meId);
 
   const items = useMemo(
-    () => buildWeekItems({ days, studies: studiesFull, events: weekEvents, tasks, staff, types, meId, mineOnly, periods }),
+    () => buildWeekItems({ days, studies: studiesFull, events: weekEvents, tasks, staff, types, meId, mineOnly, periods, semesters }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [weekStart, studiesFull, weekEvents, tasks, staff, types, meId, mineOnly, periods]
+    [weekStart, studiesFull, weekEvents, tasks, staff, types, meId, mineOnly, periods, semesters]
   );
 
   const open = tasks.filter((t) => t.status !== 'done');

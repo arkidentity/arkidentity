@@ -41,12 +41,23 @@ export interface StudyEvent {
   dayOfWeek: number;
   startTime: string;
   location: string | null;
+  // From the study's semester + school breaks (lib/semesters.ts →
+  // studyCalendarDates). Without them: next weekday, forever.
+  firstDate?: string | null; // 'YYYY-MM-DD'
+  until?: string | null; // 'YYYY-MM-DD', last day of the semester
+  skipDates?: string[]; // break weeks (in person)
+}
+
+const compactDate = (d: string) => d.replace(/-/g, '');
+
+function rrule(event: StudyEvent): string {
+  return event.until ? `RRULE:FREQ=WEEKLY;UNTIL=${compactDate(event.until)}T235959Z` : 'RRULE:FREQ=WEEKLY';
 }
 
 const DESCRIPTION = 'One hour a week with ARK Iowa. Questions: travis@arkidentity.com';
 
 export function studyIcs(event: StudyEvent): string {
-  const date = nextOccurrenceDate(event.dayOfWeek);
+  const date = event.firstDate ? compactDate(event.firstDate) : nextOccurrenceDate(event.dayOfWeek);
   const { start, end } = timeRange(event.startTime);
   const stamp =
     new Date().toISOString().replace(/[-:]/g, '').replace(/\.\d{3}Z$/, 'Z');
@@ -61,7 +72,8 @@ export function studyIcs(event: StudyEvent): string {
     `DTSTAMP:${stamp}`,
     `DTSTART;TZID=${TZ}:${date}T${start}`,
     `DTEND;TZID=${TZ}:${date}T${end}`,
-    'RRULE:FREQ=WEEKLY',
+    rrule(event),
+    ...(event.skipDates ?? []).map((d) => `EXDATE;TZID=${TZ}:${compactDate(d)}T${start}`),
     'SUMMARY:ARK Iowa Bible Study',
     event.location ? `LOCATION:${icsEscape(event.location)}` : '',
     `DESCRIPTION:${icsEscape(DESCRIPTION)}`,
@@ -77,14 +89,14 @@ function icsEscape(s: string): string {
 
 // A "add to Google Calendar" template URL for the same recurring event.
 export function googleCalendarUrl(event: StudyEvent): string {
-  const date = nextOccurrenceDate(event.dayOfWeek);
+  const date = event.firstDate ? compactDate(event.firstDate) : nextOccurrenceDate(event.dayOfWeek);
   const { start, end } = timeRange(event.startTime);
   const params = new URLSearchParams({
     action: 'TEMPLATE',
     text: 'ARK Iowa Bible Study',
     dates: `${date}T${start}/${date}T${end}`,
     ctz: TZ,
-    recur: 'RRULE:FREQ=WEEKLY',
+    recur: rrule(event),
     details: DESCRIPTION,
   });
   if (event.location) params.set('location', event.location);

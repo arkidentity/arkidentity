@@ -12,6 +12,7 @@ import {
   periodsOn,
   studyPausedBy,
   type SchoolPeriod,
+  type Semester,
   type TaskPriority,
 } from '@/lib/campusFormat';
 import { PriorityDot, type StaffOption, type TypeOption } from '@/components/iowa/campus/ui';
@@ -50,8 +51,9 @@ export function buildWeekItems(opts: {
   meId: string | null;
   mineOnly: boolean;
   periods?: SchoolPeriod[];
+  semesters?: Semester[];
 }): WeekItem[] {
-  const { days, studies, events, tasks, staff, types, meId, mineOnly, periods = [] } = opts;
+  const { days, studies, events, tasks, staff, types, meId, mineOnly, periods = [], semesters = [] } = opts;
   const from = days[0];
   const to = days[6];
   const nameOf = (id: string | null) => staff.find((s) => s.id === id)?.name.split(' ')[0] ?? null;
@@ -61,6 +63,9 @@ export function buildWeekItems(opts: {
     if (!LIVE_STUDY.includes(s.status)) continue;
     if (mineOnly && s.point_staff_id !== meId) continue;
     const date = days.find((d) => dayOfWeek(d) === s.day_of_week)!;
+    // Outside its semester (a spring study in December) → not on the grid.
+    const sem = semesters.find((x) => x.name === s.semester);
+    if (sem && (date < sem.starts_on || date > sem.ends_on)) continue;
     const pause = studyPausedBy(s, date, periods);
     items.push({
       key: `s-${s.id}`,

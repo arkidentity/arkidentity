@@ -22,23 +22,28 @@ interface PublicStudy {
   leader_name: string | null;
 }
 
-// During a school break (Settings → School calendar) in-person studies are
-// hidden and only online ones list; `pause` says which break and when it ends.
+// During a school break (Settings → School calendar) signups stay open; `pause`
+// just tells students which break it is and when studies meet again.
+// `tabs` appears once next semester's signup opens (~Nov 30 for spring): the
+// current semester and the next, each with its own studies.
 export default function StudiesBrowser({
   initial,
   pause = null,
+  tabs = [],
 }: {
   initial: PublicStudy[];
   pause?: { name: string; resumes: string } | null;
+  tabs?: { name: string; studies: PublicStudy[] }[];
 }) {
-  const [studies, setStudies] = useState<PublicStudy[]>(initial);
+  const [tab, setTab] = useState(tabs[0]?.name ?? '');
+  const [studies, setStudies] = useState<PublicStudy[]>(tabs[0]?.studies ?? initial);
   const [cells, setCells] = useState<Set<string>>(new Set());
   const [openJoin, setOpenJoin] = useState<string | null>(null);
   const [showStart, setShowStart] = useState(false);
 
   async function refresh() {
     try {
-      const res = await fetch('/api/iowa/studies', { cache: 'no-store' });
+      const res = await fetch(`/api/iowa/studies${tab ? `?semester=${encodeURIComponent(tab)}` : ''}`, { cache: 'no-store' });
       const data = await res.json().catch(() => ({}));
       if (Array.isArray(data.studies)) setStudies(data.studies);
     } catch {
@@ -78,14 +83,43 @@ export default function StudiesBrowser({
 
   return (
     <div className="space-y-10">
-      {pause && (
+      {tabs.length > 1 && (
+        <div className="flex flex-wrap gap-2">
+          {tabs.map((t, i) => (
+            <button
+              key={t.name}
+              type="button"
+              onClick={() => {
+                setTab(t.name);
+                setStudies(t.studies);
+                setOpenJoin(null);
+              }}
+              className="px-4 py-2 rounded-lg font-semibold text-sm transition"
+              style={
+                tab === t.name
+                  ? { backgroundColor: 'var(--navy)', color: 'white' }
+                  : { backgroundColor: '#f1ede7', color: 'var(--navy)' }
+              }
+            >
+              {i === 0 ? `This semester` : t.name}
+            </button>
+          ))}
+        </div>
+      )}
+      {tabs.length > 1 && tab !== tabs[0].name && (
+        <p className="text-[#4a4540] -mt-4">
+          Know your {tab} schedule? Grab a spot now, or start a {tab} study at a time that works.
+        </p>
+      )}
+      {pause && (tabs.length < 2 || tab === tabs[0].name) && (
         <div className="rounded-xl px-5 py-4" style={{ backgroundColor: '#f1ede7', border: '1px solid #e2ddd5' }}>
           <p className="font-semibold" style={{ color: 'var(--navy)' }}>
             Bible studies are off for {pause.name.toLowerCase()}.
           </p>
           <p className="text-[#4a4540] mt-1">
-            They start again {new Intl.DateTimeFormat('en-US', { month: 'long', day: 'numeric', timeZone: 'UTC' }).format(new Date(`${pause.resumes}T00:00:00Z`))}.
-            {studies.length > 0 ? ' Online studies are still meeting. Join one below.' : ' Pick a time below and we’ll get you in when they’re back.'}
+            They meet again the week of{' '}
+            {new Intl.DateTimeFormat('en-US', { month: 'long', day: 'numeric', timeZone: 'UTC' }).format(new Date(`${pause.resumes}T00:00:00Z`))}.
+            Sign up now and you’ll be in from the first week back.
           </p>
         </div>
       )}
@@ -243,7 +277,7 @@ export default function StudiesBrowser({
         </div>
         {showStart && (
           <div className="mt-5">
-            <StartForm />
+            <StartForm semester={tabs.length > 1 ? tab : undefined} />
           </div>
         )}
       </div>
@@ -255,7 +289,7 @@ const inputClass =
   'w-full px-4 py-3 border border-gray-300 rounded-lg text-gray-900 bg-white focus:ring-2 focus:ring-offset-0 focus:border-transparent';
 const YEARS = ['First-year', 'Sophomore', 'Junior', 'Senior', 'Grad', 'Other'];
 
-function StartForm() {
+function StartForm({ semester }: { semester?: string }) {
   const [form, setForm] = useState({
     dayOfWeek: '',
     startTime: '',
@@ -280,6 +314,7 @@ function StartForm() {
         body: JSON.stringify({
           ...form,
           dayOfWeek: Number(form.dayOfWeek),
+          semester,
         }),
       });
       const data = await res.json().catch(() => ({}));

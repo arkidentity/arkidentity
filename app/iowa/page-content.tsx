@@ -24,6 +24,7 @@ interface Props {
   studies: PublicStudy[];
   counts: { running: number; open: number };
   pause?: { name: string; resumes: string } | null;
+  tabs?: { name: string; studies: PublicStudy[] }[];
 }
 
 function PrimaryButton({ className = '' }: { className?: string }) {
@@ -38,7 +39,7 @@ function PrimaryButton({ className = '' }: { className?: string }) {
   );
 }
 
-export default function IowaPageContent({ studies, counts, pause = null }: Props) {
+export default function IowaPageContent({ studies, counts, pause = null, tabs = [] }: Props) {
   return (
     <>
       {/* 1 — HEADER */}
@@ -117,7 +118,7 @@ export default function IowaPageContent({ studies, counts, pause = null }: Props
             being first.
           </p>
 
-          {counts.running > 0 && !pause && (
+          {counts.running > 0 && (
             <div className="bg-white rounded-xl border border-gray-100 shadow-sm px-6 py-5 mb-10">
               <p className="text-[#4a4540]">
                 <span className="font-semibold" style={{ color: 'var(--maroon)' }}>
@@ -304,7 +305,7 @@ export default function IowaPageContent({ studies, counts, pause = null }: Props
             </p>
           </div>
 
-          <StudiesBrowser initial={studies} pause={pause} />
+          <StudiesBrowser initial={studies} pause={pause} tabs={tabs} />
         </div>
       </section>
 

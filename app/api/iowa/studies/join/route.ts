@@ -2,6 +2,7 @@ import { NextResponse, after } from 'next/server';
 import { joinStudy, formatSlot } from '@/lib/bibleStudies';
 import { sendStudyConfirmation, sendStudyRosterAlerts, sendStudyAdminAlert } from '@/lib/email';
 import { googleCalendarUrl } from '@/lib/ics';
+import { studyCalendarDates } from '@/lib/semesters';
 import { queueStudySync } from '@/lib/calendarSync';
 import { queueSeated } from '@/lib/campusAutomation';
 import { siteUrl } from '@/lib/email';
@@ -56,6 +57,7 @@ export async function POST(req: Request) {
       dayOfWeek: study.day_of_week,
       startTime: study.start_time,
       location: study.location,
+      ...(await studyCalendarDates(study)),
     });
 
     // Emails run after the response is sent. `after()` keeps the function alive

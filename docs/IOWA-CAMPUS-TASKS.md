@@ -120,11 +120,39 @@ Settings → School calendar; add each new year when the registrar posts it.
   one-click "Skip the N break weeks". Events with a Meet link and no location count as online and
   get no warnings. Events are never auto-skipped, only warned about.
 - Changing the school calendar re-syncs every study to Google.
-- **Public signup during a break:** in-person studies are hidden from `/iowa` and `/iowa/studies`
-  (online ones still list), a banner says which break and the date they start again (back-to-back
-  periods chain, so finals then winter break reads "Jan 19"), a study's own page says "on break", and
-  joins are refused with the same message. "Start a new study" stays open. `currentBreak()` in
-  `lib/bibleStudies.ts`.
+- **Public signup during a break stays open** (Travis: pausing meetings/reminders/tasks matters;
+  blocking signup doesn't). `/iowa`, `/iowa/studies` and a study's page just show a note: which
+  break, and the week studies meet again (back-to-back periods chain, so finals then winter break
+  reads "Jan 19"). `currentBreak()` in `lib/bibleStudies.ts`.
+
+## Semester turnover (migration 018)
+
+`iowa_semesters` (classes start → last day of finals, + `signup_opens`) replaces the `IOWA_SEMESTER`
+env string. Seeded: Fall 2026, Spring 2027 (opens **Nov 30**, the Monday after Thanksgiving; spring
+early registration starts Nov 9 and runs ~3 weeks by class standing), Summer 2027, Fall 2027
+(estimated). Edited in Settings → Semesters. Code: `lib/semesters.ts`, `lib/semesterPlan.ts`, rules in
+`campusFormat.ts` (`studyMeetsOn`, `nextMeetingOnOrAfter`).
+
+- **Which semester:** current = latest started (winter break still counts as Fall). "Open" =
+  upcoming with signup open; `next` = the turnover target (Fall over Summer when both open in April).
+  The app works with current + open studies (`listStudies()` default).
+- **A study meets** only on its weekday, inside its semester, and (in person) not on a break. That one
+  rule drives reminders, confirms, first-study dates, schedules, week grids, Google (series starts at
+  the first real meeting, UNTIL = semester end) and student calendar invites.
+- **Planning** (Travis: staff, intern, or the student leader can do it; multiplying is the point):
+  per study, "continue as one group" / "multiply into 2–3" / "not continuing", each new group with
+  day, time, place, online, student leader, staff on point (staff only), and which members go where.
+  New studies get `parent_study_id`; placed members are seated and emailed ("You're in for Spring",
+  calendar links); anyone left out gets a re-invite task and can sign up publicly.
+- **Leader link** `/iowa/plan/<token>`: emailed automatically to every current study's student leader
+  the first morning after `signup_opens` (once); copy/resend from the admin. Can't plan twice or touch
+  staff on point. Studies without a leader: staff plan them in the admin.
+- **Public signup** gets "This semester | Spring 2027" tabs from signup_opens; "start a study" works
+  in either. Admin Studies page gets semester tabs; badges show "Spring planned / not planned".
+- **Morning run:** ends past-semester studies (off Google), sends due plan links, and nudges staff about
+  unplanned groups (in the daily email when it's going anyway; on its own only Mondays).
+- Schedule-changed re-invites now fire when next semester opens, not when it starts.
+- **Breaks don't block signup** (Travis): pages only note "on break, meets again the week of …".
 
 ## Email rhythm (2026-09-21, Travis)
 

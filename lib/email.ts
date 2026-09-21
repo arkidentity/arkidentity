@@ -488,3 +488,66 @@ export async function sendEmailBatch(
 }
 
 export { escapeHtml as escapeEmailHtml };
+
+// ---------------------------------------------------------------------------
+// Semester turnover (docs/IOWA-CAMPUS-TASKS.md → Semester turnover)
+// ---------------------------------------------------------------------------
+
+// To a study's student leader when next semester's planning opens.
+export async function sendPlanLink(opts: {
+  to: string;
+  name: string;
+  slot: string;
+  semester: string;
+  url: string;
+  members: string[];
+}) {
+  const { to, name, slot, semester, url, members } = opts;
+  return getResend().emails.send({
+    from: fromAddress(),
+    to,
+    subject: `Plan your group for ${semester}`,
+    html: wrap(`
+      <h1 style="color:#143348; font-size:22px;">What's next for your ${escapeHtml(slot)} group?</h1>
+      <p>${escapeHtml(name)}, ${escapeHtml(semester)} signups are open. Most people know their class schedule by now,
+         so this is the time to set your group's day and time for next semester.</p>
+      <p>You can keep the group together, or <strong>multiply</strong>: split into two groups at two times, each
+         with room for new people. Pick who goes where.</p>
+      ${members.length ? `<p style="color:#8a8378;">Your group right now: ${members.map(escapeHtml).join(', ')}</p>` : ''}
+      <p style="margin:24px 0;">
+        <a href="${url}" style="background:#143348; color:#fff; text-decoration:none; padding:12px 22px; border-radius:8px; font-weight:600; display:inline-block;">Plan ${escapeHtml(semester)}</a>
+      </p>
+      <p style="color:#8a8378; font-size:14px;">Only you have this link. Anyone in your group who isn't placed can still sign up on the website.</p>
+    `),
+  });
+}
+
+// To a student a planner carried into next semester's study.
+export async function sendNextSemesterSeat(opts: {
+  to: string;
+  name: string;
+  semester: string;
+  slot: string;
+  location: string | null;
+  firstDate: string | null; // formatted
+  googleUrl: string;
+  icsUrl: string;
+}) {
+  const { to, name, semester, slot, location, firstDate, googleUrl, icsUrl } = opts;
+  return getResend().emails.send({
+    from: fromAddress(),
+    to,
+    subject: `You're in for ${semester}: ${slot} Bible study`,
+    html: wrap(`
+      <h1 style="color:#143348; font-size:22px;">You're in for ${escapeHtml(semester)}</h1>
+      <p>${escapeHtml(name)}, your group is set: <strong>${escapeHtml(slot)}</strong>${location ? ` at ${escapeHtml(location)}` : ''}${
+        firstDate ? `, starting ${escapeHtml(firstDate)}` : ''
+      }.</p>
+      <p style="margin:24px 0;">
+        <a href="${googleUrl}" style="background:#143348; color:#fff; text-decoration:none; padding:11px 20px; border-radius:8px; font-weight:600; display:inline-block; margin:0 8px 8px 0;">Add to Google Calendar</a>
+        <a href="${icsUrl}" style="border:1px solid #143348; color:#143348; text-decoration:none; padding:11px 20px; border-radius:8px; font-weight:600; display:inline-block;">Add to any other calendar</a>
+      </p>
+      <p style="color:#8a8378; font-size:14px;">Schedule change? Just reply and we'll find you a time that works.</p>
+    `),
+  });
+}

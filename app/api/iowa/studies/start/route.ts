@@ -1,6 +1,7 @@
 import { NextResponse, after } from 'next/server';
 import { startStudy, formatSlot } from '@/lib/bibleStudies';
 import { sendStudyAdminAlert } from '@/lib/email';
+import { semesterContext } from '@/lib/semesters';
 import { queueSeated } from '@/lib/campusAutomation';
 
 export const dynamic = 'force-dynamic';
@@ -17,6 +18,7 @@ export async function POST(req: Request) {
     email?: string;
     year?: string;
     metBy?: string; // staff id | friend | self | other — "Who did you meet?"
+    semester?: string; // the tab they were on (current, or next once open)
     hpField?: string; // honeypot — real users leave it empty
   };
 
@@ -38,7 +40,9 @@ export async function POST(req: Request) {
   if (!email || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return bad('Please enter an email we can reach you at.');
 
   try {
+    const { active } = await semesterContext();
     const { study, member } = await startStudy({
+      semester: body.semester && active.includes(body.semester) ? body.semester : undefined,
       day_of_week: day,
       start_time: startTime,
       name,

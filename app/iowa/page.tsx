@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { currentBreak, listListableStudies, studyCounts } from '@/lib/bibleStudies';
+import { currentBreak, listListableStudies, publicSemesterTabs, studyCounts } from '@/lib/bibleStudies';
 import IowaPageContent from './page-content';
 
 export const dynamic = 'force-dynamic';
@@ -27,10 +27,11 @@ export default async function IowaPage() {
   let studies: Awaited<ReturnType<typeof listListableStudies>> = [];
   let counts = { running: 0, open: 0 };
   let pause: Awaited<ReturnType<typeof currentBreak>> = null;
+  let tabs: Awaited<ReturnType<typeof publicSemesterTabs>> = [];
   try {
-    [studies, counts, pause] = await Promise.all([listListableStudies(), studyCounts(), currentBreak()]);
+    [studies, counts, pause, tabs] = await Promise.all([listListableStudies(), studyCounts(), currentBreak(), publicSemesterTabs()]);
   } catch (e) {
     console.error('[iowa page] study data unavailable', e);
   }
-  return <IowaPageContent studies={studies} counts={counts} pause={pause} />;
+  return <IowaPageContent studies={studies} counts={counts} pause={pause} tabs={tabs} />;
 }

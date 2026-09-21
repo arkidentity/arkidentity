@@ -5,7 +5,7 @@ import { listEvents, listTasks, listTypes } from '@/lib/campusTasks';
 import { addDays, chicagoToday, isValidDate, weekStart } from '@/lib/campusFormat';
 import CampusCalendar from '@/components/iowa/campus/CampusCalendar';
 import { listHeld, pullIfStale, syncStatus } from '@/lib/calendarSync';
-import { listPeriods } from '@/lib/schoolCalendar';
+import { semesterContext } from '@/lib/semesters';
 
 export const dynamic = 'force-dynamic';
 export const metadata: Metadata = { title: 'ARK Iowa — calendar' };
@@ -19,7 +19,7 @@ export default async function IowaCalendarPage({
   const { week } = await searchParams;
   const start = weekStart(isValidDate(week) ? week : chicagoToday());
   await pullIfStale();
-  const [studies, events, tasks, staff, types, me, held, sync, periods] = await Promise.all([
+  const [studies, events, tasks, staff, types, me, held, sync, sem] = await Promise.all([
     listStudies(),
     listEvents(start, addDays(start, 6)),
     listTasks(),
@@ -28,7 +28,7 @@ export default async function IowaCalendarPage({
     currentStaff(),
     listHeld(),
     syncStatus(),
-    listPeriods(),
+    semesterContext(),
   ]);
   return (
     <CampusCalendar
@@ -42,7 +42,8 @@ export default async function IowaCalendarPage({
       meId={me?.id ?? null}
       held={held.filter((h) => !h.decision)}
       sync={sync}
-      periods={periods}
+      periods={sem.periods}
+      semesters={sem.semesters}
     />
   );
 }

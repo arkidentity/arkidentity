@@ -204,3 +204,60 @@ export function breakDatesForSeries(
     periodsOn(d, periods).some((p) => p.pauses_in_person)
   );
 }
+
+// ---------------------------------------------------------------------------
+// Semesters (migration 018) — which studies meet when
+// ---------------------------------------------------------------------------
+
+export interface Semester {
+  name: string;
+  starts_on: string; // first day of classes
+  ends_on: string; // last day of finals
+  signup_opens: string; // next-semester planning + public signup open
+  note: string | null;
+}
+
+// The semester we're in: the latest one that has started (so winter break
+// still counts as Fall until Spring's first day).
+export function currentSemesterOf(semesters: Semester[], today = chicagoToday()): Semester | null {
+  const started = semesters.filter((s) => s.starts_on <= today).sort((a, b) => b.starts_on.localeCompare(a.starts_on));
+  return started[0] ?? semesters.slice().sort((a, b) => a.starts_on.localeCompare(b.starts_on))[0] ?? null;
+}
+
+// Upcoming semesters whose signup/planning window is open.
+export function openSemestersOf(semesters: Semester[], today = chicagoToday()): Semester[] {
+  return semesters
+    .filter((s) => s.starts_on > today && s.signup_opens <= today)
+    .sort((a, b) => a.starts_on.localeCompare(b.starts_on));
+}
+
+// The one rule for "does this study meet on this date?": right weekday, inside
+// its semester, and — if in person — not on a school break.
+export function studyMeetsOn(
+  study: { day_of_week: number; semester?: string; online?: boolean | null },
+  date: string,
+  periods: SchoolPeriod[],
+  semesters: Semester[]
+): boolean {
+  if (dayOfWeek(date) !== study.day_of_week) return false;
+  const sem = semesters.find((s) => s.name === study.semester);
+  if (sem && (date < sem.starts_on || date > sem.ends_on)) return false;
+  return !studyPausedBy(study, date, periods);
+}
+
+// The first date on/after `from` the study meets (null if its semester is over).
+export function nextMeetingOnOrAfter(
+  study: { day_of_week: number; semester?: string; online?: boolean | null },
+  from: string,
+  periods: SchoolPeriod[],
+  semesters: Semester[]
+): string | null {
+  const sem = semesters.find((s) => s.name === study.semester);
+  let d = sem && from < sem.starts_on ? sem.starts_on : from;
+  d = addDays(d, (study.day_of_week - dayOfWeek(d) + 7) % 7);
+  for (let i = 0; i < 60; i++, d = addDays(d, 7)) {
+    if (sem && d > sem.ends_on) return null;
+    if (studyMeetsOn(study, d, periods, semesters)) return d;
+  }
+  return null;
+}

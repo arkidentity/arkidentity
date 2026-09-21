@@ -1,7 +1,9 @@
 import { after } from 'next/server';
 import { getSupabaseAdmin } from '@/lib/supabaseAdmin';
 import { sendTaskAssignedNow as notifyTaskAssignedNow } from '@/lib/taskNotify';
-import { CURRENT_SEMESTER, getStudyWithMembers, listStudies, type StudyMember, type StudyWithMembers } from '@/lib/bibleStudies';
+import { getStudyWithMembers, listStudies, type StudyMember, type StudyWithMembers } from '@/lib/bibleStudies';
+import { semesterContext } from '@/lib/semesters';
+import { endPastSemesterStudies, sendDuePlanLinks, unplannedStudies } from '@/lib/semesterPlan';
 import { listStaff, type IowaStaff } from '@/lib/iowaStaff';
 import { DAY_NAMES, formatSlot, formatTime } from '@/lib/bibleStudyFormat';
 import {
@@ -12,10 +14,11 @@ import {
   eventDatesInRange,
   formatDate,
   isOverdue,
-  studyPausedBy,
+  nextMeetingOnOrAfter,
+  studyMeetsOn,
   type SchoolPeriod,
+  type Semester,
 } from '@/lib/campusFormat';
-import { listPeriods } from '@/lib/schoolCalendar';
 import { listEvents, listTasks, type CampusTask } from '@/lib/campusTasks';
 import { schedulesFor, scheduleHtml, taskLine, type ScheduleLine } from '@/lib/taskDigest';
 import { escapeEmailHtml as esc, sendEmailBatch, siteUrl } from '@/lib/email';
@@ -51,20 +54,18 @@ function chicagoDateTime(iso: string): { date: string; time: string } {
   return { date: `${get('year')}-${get('month')}-${get('day')}`, time: `${get('hour')}:${get('minute')}` };
 }
 
-// The first meeting a student could make: the study's next weekday on/after
-// the day they joined — a week later if they joined after it started that day,
-// and past any break weeks an in-person study doesn't meet.
+// The first meeting a student could make: the study's next real meeting
+// on/after the day they joined (the next day, if they joined after it started
+// that day) — inside its semester and past any break weeks.
 export function firstMeetingDate(
   joinedAt: string,
-  study: { day_of_week: number; start_time: string; online?: boolean | null },
-  periods: SchoolPeriod[] = []
+  study: { day_of_week: number; start_time: string; semester?: string; online?: boolean | null },
+  periods: SchoolPeriod[] = [],
+  semesters: Semester[] = []
 ): string {
   const { date, time } = chicagoDateTime(joinedAt);
-  let delta = (study.day_of_week - dayOfWeek(date) + 7) % 7;
-  if (delta === 0 && time >= study.start_time.slice(0, 5)) delta = 7;
-  let d = addDays(date, delta);
-  for (let i = 0; i < 26 && studyPausedBy(study, d, periods); i++) d = addDays(d, 7);
-  return d;
+  const from = dayOfWeek(date) === study.day_of_week && time >= study.start_time.slice(0, 5) ? addDays(date, 1) : date;
+  return nextMeetingOnOrAfter(study, from, periods, semesters) ?? from;
 }
 
 function smsHref(phone: string, body: string): string {
@@ -188,13 +189,13 @@ export async function onStudentSeated(memberId: string): Promise<string | null> 
     .eq('contact_id', seat.contact_id);
   if ((count ?? 0) > 1) return null;
 
-  const [study, staff, periods] = await Promise.all([getStudyWithMembers(seat.study_id), listStaff(), listPeriods()]);
+  const [study, staff, ctx] = await Promise.all([getStudyWithMembers(seat.study_id), listStaff(), semesterContext()]);
   const m = study?.members.find((x) => x.id === memberId);
   if (!study || !m) return null;
 
   const owner = ownerFor(m, study, staff);
   const ownerName = staff.find((s) => s.id === owner)?.name;
-  const meet = firstMeetingDate(m.joined_at, study, periods);
+  const meet = firstMeetingDate(m.joined_at, study, ctx.periods, ctx.semesters);
   const where = study.location ? ` at ${study.location}` : '';
   const text = `Hey ${first(m.name)}, it's ${ownerName ? first(ownerName) : '___'} from ARK Iowa. So glad you signed up! Looking forward to seeing you at your first Bible study ${DAY_NAMES[study.day_of_week]} at ${formatTime(study.start_time)}${where}.`;
 
@@ -251,8 +252,10 @@ export async function runMorning(): Promise<Record<string, number | string>> {
   // skipped Sunday never leaves a study unconfirmed.
   if (dow === 0) return { skipped: 'Sunday' };
   const targets = dow === 6 ? [addDays(today, 2), addDays(today, 3)] : [addDays(today, 2)];
-  const semester = CURRENT_SEMESTER;
-  const [studies, staff, periods] = await Promise.all([listStudies(semester), listStaff(), listPeriods()]);
+  const ctx = await semesterContext(today);
+  const { periods, semesters } = ctx;
+  const semester = ctx.current?.name ?? '';
+  const [studies, staff] = await Promise.all([listStudies(ctx.active), listStaff()]);
   const activeStaff = staff.filter((s) => s.active);
   const summary: Record<string, number | string> = {};
   const bump = (k: string) => (summary[k] = ((summary[k] as number) ?? 0) + 1);
@@ -271,13 +274,14 @@ export async function runMorning(): Promise<Record<string, number | string>> {
   const confirmByStaff = new Map<string, ConfirmItem[]>();
   for (const target of targets) {
     for (const s of studies) {
-      if (!LIVE.includes(s.status) || s.day_of_week !== dayOfWeek(target)) continue;
-      if (studyPausedBy(s, target, periods)) continue; // break week — nothing to confirm
+      if (!LIVE.includes(s.status)) continue;
+      // Meets that day? (right weekday, inside its semester, not a break week)
+      if (!studyMeetsOn(s, target, periods, semesters)) continue;
       if (!s.point_staff_id || s.leader_name?.trim() || !s.location) continue; // student leader has it
       if (!activeStaff.some((p) => p.id === s.point_staff_id)) continue;
       const members = s.members
         .filter((m) => m.status === 'active')
-        .map((m) => ({ ...m, isNew: firstMeetingDate(m.joined_at, s, periods) === target }));
+        .map((m) => ({ ...m, isNew: firstMeetingDate(m.joined_at, s, periods, semesters) === target }));
       if (members.length === 0) continue;
 
       // Due the day before — or Saturday, when the day before is the Sunday off.
@@ -314,7 +318,7 @@ export async function runMorning(): Promise<Record<string, number | string>> {
     if (!LIVE.includes(s.status)) continue;
     for (const m of s.members) {
       if (m.status !== 'active' || m.first_showed !== null || m.first_show_asked_on) continue;
-      const firstDate = firstMeetingDate(m.joined_at, s, periods);
+      const firstDate = firstMeetingDate(m.joined_at, s, periods, semesters);
       if (firstDate >= today || firstDate < addDays(today, -3)) continue;
       const ask = [s.point_staff_id, m.met_by_staff_id].find((id) => id && activeStaff.some((p) => p.id === id));
       if (!ask) continue;
@@ -326,8 +330,20 @@ export async function runMorning(): Promise<Record<string, number | string>> {
     }
   }
 
+  // --- Semester turnover -----------------------------------------------------
+  // Past-semester studies end; once next semester opens, leaders get their
+  // plan link (once), and staff see which of their groups haven't planned.
+  summary.studiesEnded = await endPastSemesterStudies(ctx);
+  summary.planLinksSent = await sendDuePlanLinks(ctx, studies);
+  const unplannedByStaff = new Map<string, StudyWithMembers[]>();
+  for (const s of unplannedStudies(studies, ctx)) {
+    if (s.point_staff_id) unplannedByStaff.set(s.point_staff_id, [...(unplannedByStaff.get(s.point_staff_id) ?? []), s]);
+  }
+
   // --- 4. Stale students ---------------------------------------------------
-  Object.assign(summary, await staleStudents(staff, today, semester));
+  // Re-invites aim at the semester students can sign up for next: the open
+  // upcoming one (from ~Nov 30 for spring), else the current one.
+  Object.assign(summary, await staleStudents(staff, today, semester, ctx.next?.name ?? semester));
 
   // --- The email: one per person, only if there's something in it ----------
   // Monday is the week view (whole week, studies + events, every open task).
@@ -355,6 +371,8 @@ export async function runMorning(): Promise<Record<string, number | string>> {
         shows: showByStaff.get(p.id) ?? [],
         tasks: mine,
         schedule: schedules.get(p.id) ?? [],
+        unplanned: unplannedByStaff.get(p.id) ?? [],
+        nextSemester: ctx.next?.name ?? null,
       });
     })
     .filter((e): e is NonNullable<typeof e> => !!e);
@@ -365,7 +383,8 @@ export async function runMorning(): Promise<Record<string, number | string>> {
 async function staleStudents(
   staff: IowaStaff[],
   today: string,
-  semester: string
+  semester: string,
+  reinviteSemester: string
 ): Promise<Record<string, number>> {
   const db = getSupabaseAdmin();
   const counts = { reconnect: 0, place: 0, reinvite: 0 };
@@ -422,8 +441,8 @@ async function staleStudents(
     }
 
     const why = last.drop_note ? ` (${last.drop_note})` : '';
-    if (last.drop_reason === 'schedule_changed' && last.bible_studies?.semester !== semester) {
-      if (await createAutoTask({ ...base, key: `reinvite:${c.contact_id}:${semester}`, kind: 'reinvite', title: `Re-invite ${c.contacts.name} — new semester`, description: [who, met, `Dropped in ${last.bible_studies?.semester} because their schedule changed${why}. New semester, new schedule, so invite them to a study that fits.`, '', ideas(leader)].filter((x) => x !== null).join('\n') })) counts.reinvite++;
+    if (last.drop_reason === 'schedule_changed' && last.bible_studies?.semester !== reinviteSemester) {
+      if (await createAutoTask({ ...base, key: `reinvite:${c.contact_id}:${reinviteSemester}`, kind: 'reinvite', title: `Re-invite ${c.contacts.name} for ${reinviteSemester}`, description: [who, met, `Dropped in ${last.bible_studies?.semester} because their schedule changed${why}. ${reinviteSemester} signup is open, so invite them to a study that fits their new schedule.`, '', ideas(leader)].filter((x) => x !== null).join('\n') })) counts.reinvite++;
     } else if (last.drop_reason === 'unresponsive' && last.left_at && chicagoDateTime(last.left_at).date <= addDays(today, -30)) {
       if (await createAutoTask({ ...base, key: `reconnect:${c.contact_id}:${semester}`, kind: 'reconnect', title: `Reconnect with ${c.contacts.name}`, description: [who, met, `Dropped for being unresponsive${why} 30+ days ago. Worth one more try, maybe a different kind of touch.`, '', ideas(leader)].filter((x) => x !== null).join('\n') })) counts.reconnect++;
     }
@@ -443,11 +462,16 @@ function morningEmail(o: {
   shows: ShowItem[];
   tasks: CampusTask[];
   schedule: ScheduleLine[];
+  unplanned: StudyWithMembers[];
+  nextSemester: string | null;
 }) {
-  const { p, today, monday, confirms, shows, tasks, schedule } = o;
+  const { p, today, monday, confirms, shows, tasks, schedule, unplanned, nextSemester } = o;
   const overdue = tasks.filter((t) => isOverdue(t, today)).length;
   // Nothing in any section → no email that day.
-  if (!confirms.length && !shows.length && !tasks.length && !schedule.length) return null;
+  // The unplanned-groups nudge rides along; it never sends an email on its own
+  // except on Mondays, so it doesn't nag daily.
+  const nudge = unplanned.length > 0 && nextSemester && (monday || confirms.length || shows.length || tasks.length || schedule.length);
+  if (!confirms.length && !shows.length && !tasks.length && !schedule.length && !nudge) return null;
   const me = first(p.name);
   const section = (title: string, sub?: string) =>
     `<h2 style="color:#143348; font-size:17px; margin:24px 0 4px;">${title}</h2>${
@@ -492,6 +516,20 @@ function morningEmail(o: {
   if (tasks.length) {
     parts.push(section(monday ? `Your open tasks (${tasks.length})` : 'Tasks due today', overdue ? `<span style="color:#b91c1c;">${overdue} overdue</span>` : undefined));
     parts.push(`<ul style="padding-left:18px; margin:0;">${tasks.map((t) => taskLine(t, today)).join('')}</ul>`);
+  }
+
+  if (nudge) {
+    parts.push(
+      section(
+        `${unplanned.length} group${unplanned.length === 1 ? '' : 's'} haven’t planned ${nextSemester}`,
+        'Plan it with them in the admin, or nudge the student leader to use their link.'
+      )
+    );
+    parts.push(
+      `<ul style="padding-left:18px; margin:0;">${unplanned
+        .map((s) => `<li style="margin:0 0 6px;">${esc(formatSlot(s))}${s.leader_name ? ` · leader ${esc(s.leader_name)}${s.plan_sent_at ? ' (link sent)' : ''}` : ' · no student leader'}</li>`)
+        .join('')}</ul><p style="margin:6px 0 0;"><a href="${siteUrl()}/iowa/admin/studies" style="color:#143348;">Open studies →</a></p>`
+    );
   }
 
   if (schedule.length) {

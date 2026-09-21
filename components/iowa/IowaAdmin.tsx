@@ -6,6 +6,7 @@ import type { StudyWithMembers, StudyMember, StudyStatus } from '@/lib/bibleStud
 import { DAY_NAMES, PICKER_DAYS, formatTime } from '@/lib/bibleStudyFormat';
 import { DROP_REASONS, formatDate, isOverdue, type TaskPriority, type TaskStatus } from '@/lib/campusFormat';
 import { OverdueTag, PriorityBadge, StatusPill } from '@/components/iowa/campus/ui';
+import PlanForm from '@/components/iowa/PlanForm';
 
 // Open campus tasks linked to a study, shown inside that study's editor.
 export interface StudyTask {
@@ -17,6 +18,8 @@ export interface StudyTask {
   owner_name: string | null;
 }
 const StudyTasks = createContext<Record<string, StudyTask[]>>({});
+// Upcoming semesters open for planning (only when viewing the current one).
+const Planning = createContext<{ name: string; starts_on: string }[]>([]);
 
 const STATUSES: StudyStatus[] = ['pending_setup', 'forming', 'full', 'activated', 'paused', 'ended'];
 
@@ -60,7 +63,9 @@ export default function IowaAdmin({
   staff,
   meId,
   tasksByStudy = {},
+  planning = [],
 }: {
+  planning?: { name: string; starts_on: string }[];
   initial: StudyWithMembers[];
   semester: string;
   staff: StaffOption[];
@@ -127,6 +132,7 @@ export default function IowaAdmin({
 
   return (
     <StudyTasks.Provider value={tasksByStudy}>
+    <Planning.Provider value={planning}>
     <div style={{ background: '#FAF8F5', minHeight: '100vh', color: '#1f2937' }}>
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="flex items-baseline justify-between mb-2">
@@ -178,7 +184,7 @@ export default function IowaAdmin({
           >
             {showNew ? 'Close' : '+ New study'}
           </button>
-          {showNew && <NewStudyForm staff={staff} meId={meId} busy={busy} onCreate={(b) => call('/api/iowa/admin/studies', 'POST', b)} />}
+          {showNew && <NewStudyForm staff={staff} meId={meId} busy={busy} onCreate={(b) => call('/api/iowa/admin/studies', 'POST', { ...(b as object), semester })} />}
         </div>
 
         {pending.length > 0 && (
@@ -252,6 +258,7 @@ export default function IowaAdmin({
         </Section>
       </div>
     </div>
+    </Planning.Provider>
     </StudyTasks.Provider>
   );
 }
@@ -310,6 +317,7 @@ function StudyRow({
           <span className="text-sm text-[#8a8378] truncate">{s.location || '— no location'}</span>
         </span>
         <span className="flex items-center gap-2 shrink-0">
+          <PlanBadge s={s} />
           {s.point_staff_id && staff.get(s.point_staff_id) && (
             <span
               className="text-xs font-semibold px-2 py-0.5 rounded-full"
@@ -542,6 +550,8 @@ function StudyEditor({
       >
         Save study
       </button>
+
+      <NextSemester s={s} staff={staff} />
 
       <LinkedTasks studyId={s.id} />
 
@@ -1010,5 +1020,117 @@ function OnlineBox({ checked, onChange }: { checked: boolean; onChange: (v: bool
         </span>
       </span>
     </label>
+  );
+}
+
+const LIVE_STATUSES = ['forming', 'full', 'activated'];
+
+function PlanBadge({ s }: { s: StudyWithMembers }) {
+  const planning = useContext(Planning);
+  if (planning.length === 0 || !LIVE_STATUSES.includes(s.status) || s.activeCount === 0) return null;
+  return s.planned_at ? (
+    <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-green-100 text-green-800" title={s.plan_note ?? ''}>
+      {planning[0].name.split(' ')[0]} planned
+    </span>
+  ) : (
+    <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800">
+      {planning[0].name.split(' ')[0]}: not planned
+    </span>
+  );
+}
+
+// Semester turnover: plan this group's next semester here, or hand it to the
+// student leader through their private link (emailed automatically when
+// signup opens; copy or resend it here).
+function NextSemester({ s, staff }: { s: StudyWithMembers; staff: Map<string, StaffOption> }) {
+  const router = useRouter();
+  const planning = useContext(Planning);
+  const [open, setOpen] = useState(false);
+  const [msg, setMsg] = useState('');
+  if (planning.length === 0 || !LIVE_STATUSES.includes(s.status)) return null;
+
+  async function link(send: boolean) {
+    setMsg('');
+    const res = await fetch(`/api/iowa/admin/studies/${s.id}/plan-link`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ send }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) return setMsg(data.error || 'Something went wrong.');
+    if (!send) {
+      await navigator.clipboard?.writeText(data.url).catch(() => {});
+      setMsg(`Copied: ${data.url}`);
+    } else {
+      setMsg(`Emailed to ${s.leader_email}.`);
+      router.refresh();
+    }
+  }
+
+  const view = {
+    study: {
+      id: s.id,
+      slot: `${DAY_NAMES[s.day_of_week].slice(0, 3)} ${formatTime(s.start_time)}`,
+      location: s.location,
+      semester: s.semester,
+      online: s.online,
+      leader_name: s.leader_name,
+      leader_phone: s.leader_phone,
+      leader_email: s.leader_email,
+      point_staff_id: s.point_staff_id,
+      planned_at: s.planned_at,
+      plan_note: s.plan_note,
+    },
+    members: s.members.filter((m) => m.status === 'active').map((m) => ({ id: m.id, name: m.name })),
+    semesters: planning,
+  };
+
+  return (
+    <div className="pt-3 border-t border-gray-100">
+      <p className="text-sm font-bold mb-1" style={{ color: 'var(--navy)' }}>
+        {planning[0].name}
+      </p>
+      {s.planned_at ? (
+        <p className="text-sm text-green-800">✓ {s.plan_note}</p>
+      ) : (
+        <>
+          <p className="text-sm text-[#8a8378] mb-2">
+            {s.plan_sent_at
+              ? `Plan link emailed to ${s.leader_name ?? 'the leader'} ${new Date(s.plan_sent_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}.`
+              : s.leader_email
+                ? 'The student leader gets a plan link by email when signup opens.'
+                : 'No student leader email, so plan it here.'}
+          </p>
+          <div className="flex flex-wrap gap-2">
+            <button
+              onClick={() => setOpen((v) => !v)}
+              className="px-3 py-1.5 rounded-md text-sm font-semibold text-white"
+              style={{ backgroundColor: 'var(--navy)' }}
+            >
+              {open ? 'Close' : `Plan ${planning[0].name}`}
+            </button>
+            <button onClick={() => link(false)} className="px-3 py-1.5 rounded-md text-sm font-semibold border border-gray-300" style={{ color: 'var(--navy)' }}>
+              Copy leader link
+            </button>
+            {s.leader_email && (
+              <button onClick={() => link(true)} className="px-3 py-1.5 rounded-md text-sm font-semibold border border-gray-300" style={{ color: 'var(--navy)' }}>
+                {s.plan_sent_at ? 'Resend' : 'Email'} leader link
+              </button>
+            )}
+          </div>
+          {msg && <p className="text-xs text-[#8a8378] mt-2 break-all">{msg}</p>}
+          {open && (
+            <div className="mt-4">
+              <PlanForm
+                view={view}
+                submitUrl={`/api/iowa/admin/studies/${s.id}/plan`}
+                staff={[...staff.values()].filter((p) => p.active).map((p) => ({ id: p.id, name: p.name }))}
+                onDone={() => router.refresh()}
+              />
+            </div>
+          )}
+        </>
+      )}
+    </div>
   );
 }

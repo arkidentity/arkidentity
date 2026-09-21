@@ -3,6 +3,7 @@ import { listStudies, createStudy } from '@/lib/bibleStudies';
 import { currentStaff } from '@/lib/iowaStaff';
 import { notifyAssignment } from '@/lib/studyAssignment';
 import { queueStudySync } from '@/lib/calendarSync';
+import { semesterContext } from '@/lib/semesters';
 
 export const dynamic = 'force-dynamic';
 
@@ -30,6 +31,7 @@ export async function POST(req: Request) {
     addLeaderAsMember?: boolean;
     pointStaffId?: string;
     online?: boolean;
+    semester?: string; // the tab it was created from; must be current or open
   };
 
   const day = Number(body.dayOfWeek);
@@ -38,7 +40,10 @@ export async function POST(req: Request) {
   if (!body.location?.trim()) return bad('A study needs a location before it can be listed.');
 
   try {
+    const { active } = await semesterContext();
+    if (body.semester && !active.includes(body.semester)) return bad('That semester isn’t open.');
     const study = await createStudy({
+      semester: body.semester,
       day_of_week: day,
       start_time: body.startTime,
       location: body.location,

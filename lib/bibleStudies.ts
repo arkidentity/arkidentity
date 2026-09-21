@@ -3,6 +3,7 @@ import { findOrCreateContact, ensureTag } from '@/lib/contacts';
 // Re-exported below for callers, but also needed locally.
 import { DAY_NAMES as DAYS, formatTime as fmtTime } from '@/lib/bibleStudyFormat';
 import { listPeriods } from '@/lib/schoolCalendar';
+import { currentSemesterName, semesterContext } from '@/lib/semesters';
 import { addDays, chicagoToday } from '@/lib/campusFormat';
 
 // Data layer for the ARK Iowa Bible Study system. Server-only — every function
@@ -13,7 +14,8 @@ import { addDays, chicagoToday } from '@/lib/campusFormat';
 export { blockOf, formatTime, formatSlot, DAY_NAMES } from '@/lib/bibleStudyFormat';
 export type { TimeBlock } from '@/lib/bibleStudyFormat';
 
-export const CURRENT_SEMESTER = process.env.IOWA_SEMESTER || 'Fall 2026';
+// Which semester(s) the app works with comes from iowa_semesters (migration
+// 018) — see lib/semesters.ts. IOWA_SEMESTER is only a fallback.
 
 export type StudyStatus =
   | 'pending_setup' | 'forming' | 'full' | 'activated' | 'paused' | 'ended';
@@ -56,6 +58,10 @@ export interface BibleStudy {
   point_staff_id: string | null; // staff member who has to be there (migration 011)
   google_event_id: string | null; // mirrored ARK Campus calendar event (migration 014)
   online: boolean; // Google Meet study — keeps meeting through breaks and summer (migration 017)
+  plan_token: string | null; // semester turnover (migration 018) — leader's private plan link
+  plan_sent_at: string | null;
+  planned_at: string | null; // next semester settled
+  plan_note: string | null;
   created_at: string;
 }
 
@@ -100,6 +106,7 @@ export interface PublicStudy {
   spotsLeft: number;
   leader_name: string | null;
   online: boolean;
+  semester: string;
   resumes: string | null; // in-person study during a school break: first day back
 }
 
@@ -179,9 +186,9 @@ export async function currentBreak(today = chicagoToday()): Promise<{ name: stri
 
 // A study a student can browse to and join: has room, is accepting, and its
 // status is one that takes signups. `pending_setup`, `full`, `paused`, `ended`
-// never show — and during a school break only online studies do.
-export function isListable(study: BibleStudy, activeCount: number, onBreak = false): boolean {
-  if (onBreak && !study.online) return false;
+// never show. School breaks don't hide anything (Travis: never block signup) —
+// they only pause the meetings, reminders and tasks.
+export function isListable(study: BibleStudy, activeCount: number): boolean {
   if (!study.accepting_signups) return false;
   if (study.status !== 'forming' && study.status !== 'activated') return false;
   if (!study.location) return false;
@@ -192,14 +199,8 @@ export function isListable(study: BibleStudy, activeCount: number, onBreak = fal
 // Reads
 // ---------------------------------------------------------------------------
 
-async function membersBySemester(semester: string): Promise<Map<string, StudyMember[]>> {
+async function membersForStudies(ids: string[]): Promise<Map<string, StudyMember[]>> {
   const db = getSupabaseAdmin();
-  const { data: studies, error: sErr } = await db
-    .from('bible_studies')
-    .select('id')
-    .eq('semester', semester);
-  if (sErr) throw sErr;
-  const ids = (studies ?? []).map((s) => s.id);
   const byStudy = new Map<string, StudyMember[]>();
   if (ids.length === 0) return byStudy;
 
@@ -218,18 +219,22 @@ async function membersBySemester(semester: string): Promise<Map<string, StudyMem
   return byStudy;
 }
 
-// Full admin view: every study in the semester with its roster attached.
-export async function listStudies(semester = CURRENT_SEMESTER): Promise<StudyWithMembers[]> {
+// Full admin view: every study in the given semester(s) with rosters attached.
+// Default: the active semesters — the current one plus any upcoming semester
+// open for planning (so spring studies exist alongside fall ones in December).
+export async function listStudies(semester?: string | string[]): Promise<StudyWithMembers[]> {
+  const names = semester ? [semester].flat() : (await semesterContext()).active;
+  if (names.length === 0) return [];
   const db = getSupabaseAdmin();
   const { data, error } = await db
     .from('bible_studies')
     .select('*')
-    .eq('semester', semester)
+    .in('semester', names)
     .order('day_of_week', { ascending: true })
     .order('start_time', { ascending: true });
   if (error) throw error;
 
-  const byStudy = await membersBySemester(semester);
+  const byStudy = await membersForStudies((data ?? []).map((s) => s.id as string));
   return (data ?? []).map((s) => {
     const members = byStudy.get(s.id) ?? [];
     return {
@@ -242,23 +247,30 @@ export async function listStudies(semester = CURRENT_SEMESTER): Promise<StudyWit
 
 // Headline numbers for the landing page. Only real, current counts — callers
 // should hide the line when `running` is 0 rather than show a zero.
-export async function studyCounts(
-  semester = CURRENT_SEMESTER
-): Promise<{ running: number; open: number }> {
-  const [all, pause] = await Promise.all([listStudies(semester), currentBreak()]);
+export async function studyCounts(semester?: string): Promise<{ running: number; open: number }> {
+  const all = await listStudies(semester ?? (await currentSemesterName()));
   return {
     running: all.filter(
       (s) => s.status === 'forming' || s.status === 'full' || s.status === 'activated'
     ).length,
-    open: all.filter((s) => isListable(s, s.activeCount, !!pause)).length,
+    open: all.filter((s) => isListable(s, s.activeCount)).length,
   };
 }
 
+// Public signup tabs: the current semester, plus any upcoming one whose signup
+// is open. Empty when only the current semester is showing (no tabs needed).
+export async function publicSemesterTabs(): Promise<{ name: string; studies: PublicStudy[] }[]> {
+  const ctx = await semesterContext();
+  if (!ctx.current || ctx.open.length === 0) return [];
+  const names = [ctx.current.name, ...ctx.open.map((x) => x.name)];
+  return Promise.all(names.map(async (name) => ({ name, studies: await listListableStudies(name) })));
+}
+
 // Student browser: only studies with an open seat, no PII.
-export async function listListableStudies(semester = CURRENT_SEMESTER): Promise<PublicStudy[]> {
-  const [all, pause] = await Promise.all([listStudies(semester), currentBreak()]);
+export async function listListableStudies(semester?: string): Promise<PublicStudy[]> {
+  const all = await listStudies(semester ?? (await currentSemesterName()));
   return all
-    .filter((s) => isListable(s, s.activeCount, !!pause))
+    .filter((s) => isListable(s, s.activeCount))
     .map((s) => ({
       id: s.id,
       day_of_week: s.day_of_week,
@@ -269,6 +281,7 @@ export async function listListableStudies(semester = CURRENT_SEMESTER): Promise<
       spotsLeft: spotsLeft(s.capacity, s.activeCount),
       leader_name: s.leader_name,
       online: s.online,
+      semester: s.semester,
       resumes: null,
     }));
 }
@@ -316,6 +329,7 @@ export async function getPublicStudy(id: string): Promise<PublicStudy | null> {
     spotsLeft: spotsLeft(s.capacity, s.activeCount),
     leader_name: s.leader_name,
     online: s.online,
+    semester: s.semester,
     resumes: pause?.resumes ?? null,
   };
 }
@@ -364,11 +378,6 @@ export async function joinStudy(input: JoinInput): Promise<JoinResult> {
   const db = getSupabaseAdmin();
   const study = await getStudyWithMembers(input.studyId);
   if (!study) throw new Error('That study no longer exists.');
-  const pause = study.online ? null : await currentBreak();
-  if (pause) {
-    const back = new Intl.DateTimeFormat('en-US', { month: 'long', day: 'numeric', timeZone: 'UTC' }).format(new Date(`${pause.resumes}T00:00:00Z`));
-    throw new Error(`Bible studies are off for ${pause.name.toLowerCase()}. They start again ${back}.`);
-  }
   if (!isListable(study, study.activeCount)) {
     throw new Error('That study just filled — pick another open time or start one.');
   }
@@ -494,7 +503,7 @@ export async function startStudy(
   const { data: study, error } = await db
     .from('bible_studies')
     .insert({
-      semester: input.semester || CURRENT_SEMESTER,
+      semester: input.semester || (await currentSemesterName()),
       day_of_week: input.day_of_week,
       start_time: input.start_time,
       status: 'pending_setup',
@@ -533,6 +542,7 @@ export interface CreateStudyInput {
   notes?: string;
   point_staff_id?: string | null;
   online?: boolean;
+  parent_study_id?: string | null; // a group continuing / multiplying from last semester
   semester?: string;
   // When the leader is one of the four students (not Travis facilitating),
   // also seat them on the roster so the count is right.
@@ -548,7 +558,7 @@ export async function createStudy(input: CreateStudyInput): Promise<BibleStudy> 
   const { data, error } = await db
     .from('bible_studies')
     .insert({
-      semester: input.semester || CURRENT_SEMESTER,
+      semester: input.semester || (await currentSemesterName()),
       day_of_week: input.day_of_week,
       start_time: input.start_time,
       location: input.location.trim(),
@@ -560,6 +570,7 @@ export async function createStudy(input: CreateStudyInput): Promise<BibleStudy> 
       notes: input.notes?.trim() || null,
       point_staff_id: input.point_staff_id || null,
       online: !!input.online,
+      parent_study_id: input.parent_study_id || null,
     })
     .select('*')
     .single();

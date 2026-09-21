@@ -3,6 +3,7 @@ import { getStudyWithMembers, formatSlot } from '@/lib/bibleStudies';
 import { getStaff, type IowaStaff } from '@/lib/iowaStaff';
 import { sendStudyAssignment, siteUrl } from '@/lib/email';
 import { googleCalendarUrl } from '@/lib/ics';
+import { studyCalendarDates } from '@/lib/semesters';
 
 // Email a staff member that a study is now on them. Runs after the response via
 // `after()` (a bare promise gets frozen on Vercel). Failures are logged only —
@@ -26,6 +27,7 @@ export function notifyAssignment(studyId: string, staffId: string, assignedBy: I
           dayOfWeek: study.day_of_week,
           startTime: study.start_time,
           location: study.location,
+          ...(await studyCalendarDates(study)),
         }),
       });
     } catch (e) {

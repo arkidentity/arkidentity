@@ -1,5 +1,6 @@
 import { getPublicStudy } from '@/lib/bibleStudies';
 import { studyIcs } from '@/lib/ics';
+import { studyCalendarDates } from '@/lib/semesters';
 
 export const dynamic = 'force-dynamic';
 
@@ -20,6 +21,7 @@ export async function GET(
     dayOfWeek: study.day_of_week,
     startTime: study.start_time,
     location: study.location,
+    ...(await studyCalendarDates(study)),
   });
 
   return new Response(body, {

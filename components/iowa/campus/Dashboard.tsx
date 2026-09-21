@@ -72,9 +72,9 @@ export default function Dashboard({
 
       <div id="tasks" className="grid lg:grid-cols-3 gap-8 scroll-mt-4">
         <div className="lg:col-span-2">
-          <Section title="Tasks">
-            <TaskList {...taskProps} />
-          </Section>
+          <section className="mb-10">
+            <TaskList {...taskProps} title="Tasks" />
+          </section>
         </div>
         <div>
           <Section title="Who's carrying what">

@@ -42,6 +42,8 @@ export interface TaskListProps {
   prefill?: { study?: string; event?: string; student?: string } | null;
   // Dashboard: just my open tasks, no filters.
   compact?: boolean;
+  // Render a heading with + New task on the same line (saves a row on phones).
+  title?: string;
 }
 
 type View = 'mine' | 'all' | 'unowned' | 'overdue' | 'done';
@@ -106,6 +108,16 @@ export default function TaskList(props: TaskListProps) {
 
       {!compact && (
         <>
+          {props.title && (
+            <div className="flex items-center justify-between gap-3 mb-3">
+              <h2 className="text-lg font-bold" style={{ color: 'var(--navy)' }}>
+                {props.title}
+              </h2>
+              <button onClick={() => setShowNew((v) => !v)} className={btnPrimary} style={{ backgroundColor: 'var(--navy)' }}>
+                {showNew ? 'Close' : '+ New task'}
+              </button>
+            </div>
+          )}
           <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
             <div className="inline-flex flex-wrap rounded-lg border border-gray-300 overflow-hidden text-sm font-semibold">
               {(
@@ -131,9 +143,11 @@ export default function TaskList(props: TaskListProps) {
                 </button>
               ))}
             </div>
-            <button onClick={() => setShowNew((v) => !v)} className={btnPrimary} style={{ backgroundColor: 'var(--navy)' }}>
-              {showNew ? 'Close' : '+ New task'}
-            </button>
+            {!props.title && (
+              <button onClick={() => setShowNew((v) => !v)} className={btnPrimary} style={{ backgroundColor: 'var(--navy)' }}>
+                {showNew ? 'Close' : '+ New task'}
+              </button>
+            )}
           </div>
           <div className="grid sm:grid-cols-3 gap-2 mb-5">
             <input className={input} placeholder="Search tasks" value={search} onChange={(e) => setSearch(e.target.value)} />
@@ -219,7 +233,9 @@ function TaskRow(
           <span className="block text-xs text-[#8a8378] mt-0.5">
             {[
               owner ? owner.name : 'Unowned',
-              t.helper_ids.length ? `+${t.helper_ids.length} helping` : null,
+              t.helper_ids.length
+                ? `with ${t.helper_ids.map((id) => staff.find((s) => s.id === id)?.name.split(' ')[0] ?? '?').join(', ')}`
+                : null,
               type?.name,
               link ? `→ ${link}` : null,
             ]
@@ -241,43 +257,49 @@ function TaskRow(
   );
 }
 
+// Opening a task shows a short summary + quick actions. The full edit form and
+// the history each open only when asked, so a list of tasks stays scannable.
 function TaskDetail(props: TaskListProps & { t: CampusTask; busy: boolean; call: CallFn }) {
   const { t, meId, staff, activity, busy, call } = props;
+  const [editing, setEditing] = useState(false);
+  const [history, setHistory] = useState(false);
+  const [saved, setSaved] = useState(false);
   const url = `/api/iowa/admin/tasks/${t.id}`;
   const mineOwned = t.owner_id === meId;
   const helping = !!meId && t.helper_ids.includes(meId);
   // Activity with no person is the automation (welcome, confirm, reconnect…).
   const nameOf = (id: string | null) => (id ? staff.find((s) => s.id === id)?.name ?? 'Someone' : 'Auto:');
   const log = activity.filter((a) => a.task_id === t.id);
-  const helpers = t.helper_ids.map((id) => nameOf(id));
+  const owner = staff.find((s) => s.id === t.owner_id);
+  const link = linkLabel(t, props);
+  const toggle = 'text-xs font-semibold px-2 py-1 rounded border border-gray-300 hover:bg-gray-50';
 
   return (
-    <div className="border-t border-gray-100 px-4 py-4 space-y-4">
+    <div className="border-t border-gray-100 px-4 py-3 space-y-3">
       {t.description && <p className="text-sm text-[#4a4540] whitespace-pre-wrap">{t.description}</p>}
+      <p className="text-xs text-[#8a8378]">
+        {[
+          t.due_date ? `Due ${formatDate(t.due_date)}` : 'No due date',
+          owner ? `Owner: ${owner.name}` : 'Unowned',
+          t.helper_ids.length ? `Also on it: ${t.helper_ids.map((id) => nameOf(id)).join(', ')}` : null,
+          link ? `For ${link}` : null,
+        ]
+          .filter(Boolean)
+          .join(' · ')}
+      </p>
 
-      <div className="flex flex-wrap gap-2">
-        {t.status !== 'done' && (
-          <button
-            disabled={busy}
-            onClick={() => call(url, 'PATCH', { status: 'done' })}
-            className={btnPrimary}
-            style={{ backgroundColor: '#15803d' }}
-          >
+      <div className="flex flex-wrap items-center gap-2">
+        {t.status !== 'done' ? (
+          <button disabled={busy} onClick={() => call(url, 'PATCH', { status: 'done' })} className={btnPrimary} style={{ backgroundColor: '#15803d' }}>
             ✓ Mark done
           </button>
-        )}
-        {t.status === 'done' && (
+        ) : (
           <button disabled={busy} onClick={() => call(url, 'PATCH', { status: 'open' })} className={btnSmall}>
             Reopen
           </button>
         )}
         {!mineOwned && meId && (
-          <button
-            disabled={busy}
-            onClick={() => call(url, 'PATCH', { owner_id: meId })}
-            className={btnPrimary}
-            style={{ backgroundColor: 'var(--navy)' }}
-          >
+          <button disabled={busy} onClick={() => call(url, 'PATCH', { owner_id: meId })} className={btnSmall}>
             Take this
           </button>
         )}
@@ -286,32 +308,49 @@ function TaskDetail(props: TaskListProps & { t: CampusTask; busy: boolean; call:
             {helping ? 'Stop helping' : 'I can help'}
           </button>
         )}
+        <span className="ml-auto flex gap-2">
+          <button onClick={() => { setEditing((v) => !v); setSaved(false); }} className={toggle} style={{ color: 'var(--navy)' }}>
+            {editing ? 'Close edit ▴' : 'Edit ▾'}
+          </button>
+          {log.length > 0 && (
+            <button onClick={() => setHistory((v) => !v)} className={toggle} style={{ color: '#8a8378' }}>
+              History ({log.length}) {history ? '▴' : '▾'}
+            </button>
+          )}
+        </span>
       </div>
-      {helpers.length > 0 && <p className="text-sm text-[#8a8378]">Helping: {helpers.join(', ')}</p>}
+      {saved && !editing && <p className="text-xs font-semibold text-green-700">Saved ✓</p>}
 
-      {/* Remount on every save so the form never holds stale values (e.g. after Take this). */}
-      <TaskForm key={t.updated_at} {...props} task={t} />
-
-      {log.length > 0 && (
-        <div className="pt-3 border-t border-gray-100">
-          <p className="text-xs font-semibold uppercase tracking-wide mb-1" style={{ color: '#8a8378' }}>
-            History
-          </p>
-          <ul className="text-xs text-[#8a8378] space-y-0.5">
-            {log.map((a) => (
-              <li key={a.id}>
-                {nameOf(a.staff_id)} {a.action} ·{' '}
-                {new Date(a.created_at).toLocaleString('en-US', {
-                  timeZone: 'America/Chicago',
-                  month: 'short',
-                  day: 'numeric',
-                  hour: 'numeric',
-                  minute: '2-digit',
-                })}
-              </li>
-            ))}
-          </ul>
+      {editing && (
+        <div className="rounded-md border border-gray-200 bg-[#FAF8F5] p-3">
+          {/* Remount on every save so the form never holds stale values (e.g. after Take this). */}
+          <TaskForm
+            key={t.updated_at}
+            {...props}
+            task={t}
+            onDone={() => {
+              setEditing(false);
+              setSaved(true);
+            }}
+          />
         </div>
+      )}
+
+      {history && (
+        <ul className="text-xs text-[#8a8378] space-y-0.5">
+          {log.map((a) => (
+            <li key={a.id}>
+              {nameOf(a.staff_id)} {a.action} ·{' '}
+              {new Date(a.created_at).toLocaleString('en-US', {
+                timeZone: 'America/Chicago',
+                month: 'short',
+                day: 'numeric',
+                hour: 'numeric',
+                minute: '2-digit',
+              })}
+            </li>
+          ))}
+        </ul>
       )}
     </div>
   );
@@ -321,7 +360,11 @@ function TaskDetail(props: TaskListProps & { t: CampusTask; busy: boolean; call:
 function TaskForm(
   props: TaskListProps & { task?: CampusTask; busy: boolean; call: CallFn; onDone?: () => void }
 ) {
-  const { task, staff, types, studies, events, students, meId, prefill, busy, call, onDone } = props;
+  const { task, staff, types, studies, events, students, meId, prefill, onDone } = props;
+  // Its own request state, so a failed save shows right here by the button
+  // instead of at the top of the list, off-screen.
+  const { call, busy, error } = useCall();
+  const [helpers, setHelpers] = useState<string[]>(task?.helper_ids ?? []);
   const [f, setF] = useState({
     title: task?.title ?? '',
     description: task?.description ?? '',
@@ -338,11 +381,12 @@ function TaskForm(
   const taskTypes = types.filter((t) => t.kind === 'task' && (t.active || t.id === f.type_id));
 
   async function save() {
-    const body = { ...f, owner_id: f.owner_id || null };
+    const body = { ...f, owner_id: f.owner_id || null, helper_ids: helpers.filter((id) => id !== f.owner_id) };
     if (task) {
-      await call(`/api/iowa/admin/tasks/${task.id}`, 'PATCH', body);
+      if (await call(`/api/iowa/admin/tasks/${task.id}`, 'PATCH', body)) onDone?.();
     } else if (await call('/api/iowa/admin/tasks', 'POST', body)) {
       setF({ ...f, title: '', description: '', due_date: '' });
+      setHelpers([]);
       onDone?.();
     }
   }
@@ -390,6 +434,27 @@ function TaskForm(
             ))}
         </select>
       </Field>
+      <Field label="Also on it" className="sm:col-span-2">
+        <div className="flex flex-wrap gap-1.5 py-1">
+          {staff
+            .filter((p) => (p.active || helpers.includes(p.id)) && p.id !== f.owner_id)
+            .map((p) => {
+              const on = helpers.includes(p.id);
+              return (
+                <button
+                  key={p.id}
+                  type="button"
+                  onClick={() => setHelpers(on ? helpers.filter((x) => x !== p.id) : [...helpers, p.id])}
+                  className="px-2.5 py-1 rounded-full text-xs font-semibold border transition"
+                  style={on ? { backgroundColor: 'var(--navy)', color: 'white', borderColor: 'var(--navy)' } : { color: 'var(--navy)', borderColor: '#d1d5db', backgroundColor: 'white' }}
+                >
+                  {on ? '✓ ' : '+ '}
+                  {p.name.split(' ')[0]}
+                </button>
+              );
+            })}
+        </div>
+      </Field>
       {task ? (
         <Field label="Status">
           <select className={input} value={f.status} onChange={(e) => set({ status: e.target.value as TaskStatus })}>
@@ -419,10 +484,11 @@ function TaskForm(
       <Field label="Student">
         <OptionSelect options={students} value={f.contact_id} onChange={(v) => set({ contact_id: v })} none="No student" />
       </Field>
-      <div className="sm:col-span-2 flex gap-2">
+      <div className="sm:col-span-2 flex flex-wrap items-center gap-2">
         <button disabled={busy || !f.title.trim()} onClick={save} className={btnPrimary} style={{ backgroundColor: 'var(--navy)' }}>
-          {task ? 'Save changes' : 'Create task'}
+          {busy ? 'Saving…' : task ? 'Save changes' : 'Create task'}
         </button>
+        {error && <span className="text-sm text-red-700">Didn’t save: {error}</span>}
         {task && (
           <button
             disabled={busy}

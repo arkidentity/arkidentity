@@ -70,15 +70,15 @@ export default function CampusCalendar({
     <section id="week" className="mb-10 scroll-mt-4">
       <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
         <h2 className="text-lg font-bold" style={{ color: 'var(--navy)' }}>
-          This week
+          {weekRange(days[0], days[6])}
         </h2>
         <button onClick={() => setEditing(editing === 'new' ? null : 'new')} className={btnPrimary} style={{ backgroundColor: 'var(--navy)' }}>
           {editing === 'new' ? 'Close' : '+ New event'}
         </button>
       </div>
 
-      <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
-        <div className="flex items-center gap-2 text-sm font-semibold" style={{ color: 'var(--navy)' }}>
+      <div className="flex items-center justify-between gap-2 mb-4">
+        <div className="flex items-center gap-1.5 text-sm font-semibold shrink-0" style={{ color: 'var(--navy)' }}>
           <a href={`?week=${addDays(weekStart, -7)}#week`} className="px-2 py-1 rounded border border-gray-300 bg-white">
             ←
           </a>
@@ -88,9 +88,6 @@ export default function CampusCalendar({
           <a href={`?week=${addDays(weekStart, 7)}#week`} className="px-2 py-1 rounded border border-gray-300 bg-white">
             →
           </a>
-          <span className="ml-2">
-            {formatDate(days[0], { month: 'short', day: 'numeric' })} – {formatDate(days[6], { month: 'short', day: 'numeric' })}
-          </span>
         </div>
         <MineToggle mineOnly={mineOnly} onChange={setMineOnly} />
       </div>
@@ -339,18 +336,32 @@ function SyncBar({
   if (!sync.configured) {
     return <p className="mb-4 text-xs text-[#8a8378]">Google Calendar isn’t connected yet.</p>;
   }
+  // Short enough to stay on one line on a phone.
   const when = sync.lastPulledAt
-    ? new Date(sync.lastPulledAt).toLocaleString('en-US', { timeZone: 'America/Chicago', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })
+    ? new Date(sync.lastPulledAt).toLocaleString('en-US', {
+        timeZone: 'America/Chicago',
+        ...(new Date(sync.lastPulledAt).toDateString() === new Date().toDateString()
+          ? { hour: 'numeric', minute: '2-digit' }
+          : { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }),
+      })
     : 'never';
   return (
-    <div className="mb-4 text-xs text-[#8a8378] flex flex-wrap items-center gap-2">
-      <span>Synced with the ARK Campus Google calendar · last pulled {when}</span>
-      <button disabled={busy} onClick={onSync} className="font-semibold underline disabled:opacity-50" style={{ color: 'var(--navy)' }}>
-        {busy ? 'Syncing…' : 'Sync now'}
-      </button>
-      {sync.lastError && <span className="w-full text-red-700">Last sync problem: {sync.lastError}</span>}
+    <div className="mb-4 text-xs text-[#8a8378]">
+      <span className="whitespace-nowrap">
+        Google synced {when} ·{' '}
+        <button disabled={busy} onClick={onSync} className="font-semibold underline disabled:opacity-50" style={{ color: 'var(--navy)' }}>
+          {busy ? 'Syncing…' : 'Sync now'}
+        </button>
+      </span>
+      {sync.lastError && <span className="block text-red-700 mt-1">Last sync problem: {sync.lastError}</span>}
     </div>
   );
+}
+
+// "Sep 21 – 27" in one month, "Sep 28 – Oct 4" across two.
+function weekRange(from: string, to: string): string {
+  const a = formatDate(from, { month: 'short', day: 'numeric' });
+  return from.slice(0, 7) === to.slice(0, 7) ? `${a} – ${Number(to.slice(8))}` : `${a} – ${formatDate(to, { month: 'short', day: 'numeric' })}`;
 }
 
 // Events that came from Google are owned by Google: show them, link out to edit.

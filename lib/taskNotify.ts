@@ -50,6 +50,25 @@ export function notifyTaskAssigned(taskId: string, by: IowaStaff | null) {
   after(() => sendTaskAssignedNow(taskId, by));
 }
 
+// Someone was put "also on" a task — tell them (skip the person who did it).
+export function notifyAddedToTask(taskId: string, staffIds: string[], by: IowaStaff | null) {
+  const ids = staffIds.filter((id) => id !== by?.id);
+  if (ids.length === 0) return;
+  after(async () => {
+    const task = await getTask(taskId).catch(() => null);
+    if (!task) return;
+    const info = await taskEmailInfo(task);
+    for (const id of ids) {
+      try {
+        const p = await getStaff(id);
+        if (p?.active) await sendTaskAssigned({ to: p.email, name: p.name, by: by?.name ?? null, task: info });
+      } catch (e) {
+        console.error('[iowa tasks] added-to-task email failed', e);
+      }
+    }
+  });
+}
+
 export function notifyHelpOffered(taskId: string, helper: IowaStaff) {
   after(async () => {
     try {

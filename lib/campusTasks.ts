@@ -305,6 +305,37 @@ export async function setHelper(taskId: string, staffId: string, helping: boolea
   return task;
 }
 
+// Replace everyone "also on" a task (besides the owner) in one go — the task
+// form's "Also on it" picker. Returns who was newly added, so they can be told.
+export async function setHelpers(taskId: string, staffIds: string[], actor: IowaStaff | null): Promise<string[]> {
+  const db = getSupabaseAdmin();
+  const before = await getTask(taskId);
+  if (!before) throw new Error('Task not found.');
+  const want = new Set(staffIds.filter((id) => id && id !== before.owner_id));
+  const had = new Set(before.helper_ids);
+  const added = [...want].filter((id) => !had.has(id));
+  const removed = [...had].filter((id) => !want.has(id));
+  if (added.length) {
+    const { error } = await db
+      .from('iowa_task_helpers')
+      .upsert(added.map((staff_id) => ({ task_id: taskId, staff_id })), { onConflict: 'task_id,staff_id', ignoreDuplicates: true });
+    if (error) throw error;
+  }
+  if (removed.length) {
+    const { error } = await db.from('iowa_task_helpers').delete().eq('task_id', taskId).in('staff_id', removed);
+    if (error) throw error;
+  }
+  if (added.length || removed.length) {
+    const staff = await listStaff();
+    const names = (ids: string[]) => ids.map((id) => staff.find((s) => s.id === id)?.name ?? 'someone').join(', ');
+    await logActivity(taskId, actor?.id ?? null, [
+      ...(added.length ? [`added ${names(added)}`] : []),
+      ...(removed.length ? [`removed ${names(removed)}`] : []),
+    ]);
+  }
+  return added;
+}
+
 // ---------------------------------------------------------------------------
 // Events
 // ---------------------------------------------------------------------------

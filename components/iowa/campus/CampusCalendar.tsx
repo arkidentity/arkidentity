@@ -4,6 +4,9 @@ import { useMemo, useState } from 'react';
 import type { StudyWithMembers } from '@/lib/bibleStudies';
 import type { CampusEvent, CampusTask } from '@/lib/campusTasks';
 import type { HeldEvent } from '@/lib/calendarSync';
+import type { Rsvp } from '@/lib/eventInvites';
+import EventPeople from '@/components/iowa/campus/EventPeople';
+import StudyCard from '@/components/iowa/campus/StudyCard';
 import { formatTime } from '@/lib/bibleStudyFormat';
 import {
   addDays,
@@ -19,6 +22,7 @@ import WeekView, { MineToggle, WeekLegend, buildWeekItems } from '@/components/i
 import {
   ErrorBox,
   Field,
+  Modal,
   btnPrimary,
   input,
   useCall,
@@ -40,8 +44,12 @@ export default function CampusCalendar({
   periods,
   semesters,
   templates,
+  rsvps = [],
+  students = [],
 }: {
   templates: { id: string; name: string; itemCount: number }[];
+  rsvps?: Rsvp[];
+  students?: { id: string; label: string }[];
   periods: SchoolPeriod[];
   semesters: Semester[];
   held: HeldEvent[];
@@ -58,12 +66,18 @@ export default function CampusCalendar({
   const [mineOnly, setMineOnly] = useState(false);
   const [editing, setEditing] = useState<string | 'new' | null>(null);
   const [clickedDate, setClickedDate] = useState<string | null>(null); // which week's box was clicked
+  const [studyOpen, setStudyOpen] = useState<{ id: string; date: string } | null>(null);
+  const [editOpen, setEditOpen] = useState(false);
   const { call, busy, error } = useCall();
   const days = weekDays(weekStart);
   const items = useMemo(
-    () => buildWeekItems({ days, studies, events, tasks, staff, types, meId, mineOnly, periods, semesters }),
+    () => {
+      const going: Record<string, number> = {};
+      for (const r of rsvps) if (r.response === 'yes') going[`${r.event_id}:${r.occurrence}`] = (going[`${r.event_id}:${r.occurrence}`] ?? 0) + 1 + r.guests;
+      return buildWeekItems({ days, studies, events, tasks, staff, types, meId, mineOnly, periods, semesters, going });
+    },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [weekStart, studies, events, tasks, staff, types, meId, mineOnly, periods, semesters]
+    [weekStart, studies, events, tasks, staff, types, meId, mineOnly, periods, semesters, rsvps]
   );
   const editingEvent = editing && editing !== 'new' ? events.find((e) => e.id === editing) : undefined;
 
@@ -150,34 +164,56 @@ export default function CampusCalendar({
         onEventClick={(id, date) => {
           setEditing(id);
           setClickedDate(date);
+          setEditOpen(false);
         }}
+        onStudyClick={(id, date) => setStudyOpen({ id, date })}
       />
 
+      {studyOpen && studies.find((x) => x.id === studyOpen.id) && (
+        <StudyCard
+          study={studies.find((x) => x.id === studyOpen.id)!}
+          date={studyOpen.date}
+          staff={staff}
+          onClose={() => setStudyOpen(null)}
+        />
+      )}
+
       {editingEvent && (
-        <div className="mt-6">
-          <div className="flex items-baseline justify-between mb-2">
-            <h2 className="text-lg font-bold" style={{ color: 'var(--navy)' }}>
-              {editingEvent.title}
-            </h2>
-            <button onClick={() => setEditing(null)} className="text-sm text-[#8a8378]">
-              Close
-            </button>
-          </div>
+        <Modal
+          title={editingEvent.title}
+          onClose={() => setEditing(null)}
+          sub={
+            <>
+              {clickedDate ? formatDate(clickedDate, { weekday: 'long', month: 'long', day: 'numeric' }) : ''}
+              {editingEvent.start_time ? ` · ${formatTime(editingEvent.start_time)}` : ' · All day'}
+              {editingEvent.end_time ? `–${formatTime(editingEvent.end_time)}` : ''}
+              {editingEvent.location ? ` · ${editingEvent.location}` : ''}
+              {editingEvent.repeat_weekly ? ' · weekly' : ''}
+            </>
+          }
+        >
           {editingEvent.meeting_link && (
-            <p className="mb-3 text-sm">
-              <a href={editingEvent.meeting_link} target="_blank" rel="noreferrer" className="font-semibold underline" style={{ color: 'var(--navy)' }}>
-                Join meeting ↗
-              </a>
-            </p>
+            <a
+              href={editingEvent.meeting_link}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-block mb-3 px-4 py-2 rounded-md text-sm font-semibold text-white"
+              style={{ backgroundColor: '#15803d' }}
+            >
+              Join meeting ↗
+            </a>
           )}
-          {editingEvent.repeat_weekly && (
-            <SkipDates event={editingEvent} clickedDate={clickedDate} busy={busy} call={call} />
-          )}
-          {editingEvent.source === 'google' ? (
-            <GoogleEventDetails event={editingEvent} />
-          ) : (
-            <EventForm key={editingEvent.id} event={editingEvent} staff={staff} types={types} meId={meId} busy={busy} call={call} onDone={() => setEditing(null)} periods={periods} />
-          )}
+          {editingEvent.notes && editingEvent.source !== 'google' && <p className="text-[15px] md:text-sm text-[#4a4540] whitespace-pre-wrap mb-3">{editingEvent.notes}</p>}
+          {editingEvent.source === 'google' && <GoogleEventDetails event={editingEvent} />}
+
+          <EventPeople
+            event={editingEvent}
+            date={clickedDate}
+            staff={staff}
+            meId={meId}
+            rsvps={rsvps.filter((r) => r.event_id === editingEvent.id)}
+            students={students}
+          />
           <EventChecklist
             event={editingEvent}
             tasks={tasks.filter((t) => t.event_id === editingEvent.id)}
@@ -187,7 +223,29 @@ export default function CampusCalendar({
             busy={busy}
             call={call}
           />
-        </div>
+
+          {(editingEvent.source !== 'google' || editingEvent.repeat_weekly) && (
+            <div className="mt-4">
+              <button
+                onClick={() => setEditOpen((v) => !v)}
+                className="text-sm font-semibold px-3 py-1.5 rounded-md border border-gray-300 bg-white"
+                style={{ color: 'var(--navy)' }}
+              >
+                {editOpen ? 'Close edit ▴' : editingEvent.source === 'google' ? 'Skip a week ▾' : 'Edit event ▾'}
+              </button>
+              {editOpen && (
+                <div className="mt-3 space-y-3">
+                  {editingEvent.repeat_weekly && (
+                    <SkipDates event={editingEvent} clickedDate={clickedDate} busy={busy} call={call} />
+                  )}
+                  {editingEvent.source !== 'google' && (
+                    <EventForm key={editingEvent.id} event={editingEvent} staff={staff} types={types} meId={meId} busy={busy} call={call} onDone={() => setEditing(null)} periods={periods} />
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+        </Modal>
       )}
     </section>
   );
@@ -281,7 +339,7 @@ function EventForm({
           <input type="date" className={input} value={f.repeat_until} onChange={(e) => set({ repeat_until: e.target.value })} />
         </Field>
       )}
-      <Field label="Who's going" className="sm:col-span-2">
+      <Field label="Invite (they accept or decline)" className="sm:col-span-2">
         <div className="flex flex-wrap gap-3 py-1">
           {staff
             .filter((p) => p.active || f.staff_ids.includes(p.id))

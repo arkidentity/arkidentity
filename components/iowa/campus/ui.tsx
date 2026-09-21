@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { PRIORITY, TASK_STATUSES, type TaskPriority, type TaskStatus } from '@/lib/campusFormat';
 
@@ -140,6 +140,39 @@ export function PageShell({ children }: { children: React.ReactNode }) {
   return (
     <div style={{ background: '#FAF8F5', minHeight: '100vh', color: '#1f2937' }}>
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">{children}</div>
+    </div>
+  );
+}
+
+// A card over the page: slides up from the bottom on phones, centered on
+// wider screens. Closes on ✕, the backdrop, or Escape; the page underneath
+// keeps its scroll position.
+export function Modal({ title, sub, onClose, children }: { title: string; sub?: React.ReactNode; onClose: () => void; children: React.ReactNode }) {
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    window.addEventListener('keydown', onKey);
+    return () => {
+      document.body.style.overflow = prev;
+      window.removeEventListener('keydown', onKey);
+    };
+  }, [onClose]);
+  return (
+    <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center" role="dialog" aria-modal="true">
+      <div className="absolute inset-0 bg-black/40" onClick={onClose} />
+      <div className="relative w-full md:max-w-2xl max-h-[88vh] overflow-y-auto bg-[#FAF8F5] rounded-t-2xl md:rounded-2xl shadow-xl">
+        <div className="sticky top-0 z-10 flex items-start justify-between gap-3 px-5 pt-4 pb-3 bg-[#FAF8F5] border-b border-gray-200">
+          <div className="min-w-0">
+            <h2 className="text-xl font-bold leading-tight" style={{ color: 'var(--navy)' }}>{title}</h2>
+            {sub && <div className="text-sm text-[#4a4540] mt-0.5">{sub}</div>}
+          </div>
+          <button onClick={onClose} className="shrink-0 text-2xl leading-none px-2 text-[#8a8378]" aria-label="Close">
+            ✕
+          </button>
+        </div>
+        <div className="px-5 py-4">{children}</div>
+      </div>
     </div>
   );
 }

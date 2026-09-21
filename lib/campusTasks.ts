@@ -1,5 +1,6 @@
 import { getSupabaseAdmin } from '@/lib/supabaseAdmin';
 import { listStaff, type IowaStaff } from '@/lib/iowaStaff';
+import { setEventStaff } from '@/lib/eventInvites';
 import {
   PRIORITY,
   TASK_STATUSES,
@@ -66,7 +67,10 @@ export interface CampusEvent {
   repeat_until: string | null;
   created_by: string | null;
   created_at: string;
-  staff_ids: string[];
+  staff_ids: string[]; // invited and not declined
+  invites: { staff_id: string; response: 'pending' | 'accepted' | 'declined'; note: string | null }[]; // migration 020
+  absences: { staff_id: string; occurrence: string; note: string | null }[]; // "can't make this one"
+  rsvp_token: string | null; // public RSVP link open
   source: 'app' | 'google'; // 'google' = owned by Google Calendar, read-only here (migration 014)
   skip_dates: string[]; // weeks a repeating event doesn't happen (migration 016)
   checklist_template_id: string | null; // migration 019
@@ -340,15 +344,23 @@ export async function setHelpers(taskId: string, staffIds: string[], actor: Iowa
 // Events
 // ---------------------------------------------------------------------------
 
-const EVENT_SELECT = '*, staff:iowa_event_staff(staff_id)';
+const EVENT_SELECT =
+  '*, staff:iowa_event_staff(staff_id, response, note), absences:iowa_event_absences(staff_id, occurrence, note)';
 
-interface EventRow extends Omit<CampusEvent, 'staff_ids'> {
-  staff: { staff_id: string }[] | null;
+interface EventRow extends Omit<CampusEvent, 'staff_ids' | 'invites' | 'absences'> {
+  staff: CampusEvent['invites'] | null;
+  absences: CampusEvent['absences'] | null;
 }
 
 function flattenEvent(r: EventRow): CampusEvent {
-  const { staff, ...rest } = r;
-  return { ...rest, staff_ids: (staff ?? []).map((s) => s.staff_id) };
+  const { staff, absences, ...rest } = r;
+  const invites = staff ?? [];
+  return {
+    ...rest,
+    invites,
+    absences: absences ?? [],
+    staff_ids: invites.filter((s) => s.response !== 'declined').map((s) => s.staff_id),
+  };
 }
 
 // Every event that could land in [from, to]: one-offs in range, plus repeating
@@ -423,49 +435,53 @@ function cleanEventInput(input: EventInput, creating: boolean): Record<string, u
   return out;
 }
 
-async function setEventStaff(eventId: string, staffIds: string[]) {
-  const db = getSupabaseAdmin();
-  const { error } = await db.from('iowa_event_staff').delete().eq('event_id', eventId);
-  if (error) throw error;
-  const unique = [...new Set(staffIds.filter(Boolean))];
-  if (unique.length === 0) return;
-  const { error: insErr } = await db
-    .from('iowa_event_staff')
-    .insert(unique.map((staff_id) => ({ event_id: eventId, staff_id })));
-  if (insErr) throw insErr;
-}
-
 async function getEvent(id: string): Promise<CampusEvent> {
   const { data, error } = await getSupabaseAdmin().from('iowa_events').select(EVENT_SELECT).eq('id', id).single();
   if (error) throw error;
   return flattenEvent(data as unknown as EventRow);
 }
 
-export async function createEvent(input: EventInput, actor: IowaStaff | null): Promise<CampusEvent> {
+// Returns the event and who was newly invited (to email them).
+export async function createEvent(
+  input: EventInput,
+  actor: IowaStaff | null
+): Promise<{ event: CampusEvent; invited: string[] }> {
   const row = cleanEventInput(input, true);
   row.created_by = actor?.id ?? null;
   const { data, error } = await getSupabaseAdmin().from('iowa_events').insert(row).select('id').single();
   if (error) throw error;
-  await setEventStaff(data.id, input.staff_ids ?? (actor ? [actor.id] : []));
-  return getEvent(data.id);
+  const invited = await setEventStaff(data.id, input.staff_ids ?? (actor ? [actor.id] : []), actor);
+  return { event: await getEvent(data.id), invited };
 }
 
-async function assertAppOwned(id: string) {
+async function eventSource(id: string): Promise<'app' | 'google'> {
   const { data, error } = await getSupabaseAdmin().from('iowa_events').select('source').eq('id', id).maybeSingle();
   if (error) throw error;
   if (!data) throw new Error('Event not found.');
-  if (data.source === 'google') throw new Error('This event comes from Google Calendar. Edit it there.');
+  return data.source as 'app' | 'google';
 }
 
-export async function updateEvent(id: string, input: EventInput): Promise<CampusEvent> {
-  await assertAppOwned(id);
-  const update = cleanEventInput(input, false);
+async function assertAppOwned(id: string) {
+  if ((await eventSource(id)) === 'google') throw new Error('This event comes from Google Calendar. Edit it there.');
+}
+
+// Google-owned events can't be edited here — except who's invited, since a
+// prayer call made in Google (with its Meet link) still needs its people.
+export async function updateEvent(
+  id: string,
+  input: EventInput,
+  actor: IowaStaff | null = null
+): Promise<{ event: CampusEvent; invited: string[] }> {
+  const google = (await eventSource(id)) === 'google';
+  const fields = Object.keys(input).filter((k) => k !== 'staff_ids');
+  if (google && fields.length > 0) throw new Error('This event comes from Google Calendar. Edit it there.');
+  const update = google ? {} : cleanEventInput(input, false);
   if (Object.keys(update).length > 0) {
     const { error } = await getSupabaseAdmin().from('iowa_events').update(update).eq('id', id);
     if (error) throw error;
   }
-  if (Array.isArray(input.staff_ids)) await setEventStaff(id, input.staff_ids);
-  return getEvent(id);
+  const invited = Array.isArray(input.staff_ids) ? await setEventStaff(id, input.staff_ids, actor) : [];
+  return { event: await getEvent(id), invited };
 }
 
 // Returns the Google event id so the caller can remove it from Google too.

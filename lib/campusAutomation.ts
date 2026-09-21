@@ -5,6 +5,7 @@ import { getStudyWithMembers, listStudies, type StudyMember, type StudyWithMembe
 import { semesterContext } from '@/lib/semesters';
 import { endPastSemesterStudies, sendDuePlanLinks, unplannedStudies } from '@/lib/semesterPlan';
 import { generateAllChecklists } from '@/lib/eventChecklists';
+import { pendingInvitesFor, type PendingInvite } from '@/lib/eventInvites';
 import { listStaff, type IowaStaff } from '@/lib/iowaStaff';
 import { DAY_NAMES, formatSlot, formatTime } from '@/lib/bibleStudyFormat';
 import {
@@ -360,6 +361,9 @@ export async function runMorning(): Promise<Record<string, number | string>> {
   // Read after the confirm tasks above were made.
   const openTasks = (await listTasks()).filter((t) => t.status !== 'done');
 
+  const pendingBy = new Map<string, PendingInvite[]>();
+  for (const p of activeStaff) pendingBy.set(p.id, await pendingInvitesFor(p.id).catch(() => []));
+
   const emails = activeStaff
     .map((p) => {
       const mine = openTasks
@@ -376,6 +380,7 @@ export async function runMorning(): Promise<Record<string, number | string>> {
         tasks: mine,
         schedule: schedules.get(p.id) ?? [],
         unplanned: unplannedByStaff.get(p.id) ?? [],
+        invites: pendingBy.get(p.id) ?? [],
         nextSemester: ctx.next?.name ?? null,
       });
     })
@@ -468,14 +473,15 @@ function morningEmail(o: {
   schedule: ScheduleLine[];
   unplanned: StudyWithMembers[];
   nextSemester: string | null;
+  invites: PendingInvite[];
 }) {
-  const { p, today, monday, confirms, shows, tasks, schedule, unplanned, nextSemester } = o;
+  const { p, today, monday, confirms, shows, tasks, schedule, unplanned, nextSemester, invites } = o;
   const overdue = tasks.filter((t) => isOverdue(t, today)).length;
   // Nothing in any section → no email that day.
   // The unplanned-groups nudge rides along; it never sends an email on its own
   // except on Mondays, so it doesn't nag daily.
   const nudge = unplanned.length > 0 && nextSemester && (monday || confirms.length || shows.length || tasks.length || schedule.length);
-  if (!confirms.length && !shows.length && !tasks.length && !schedule.length && !nudge) return null;
+  if (!confirms.length && !shows.length && !tasks.length && !schedule.length && !nudge && !invites.length) return null;
   const me = first(p.name);
   const section = (title: string, sub?: string) =>
     `<h2 style="color:#143348; font-size:17px; margin:24px 0 4px;">${title}</h2>${
@@ -484,6 +490,20 @@ function morningEmail(o: {
   const parts: string[] = [
     `<h1 style="color:#143348; font-size:22px;">${monday ? 'Your week' : 'Morning'}, ${esc(me)}</h1>`,
   ];
+
+  if (invites.length) {
+    parts.push(section(`Waiting on your answer (${invites.length})`));
+    parts.push(
+      `<ul style="padding-left:18px; margin:0;">${invites
+        .map(
+          (i) =>
+            `<li style="margin:0 0 8px;"><strong>${esc(i.title)}</strong> <span style="color:#8a8378;">· ${esc(i.when)}</span><br/>
+             <a href="${siteUrl()}/iowa/admin/invite/${i.event_id}?r=accept" style="color:#15803d; font-weight:600;">I'm in</a> ·
+             <a href="${siteUrl()}/iowa/admin/invite/${i.event_id}?r=decline" style="color:#b91c1c; font-weight:600;">Can't do it</a></li>`
+        )
+        .join('')}</ul>`
+    );
+  }
 
   if (confirms.length) {
     const days = [...new Set(confirms.map((c) => DAY_NAMES[c.study.day_of_week]))];

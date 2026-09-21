@@ -5,6 +5,8 @@ import { chicagoToday, formatDate, isOverdue, weekDays } from '@/lib/campusForma
 import CampusCalendar from '@/components/iowa/campus/CampusCalendar';
 import TaskList, { type TaskListProps } from '@/components/iowa/campus/TaskList';
 import { PageShell, Section } from '@/components/iowa/campus/ui';
+import PendingInvites from '@/components/iowa/campus/PendingInvites';
+import type { PendingInvite } from '@/lib/eventInvites';
 
 // The one working screen: counts that show trouble early, the week calendar
 // (events, studies, tasks due; + New event), and the full task list (filters,
@@ -13,7 +15,9 @@ export default function Dashboard({
   calendar,
   tasks: taskProps,
   thisWeekStart,
+  pending = [],
 }: {
+  pending?: PendingInvite[];
   calendar: ComponentProps<typeof CampusCalendar>;
   tasks: TaskListProps;
   thisWeekStart: string;
@@ -67,6 +71,8 @@ export default function Dashboard({
           );
         })}
       </div>
+
+      <PendingInvites invites={pending} />
 
       <CampusCalendar {...calendar} />
 

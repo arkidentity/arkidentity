@@ -26,6 +26,7 @@ export interface WeekItem {
   sub: string | null;
   href?: string;
   eventId?: string;
+  studyId?: string;
   priority?: TaskPriority;
   overdue?: boolean;
   paused?: boolean; // in-person study on a break week
@@ -52,8 +53,9 @@ export function buildWeekItems(opts: {
   mineOnly: boolean;
   periods?: SchoolPeriod[];
   semesters?: Semester[];
+  going?: Record<string, number>; // `${eventId}:${date}` → RSVP head count
 }): WeekItem[] {
-  const { days, studies, events, tasks, staff, types, meId, mineOnly, periods = [], semesters = [] } = opts;
+  const { days, studies, events, tasks, staff, types, meId, mineOnly, periods = [], semesters = [], going = {} } = opts;
   const from = days[0];
   const to = days[6];
   const nameOf = (id: string | null) => staff.find((s) => s.id === id)?.name.split(' ')[0] ?? null;
@@ -77,6 +79,7 @@ export function buildWeekItems(opts: {
         ? `paused · ${pause.name}`
         : [s.location, `${s.activeCount}/${s.capacity}`, s.point_staff_id ? nameOf(s.point_staff_id) : 'no staff'].filter(Boolean).join(' · '),
       href: '/iowa/admin/studies',
+      studyId: s.id,
       paused: !!pause,
     });
   }
@@ -96,6 +99,7 @@ export function buildWeekItems(opts: {
           e.start_time ? formatTime(e.start_time) : 'All day',
           e.location,
           e.meeting_link ? 'Online' : null,
+          going[`${e.id}:${date}`] ? `${going[`${e.id}:${date}`]} going` : null,
           type,
         ].filter(Boolean).join(' · '),
         eventId: e.id,
@@ -136,12 +140,14 @@ export default function WeekView({
   days,
   items,
   onEventClick,
+  onStudyClick,
   periods = [],
 }: {
   days: string[];
   items: WeekItem[];
   periods?: SchoolPeriod[];
   onEventClick?: (eventId: string, date: string) => void;
+  onStudyClick?: (studyId: string, date: string) => void;
 }) {
   const today = chicagoToday();
   return (
@@ -196,6 +202,10 @@ export default function WeekView({
                   <li key={i.key}>
                     {i.eventId && onEventClick ? (
                       <button className={cls} style={st} onClick={() => onEventClick(i.eventId!, i.date)}>
+                        {body}
+                      </button>
+                    ) : i.studyId && onStudyClick ? (
+                      <button className={cls} style={st} onClick={() => onStudyClick(i.studyId!, i.date)}>
                         {body}
                       </button>
                     ) : i.href ? (

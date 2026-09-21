@@ -551,3 +551,77 @@ export async function sendNextSemesterSeat(opts: {
     `),
   });
 }
+
+// ---------------------------------------------------------------------------
+// Invites + RSVPs (docs/IOWA-CAMPUS-TASKS.md → Invites and RSVPs)
+// ---------------------------------------------------------------------------
+
+// To a staff member put on an event: accept or decline.
+export async function sendEventInvite(opts: {
+  to: string;
+  name: string;
+  by: string | null;
+  title: string;
+  when: string;
+  where: string | null;
+  acceptUrl: string;
+  declineUrl: string;
+}) {
+  const { to, name, by, title, when, where, acceptUrl, declineUrl } = opts;
+  return getResend().emails.send({
+    from: fromAddress(),
+    to,
+    subject: `Invite: ${title} (${when})`,
+    html: wrap(`
+      <p>${escapeHtml(name)}, ${by ? `${escapeHtml(by)} invited you to` : 'you’re invited to'}:</p>
+      <p style="margin:12px 0; font-size:18px; font-weight:600; color:#143348;">${escapeHtml(title)}</p>
+      <p style="margin:0; color:#4a4540;">${escapeHtml(when)}${where ? ` · ${escapeHtml(where)}` : ''}</p>
+      <p style="margin:24px 0;">
+        <a href="${acceptUrl}" style="background:#15803d; color:#fff; text-decoration:none; padding:11px 22px; border-radius:8px; font-weight:600; display:inline-block; margin:0 8px 8px 0;">I'm in</a>
+        <a href="${declineUrl}" style="border:1px solid #b91c1c; color:#b91c1c; text-decoration:none; padding:11px 22px; border-radius:8px; font-weight:600; display:inline-block;">Can't do it</a>
+      </p>
+      <p style="color:#8a8378; font-size:14px;">For a weekly thing, this answers for the whole series. You can still say "can't make this one" for a single week on the dashboard.</p>
+    `),
+  });
+}
+
+// To whoever made the event, when someone declines or can't make a date.
+export async function sendInviteAnswer(opts: { to: string; who: string; title: string; what: string; when: string; note: string | null }) {
+  const { to, who, title, what, when, note } = opts;
+  return getResend().emails.send({
+    from: fromAddress(),
+    to,
+    subject: `${who} ${what} ${title}`,
+    html: wrap(`
+      <p><strong>${escapeHtml(who)}</strong> ${escapeHtml(what)} <strong>${escapeHtml(title)}</strong> (${escapeHtml(when)}).</p>
+      ${note ? `<p style="color:#4a4540; border-left:3px solid #e5e7eb; padding-left:10px;">${escapeHtml(note)}</p>` : ''}
+      <p><a href="${siteUrl()}/iowa/admin" style="color:#143348;">Open the dashboard →</a></p>
+    `),
+  });
+}
+
+// To one person invited to an event (a one-on-one, or a personal nudge).
+export async function sendPersonalRsvp(opts: {
+  to: string;
+  name: string;
+  by: string | null;
+  title: string;
+  when: string;
+  where: string | null;
+  url: string;
+}) {
+  const { to, name, by, title, when, where, url } = opts;
+  return getResend().emails.send({
+    from: fromAddress(),
+    to,
+    subject: `${title}: can you make it?`,
+    html: wrap(`
+      <p>Hey ${escapeHtml(name)}${by ? `, it's ${escapeHtml(by)}` : ''}! You're invited:</p>
+      <p style="margin:12px 0; font-size:18px; font-weight:600; color:#143348;">${escapeHtml(title)}</p>
+      <p style="margin:0; color:#4a4540;">${escapeHtml(when)}${where ? ` · ${escapeHtml(where)}` : ''}</p>
+      <p style="margin:24px 0;">
+        <a href="${url}" style="background:#143348; color:#fff; text-decoration:none; padding:11px 22px; border-radius:8px; font-weight:600; display:inline-block;">Let us know</a>
+      </p>
+    `),
+  });
+}

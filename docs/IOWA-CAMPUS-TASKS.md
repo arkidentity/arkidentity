@@ -181,6 +181,30 @@ tabs are gone; `/iowa/admin/calendar` and `/iowa/admin/tasks` redirect to the da
 `?week=` / `?task=` / `?new=` (emails already sent still work). Nav: Dashboard · Studies · Students
 · Staff · Settings.
 
+## Invites and RSVPs (migration 020)
+
+Code: `lib/eventInvites.ts`. Built for the internship (Keilor, Sep 2026): Travis schedules things with an
+intern, the intern can say yes or no.
+
+- **Staff invites:** putting someone on an event (event form, or the name chips in the event panel's
+  Team section — works on Google-owned events too) invites them: `iowa_event_staff.response` pending /
+  accepted / declined (+ note). The creator is in automatically; everyone already on events before 020
+  counts as accepted. Invite email has I'm in / Can't do it (`/iowa/admin/invite/<event>?r=`); the
+  dashboard shows "Needs your answer"; the morning email lists pending invites. One answer covers a
+  weekly series; "Can't make <date>" (`iowa_event_absences`) covers one week. Declines and absences
+  email whoever made the event ("missing is fine, disappearing is not").
+- **RSVPs:** an event can open a public link (`/iowa/rsvp/<token>`): name + phone or email, I'm in /
+  Can't make it, + guests, per date for weekly events. Head count shows in the event panel and on the
+  week grid. **Personal invites** (`/iowa/rsvp/p/<token>`): pick a student or type a name → their own
+  link (emailed if there's an email, and copied to text). RSVPers are matched/added to the shared
+  contacts list, tagged ARK Iowa (so new faces appear on Students). Not Google invites (Gmail can't).
+- **Tap-to-open cards:** tapping an event or Bible study on the week grid opens a pop-up (bottom sheet on
+  phones, centered on desktop). Study card: where/when, count, leader (call/text), on point, roster with
+  call/text/email, year, met-by, first-study result, dropped list, "Edit in Studies". Event card:
+  when/where, Join, Team + RSVPs, checklist, "Edit event ▾" (skip-a-week + form) collapsed.
+- Deferred from the same conversation: per-person weekly schedule + conflict warnings (#1), and a
+  light scheduled-ministry-hours view vs the 7/9 target (#4).
+
 ## Email rhythm (2026-09-21, Travis)
 
 **One email per person per morning, Monday–Saturday, ~8 AM CT, skipped entirely when empty. No

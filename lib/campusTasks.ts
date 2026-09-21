@@ -39,6 +39,7 @@ export interface CampusTask {
   updated_at: string;
   completed_at: string | null;
   helper_ids: string[];
+  auto_kind: string | null; // set on tasks the automation made (migration 015)
 }
 
 export interface TaskActivity {

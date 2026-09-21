@@ -9,10 +9,6 @@
       "schedule": "0 23 * * *"
     },
     {
-      "path": "/api/cron/iowa-weekly-digest",
-      "schedule": "0 12 * * 1"
-    },
-    {
       "path": "/api/cron/iowa-morning",
       "schedule": "0 13 * * *"
     }

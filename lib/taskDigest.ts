@@ -1,26 +1,15 @@
 import { CURRENT_SEMESTER } from '@/lib/bibleStudies';
 import { getSupabaseAdmin } from '@/lib/supabaseAdmin';
-import { listEvents, listTasks, type CampusTask } from '@/lib/campusTasks';
-import { listStaff } from '@/lib/iowaStaff';
+import { listEvents, type CampusTask } from '@/lib/campusTasks';
 import { formatSlot, formatTime } from '@/lib/bibleStudyFormat';
-import {
-  PRIORITY,
-  addDays,
-  chicagoToday,
-  compareTasks,
-  dayOfWeek,
-  eventDatesInRange,
-  formatDate,
-  isOverdue,
-  weekDays,
-  weekStart,
-} from '@/lib/campusFormat';
-import { escapeEmailHtml as esc, sendEmailBatch, siteUrl } from '@/lib/email';
+import { PRIORITY, addDays, dayOfWeek, eventDatesInRange, formatDate, isOverdue } from '@/lib/campusFormat';
+import { escapeEmailHtml as esc, siteUrl } from '@/lib/email';
 
-// Scheduled task emails: "due tomorrow" (nightly, with the study reminders) and
-// the Monday digest of each person's week. See docs/IOWA-CAMPUS-TASKS.md.
+// Building blocks for the one morning email (lib/campusAutomation.ts →
+// runMorning): a task line, and each person's schedule for a date range.
+// See docs/IOWA-CAMPUS-TASKS.md.
 
-function taskLine(t: CampusTask, today: string): string {
+export function taskLine(t: CampusTask, today: string): string {
   const p = PRIORITY[t.priority];
   const bits = [
     `<span style="color:${p.color}; font-weight:600;">${p.label}</span>`,
@@ -35,43 +24,24 @@ function taskLine(t: CampusTask, today: string): string {
   )}</a> <span style="color:#8a8378; font-size:14px;">· ${bits.join(' · ')}</span></li>`;
 }
 
-// Tasks due tomorrow, one email per owner.
-export async function sendTaskDueReminders(): Promise<{ recipients: number; sent: number; failed: number }> {
-  const today = chicagoToday();
-  const tomorrow = addDays(today, 1);
-  const [tasks, staff] = await Promise.all([listTasks(), listStaff()]);
-  const due = tasks.filter((t) => t.status !== 'done' && t.due_date === tomorrow && t.owner_id);
-
-  const items = staff
-    .filter((s) => s.active)
-    .map((s) => ({ s, mine: due.filter((t) => t.owner_id === s.id) }))
-    .filter((x) => x.mine.length > 0)
-    .map(({ s, mine }) => ({
-      to: s.email,
-      subject: mine.length === 1 ? `Due tomorrow: ${mine[0].title}` : `${mine.length} tasks due tomorrow`,
-      html: `<p>${esc(s.name)}, due tomorrow:</p><ul style="padding-left:18px;">${mine
-        .sort((a, b) => compareTasks(a, b, today))
-        .map((t) => taskLine(t, today))
-        .join('')}</ul>`,
-    }));
-
-  const { sent, failed } = await sendEmailBatch(items);
-  return { recipients: items.length, sent, failed };
+export interface ScheduleLine {
+  date: string;
+  time: string;
+  text: string;
 }
 
-// Monday morning: your studies, your events, and your open tasks this week.
-export async function sendWeeklyDigests(): Promise<{ recipients: number; sent: number; failed: number }> {
-  const today = chicagoToday();
-  const start = weekStart(today);
-  const end = addDays(start, 6);
-  const days = weekDays(start);
-
-  const db = getSupabaseAdmin();
-  const [staff, tasks, events, studiesRes] = await Promise.all([
-    listStaff(),
-    listTasks(),
-    listEvents(start, end),
-    db
+// Per staff member: studies they're on point for + campus events they're going
+// to, on every date in [from, to]. `studies: false` = events only. Google-owned events don't know who's going,
+// so they go to everyone in `staffIds`.
+export async function schedulesFor(
+  from: string,
+  to: string,
+  staffIds: string[],
+  opts: { studies: boolean } = { studies: true }
+): Promise<Map<string, ScheduleLine[]>> {
+  const [events, studiesRes] = await Promise.all([
+    listEvents(from, to),
+    getSupabaseAdmin()
       .from('bible_studies')
       .select('id, day_of_week, start_time, location, point_staff_id')
       .eq('semester', CURRENT_SEMESTER)
@@ -79,63 +49,41 @@ export async function sendWeeklyDigests(): Promise<{ recipients: number; sent: n
       .not('point_staff_id', 'is', null),
   ]);
   if (studiesRes.error) throw studiesRes.error;
-  const studies = studiesRes.data ?? [];
 
-  const items = staff
-    .filter((s) => s.active)
-    .map((s) => {
-      const lines: { date: string; time: string; text: string }[] = [];
-      for (const st of studies.filter((x) => x.point_staff_id === s.id)) {
-        const date = days.find((d) => dayOfWeek(d) === st.day_of_week)!;
-        lines.push({
-          date,
-          time: st.start_time,
-          text: `${formatSlot(st)} Bible study${st.location ? ` · ${st.location}` : ''}`,
-        });
-      }
-      // Google-owned events don't know who's going, so they go to everyone.
-      for (const e of events.filter((x) => x.source === 'google' || x.staff_ids.includes(s.id))) {
-        for (const date of eventDatesInRange(e, start, end)) {
-          lines.push({
-            date,
-            time: e.start_time ?? '00:00',
-            text: `${e.title}${e.start_time ? ` · ${formatTime(e.start_time)}` : ''}${e.location ? ` · ${e.location}` : ''}`,
-          });
-        }
-      }
-      lines.sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time));
+  const days: string[] = [];
+  for (let d = from; d <= to; d = addDays(d, 1)) days.push(d);
 
-      const mine = tasks
-        .filter((t) => t.status !== 'done' && (t.owner_id === s.id || t.helper_ids.includes(s.id)))
-        .sort((a, b) => compareTasks(a, b, today));
-      return { s, lines, mine };
-    })
-    .filter((x) => x.lines.length > 0 || x.mine.length > 0)
-    .map(({ s, lines, mine }) => {
-      const overdue = mine.filter((t) => isOverdue(t, today)).length;
-      const schedule = lines.length
-        ? `<ul style="padding-left:18px;">${lines
-            .map((l) => `<li style="margin:0 0 6px;"><strong style="color:#143348;">${formatDate(l.date)}</strong> — ${esc(l.text)}</li>`)
-            .join('')}</ul>`
-        : '<p style="color:#8a8378;">Nothing on the calendar for you.</p>';
-      const taskList = mine.length
-        ? `<ul style="padding-left:18px;">${mine.map((t) => taskLine(t, today)).join('')}</ul>`
-        : '<p style="color:#8a8378;">No open tasks. Nice.</p>';
-      return {
-        to: s.email,
-        subject: `Your week — ${formatDate(start, { month: 'short', day: 'numeric' })}${
-          overdue ? ` · ${overdue} overdue` : ''
+  const out = new Map<string, ScheduleLine[]>();
+  const push = (id: string, line: ScheduleLine) => out.set(id, [...(out.get(id) ?? []), line]);
+
+  for (const st of opts.studies ? studiesRes.data ?? [] : []) {
+    for (const date of days.filter((d) => dayOfWeek(d) === st.day_of_week)) {
+      push(st.point_staff_id as string, {
+        date,
+        time: st.start_time,
+        text: `${formatSlot(st)} Bible study${st.location ? ` · ${st.location}` : ''}`,
+      });
+    }
+  }
+  for (const e of events) {
+    const who = e.source === 'google' ? staffIds : e.staff_ids;
+    for (const date of eventDatesInRange(e, from, to)) {
+      const line = {
+        date,
+        time: e.start_time ?? '00:00',
+        text: `${e.title}${e.start_time ? ` · ${formatTime(e.start_time)}` : ''}${e.location ? ` · ${e.location}` : ''}${
+          e.meeting_link ? ' · online' : ''
         }`,
-        html: `
-          <h1 style="color:#143348; font-size:22px;">Your week, ${esc(s.name.split(' ')[0])}</h1>
-          <h2 style="color:#143348; font-size:16px; margin:20px 0 6px;">On the calendar</h2>
-          ${schedule}
-          <h2 style="color:#143348; font-size:16px; margin:20px 0 6px;">Open tasks (${mine.length})</h2>
-          ${taskList}
-          <p style="margin-top:24px;"><a href="${siteUrl()}/iowa/admin" style="color:#143348; font-weight:600;">Open the dashboard →</a></p>`,
       };
-    });
+      for (const id of who) push(id, line);
+    }
+  }
+  for (const [id, lines] of out) out.set(id, lines.sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time)));
+  return out;
+}
 
-  const { sent, failed } = await sendEmailBatch(items);
-  return { recipients: items.length, sent, failed };
+export function scheduleHtml(lines: ScheduleLine[]): string {
+  return `<ul style="padding-left:18px; margin:0;">${lines
+    .map((l) => `<li style="margin:0 0 6px;"><strong style="color:#143348;">${formatDate(l.date)}</strong> — ${esc(l.text)}</li>`)
+    .join('')}</ul>`;
 }

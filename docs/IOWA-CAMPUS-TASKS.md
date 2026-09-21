@@ -36,8 +36,8 @@ Student-leader logins (scoped to their own studies' students) are Phase 3.
 - **Studies** move to `/iowa/admin/studies`; each study shows its linked open tasks.
 - **Drop reasons**: dropping a student asks why — unresponsive, schedule changed, not interested,
   graduated/left school, other (+ note). Stored on `bible_study_members`.
-- **Emails**: task assigned to you (by someone else) · someone offered to help on your task · due
-  tomorrow (nightly cron) · Monday digest of your week (studies, events, open tasks).
+- **Emails**: instant — task assigned to you (by someone else), someone offered to help on your
+  task. Everything else is **one morning email** (see Email rhythm below).
 
 ## Phase 1.5 — Google Calendar (built, migration 014)
 
@@ -94,6 +94,23 @@ Code: `lib/campusAutomation.ts`. Every auto task has an `auto_key`, so nothing e
 - **Reconnect ideas** — every reconnect / no-show task lists the next campus events (Taco Night,
   outings) in the coming 3 weeks and suggests a **prayer call from a student** ("You signed up for a
   Bible study; how can I pray for you?"), naming their old study's student leader when there is one.
+
+## Email rhythm (2026-09-21, Travis)
+
+**One email per person per morning, Monday–Saturday, ~8 AM CT, skipped entirely when empty. No
+Sunday email.** (`/api/cron/iowa-morning` → `runMorning()`.) It holds:
+- **Confirm your studies**: two days out, tap-to-text links. **Saturday covers Monday + Tuesday**
+  so skipping Sunday never leaves a study unconfirmed; a confirm task whose day-before lands on
+  Sunday is due Saturday instead.
+- **Did they make it?**: any first study in the last 3 days not yet asked (Monday catches
+  Saturday's and Sunday's first-timers).
+- **Tasks due today + overdue** (weekdays) / **all open tasks** (Monday).
+- **Coming up**: campus events in the next two days (weekdays; studies are left out since the
+  confirm section covers them) / **the whole week**, studies + events (Monday = the old weekly digest).
+
+Retired: the separate Monday digest cron and the 6 PM "due tomorrow" email. Unchanged: the 6 PM
+reminder to *students* about tomorrow's study. Event confirms ("text who you invited to Taco
+Night") deferred, since they need per-event invite tracking.
 
 ## Phase 3 — Student leaders
 

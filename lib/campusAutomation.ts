@@ -4,8 +4,9 @@ import { sendTaskAssignedNow as notifyTaskAssignedNow } from '@/lib/taskNotify';
 import { CURRENT_SEMESTER, getStudyWithMembers, listStudies, type StudyMember, type StudyWithMembers } from '@/lib/bibleStudies';
 import { listStaff, type IowaStaff } from '@/lib/iowaStaff';
 import { DAY_NAMES, formatSlot, formatTime } from '@/lib/bibleStudyFormat';
-import { addDays, chicagoToday, dayOfWeek, eventDatesInRange, formatDate } from '@/lib/campusFormat';
-import { listEvents } from '@/lib/campusTasks';
+import { addDays, chicagoToday, compareTasks, dayOfWeek, eventDatesInRange, formatDate, isOverdue } from '@/lib/campusFormat';
+import { listEvents, listTasks, type CampusTask } from '@/lib/campusTasks';
+import { schedulesFor, scheduleHtml, taskLine, type ScheduleLine } from '@/lib/taskDigest';
 import { escapeEmailHtml as esc, sendEmailBatch, siteUrl } from '@/lib/email';
 
 // Follow-up automation for ARK Iowa (Phase 2, migration 015). Travis's rhythm:
@@ -224,16 +225,19 @@ interface ShowItem {
   member: StudyMember;
 }
 
-export async function runMorning(): Promise<Record<string, number>> {
+export async function runMorning(): Promise<Record<string, number | string>> {
   const db = getSupabaseAdmin();
   const today = chicagoToday();
-  const target = addDays(today, 2);
-  const yesterday = addDays(today, -1);
+  const dow = dayOfWeek(today);
+  // Monday–Saturday only. Saturday covers Monday AND Tuesday studies so the
+  // skipped Sunday never leaves a study unconfirmed.
+  if (dow === 0) return { skipped: 'Sunday' };
+  const targets = dow === 6 ? [addDays(today, 2), addDays(today, 3)] : [addDays(today, 2)];
   const semester = CURRENT_SEMESTER;
   const [studies, staff] = await Promise.all([listStudies(semester), listStaff()]);
   const activeStaff = staff.filter((s) => s.active);
-  const summary: Record<string, number> = {};
-  const bump = (k: string) => (summary[k] = (summary[k] ?? 0) + 1);
+  const summary: Record<string, number | string> = {};
+  const bump = (k: string) => (summary[k] = ((summary[k] as number) ?? 0) + 1);
 
   // Confirm tasks whose study already met: close them so missed weeks don't pile up.
   const { data: openConfirms } = await db
@@ -247,42 +251,52 @@ export async function runMorning(): Promise<Record<string, number>> {
 
   // --- 2. Weekly confirm, two mornings out -------------------------------
   const confirmByStaff = new Map<string, ConfirmItem[]>();
-  for (const s of studies) {
-    if (!LIVE.includes(s.status) || s.day_of_week !== dayOfWeek(target)) continue;
-    if (!s.point_staff_id || s.leader_name?.trim() || !s.location) continue; // student leader has it
-    if (!activeStaff.some((p) => p.id === s.point_staff_id)) continue;
-    const members = s.members
-      .filter((m) => m.status === 'active')
-      .map((m) => ({ ...m, isNew: firstMeetingDate(m.joined_at, s) === target }));
-    if (members.length === 0) continue;
+  for (const target of targets) {
+    for (const s of studies) {
+      if (!LIVE.includes(s.status) || s.day_of_week !== dayOfWeek(target)) continue;
+      if (!s.point_staff_id || s.leader_name?.trim() || !s.location) continue; // student leader has it
+      if (!activeStaff.some((p) => p.id === s.point_staff_id)) continue;
+      const members = s.members
+        .filter((m) => m.status === 'active')
+        .map((m) => ({ ...m, isNew: firstMeetingDate(m.joined_at, s) === target }));
+      if (members.length === 0) continue;
 
-    await createAutoTask({
-      key: `confirm:${s.id}:${target}`,
-      kind: 'confirm',
-      title: `Confirm ${formatSlot(s)} study (${formatDate(target)})`,
-      description: [
-        `Reach out before ${formatDate(target)} to confirm time and place (${s.location}).`,
-        '',
-        ...members.map((m) => `• ${m.name}${m.isNew ? ' (NEW, first study)' : ''} · ${m.phone}`),
-      ].join('\n'),
-      owner_id: s.point_staff_id,
-      due_date: addDays(target, -1),
-      study_id: s.id,
-      typeName: 'Bible study',
-    }).then((id) => id && bump('confirmTasks'));
+      // Due the day before — or Saturday, when the day before is the Sunday off.
+      let due = addDays(target, -1);
+      if (dayOfWeek(due) === 0) due = addDays(due, -1);
+      if (
+        await createAutoTask({
+          key: `confirm:${s.id}:${target}`,
+          kind: 'confirm',
+          title: `Confirm ${formatSlot(s)} study (${formatDate(target)})`,
+          description: [
+            `Reach out before ${formatDate(target)} to confirm time and place (${s.location}).`,
+            '',
+            ...members.map((m) => `• ${m.name}${m.isNew ? ' (NEW, first study)' : ''} · ${m.phone}`),
+          ].join('\n'),
+          owner_id: s.point_staff_id,
+          due_date: due,
+          study_id: s.id,
+          typeName: 'Bible study',
+        })
+      ) bump('confirmTasks');
 
-    const list = confirmByStaff.get(s.point_staff_id) ?? [];
-    list.push({ study: s, meetDate: target, members });
-    confirmByStaff.set(s.point_staff_id, list);
+      const list = confirmByStaff.get(s.point_staff_id) ?? [];
+      list.push({ study: s, meetDate: target, members });
+      confirmByStaff.set(s.point_staff_id, list);
+    }
   }
 
   // --- 3. Did they make it to their first study? --------------------------
+  // Any first study in the last 3 days not asked yet — so Saturday's and
+  // Sunday's first-timers get asked on Monday.
   const showByStaff = new Map<string, ShowItem[]>();
   for (const s of studies) {
     if (!LIVE.includes(s.status)) continue;
     for (const m of s.members) {
       if (m.status !== 'active' || m.first_showed !== null || m.first_show_asked_on) continue;
-      if (firstMeetingDate(m.joined_at, s) !== yesterday) continue;
+      const firstDate = firstMeetingDate(m.joined_at, s);
+      if (firstDate >= today || firstDate < addDays(today, -3)) continue;
       const ask = [s.point_staff_id, m.met_by_staff_id].find((id) => id && activeStaff.some((p) => p.id === id));
       if (!ask) continue;
       await db.from('bible_study_members').update({ first_show_asked_on: today }).eq('id', m.id);
@@ -296,9 +310,34 @@ export async function runMorning(): Promise<Record<string, number>> {
   // --- 4. Stale students ---------------------------------------------------
   Object.assign(summary, await staleStudents(staff, today, semester));
 
-  // --- The email: one per person, only if there's something to do ----------
+  // --- The email: one per person, only if there's something in it ----------
+  // Monday is the week view (whole week, studies + events, every open task).
+  // Other days: events in the next two days + what's due today or overdue —
+  // studies aren't listed there, the confirm section already covers them, and
+  // listing them would send an email nearly every day for no reason.
+  const monday = dow === 1;
+  const ids = activeStaff.map((p) => p.id);
+  const schedules = await schedulesFor(today, addDays(today, monday ? 6 : 2), ids, { studies: monday });
+  // Read after the confirm tasks above were made.
+  const openTasks = (await listTasks()).filter((t) => t.status !== 'done');
+
   const emails = activeStaff
-    .map((p) => morningEmail(p, confirmByStaff.get(p.id) ?? [], showByStaff.get(p.id) ?? []))
+    .map((p) => {
+      const mine = openTasks
+        .filter((t) => t.owner_id === p.id || t.helper_ids.includes(p.id))
+        .filter((t) => t.auto_kind !== 'confirm') // shown in the confirm section already
+        .filter((t) => monday || (t.due_date !== null && t.due_date <= today))
+        .sort((a, b) => compareTasks(a, b, today));
+      return morningEmail({
+        p,
+        today,
+        monday,
+        confirms: confirmByStaff.get(p.id) ?? [],
+        shows: showByStaff.get(p.id) ?? [],
+        tasks: mine,
+        schedule: schedules.get(p.id) ?? [],
+      });
+    })
     .filter((e): e is NonNullable<typeof e> => !!e);
   const { sent, failed } = await sendEmailBatch(emails);
   return { ...summary, emailsSent: sent, emailsFailed: failed };
@@ -377,19 +416,34 @@ async function staleStudents(
 // The morning email
 // ---------------------------------------------------------------------------
 
-function morningEmail(p: IowaStaff, confirms: ConfirmItem[], shows: ShowItem[]) {
-  if (confirms.length === 0 && shows.length === 0) return null;
+function morningEmail(o: {
+  p: IowaStaff;
+  today: string;
+  monday: boolean;
+  confirms: ConfirmItem[];
+  shows: ShowItem[];
+  tasks: CampusTask[];
+  schedule: ScheduleLine[];
+}) {
+  const { p, today, monday, confirms, shows, tasks, schedule } = o;
+  const overdue = tasks.filter((t) => isOverdue(t, today)).length;
+  // Nothing in any section → no email that day.
+  if (!confirms.length && !shows.length && !tasks.length && !schedule.length) return null;
   const me = first(p.name);
-  const parts: string[] = [`<h1 style="color:#143348; font-size:22px;">Morning, ${esc(me)}</h1>`];
+  const section = (title: string, sub?: string) =>
+    `<h2 style="color:#143348; font-size:17px; margin:24px 0 4px;">${title}</h2>${
+      sub ? `<p style="margin:0 0 10px; color:#8a8378;">${sub}</p>` : ''
+    }`;
+  const parts: string[] = [
+    `<h1 style="color:#143348; font-size:22px;">${monday ? 'Your week' : 'Morning'}, ${esc(me)}</h1>`,
+  ];
 
   if (confirms.length) {
-    const day = DAY_NAMES[confirms[0].study.day_of_week];
-    parts.push(
-      `<h2 style="color:#143348; font-size:17px; margin:20px 0 4px;">Confirm your ${day} studies</h2>
-       <p style="margin:0 0 10px; color:#8a8378;">Reach out before ${day}. Tap a name to open a text.</p>`
-    );
+    const days = [...new Set(confirms.map((c) => DAY_NAMES[c.study.day_of_week]))];
+    parts.push(section(`Confirm your ${days.join(' + ')} studies`, 'Reach out the day before. Tap a name to open a text.'));
     for (const c of confirms) {
       const s = c.study;
+      const day = DAY_NAMES[s.day_of_week];
       const rows = c.members
         .map((m) => {
           const body = `Hey ${first(m.name)}, it's ${me} from ARK Iowa! ${m.isNew ? 'Excited for your first Bible study' : 'See you'} ${day} at ${formatTime(s.start_time)} at ${s.location}. Still good?`;
@@ -399,14 +453,13 @@ function morningEmail(p: IowaStaff, confirms: ConfirmItem[], shows: ShowItem[]) 
         })
         .join('');
       parts.push(
-        `<p style="margin:14px 0 4px; font-weight:600;">${esc(formatSlot(s))} · ${esc(s.location ?? '')}</p><ul style="padding-left:18px; margin:0;">${rows}</ul>`
+        `<p style="margin:14px 0 4px; font-weight:600;">${esc(formatSlot(s))} · ${esc(s.location ?? '')} <span style="color:#8a8378; font-weight:400;">(${formatDate(c.meetDate)})</span></p><ul style="padding-left:18px; margin:0;">${rows}</ul>`
       );
     }
   }
 
   if (shows.length) {
-    parts.push(`<h2 style="color:#143348; font-size:17px; margin:24px 0 4px;">Did they make it?</h2>
-      <p style="margin:0 0 10px; color:#8a8378;">First study was yesterday.</p>`);
+    parts.push(section('Did they make it?', 'Their first Bible study was in the last few days.'));
     for (const { study, member } of shows) {
       const link = (v: 'yes' | 'no') => `${siteUrl()}/iowa/admin/showed/${member.id}?v=${v}`;
       parts.push(
@@ -417,11 +470,24 @@ function morningEmail(p: IowaStaff, confirms: ConfirmItem[], shows: ShowItem[]) 
     }
   }
 
+  if (tasks.length) {
+    parts.push(section(monday ? `Your open tasks (${tasks.length})` : 'Tasks due today', overdue ? `<span style="color:#b91c1c;">${overdue} overdue</span>` : undefined));
+    parts.push(`<ul style="padding-left:18px; margin:0;">${tasks.map((t) => taskLine(t, today)).join('')}</ul>`);
+  }
+
+  if (schedule.length) {
+    parts.push(section(monday ? 'This week' : 'Coming up'));
+    parts.push(scheduleHtml(schedule));
+  }
+
   parts.push(`<p style="margin-top:24px;"><a href="${siteUrl()}/iowa/admin" style="color:#143348;">Open the dashboard →</a></p>`);
   const subject = [
-    confirms.length ? `Confirm ${confirms.length} ${DAY_NAMES[confirms[0].study.day_of_week]} stud${confirms.length === 1 ? 'y' : 'ies'}` : null,
+    monday ? 'Your week' : null,
+    confirms.length ? `Confirm ${confirms.length} stud${confirms.length === 1 ? 'y' : 'ies'}` : null,
     shows.length ? `${shows.length} first-timer${shows.length === 1 ? '' : 's'} to check` : null,
-  ].filter(Boolean).join(' · ');
+    !monday && tasks.length ? `${tasks.length} task${tasks.length === 1 ? '' : 's'} due` : null,
+    overdue ? `${overdue} overdue` : null,
+  ].filter(Boolean).join(' · ') || 'Coming up';
   return { to: p.email, subject, html: parts.join('\n') };
 }
 

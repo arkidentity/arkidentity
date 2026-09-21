@@ -3,6 +3,7 @@ import { joinStudy, formatSlot } from '@/lib/bibleStudies';
 import { sendStudyConfirmation, sendStudyRosterAlerts, sendStudyAdminAlert } from '@/lib/email';
 import { googleCalendarUrl } from '@/lib/ics';
 import { queueStudySync } from '@/lib/calendarSync';
+import { queueSeated } from '@/lib/campusAutomation';
 import { siteUrl } from '@/lib/email';
 
 export const dynamic = 'force-dynamic';
@@ -16,6 +17,7 @@ export async function POST(req: Request) {
     phone?: string;
     email?: string;
     year?: string;
+    metBy?: string; // staff id | friend | self | other — "Who did you meet?"
     hpField?: string; // honeypot — real users leave it empty
   };
 
@@ -41,9 +43,11 @@ export async function POST(req: Request) {
       phone,
       email,
       year: body.year,
+      metBy: body.metBy,
     });
 
     queueStudySync(study.id); // roster changed → refresh the Google description
+    queueSeated(member.id); // first-ever seat → welcome-text task
     const slot = formatSlot(study);
     const info = { id: study.id, slot, location: study.location };
     const icsUrl = `${siteUrl()}/api/iowa/studies/${study.id}/ics`;

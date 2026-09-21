@@ -34,17 +34,20 @@ export async function taskEmailInfo(t: CampusTask): Promise<TaskEmailInfo> {
   };
 }
 
+// Email a task's owner now (already inside after() or a cron).
+export async function sendTaskAssignedNow(taskId: string, by: IowaStaff | null = null): Promise<void> {
+  try {
+    const task = await getTask(taskId);
+    const owner = task?.owner_id ? await getStaff(task.owner_id) : null;
+    if (!task || !owner?.active) return;
+    await sendTaskAssigned({ to: owner.email, name: owner.name, by: by?.name ?? null, task: await taskEmailInfo(task) });
+  } catch (e) {
+    console.error('[iowa tasks] assignment email failed', e);
+  }
+}
+
 export function notifyTaskAssigned(taskId: string, by: IowaStaff | null) {
-  after(async () => {
-    try {
-      const task = await getTask(taskId);
-      const owner = task?.owner_id ? await getStaff(task.owner_id) : null;
-      if (!task || !owner?.active) return;
-      await sendTaskAssigned({ to: owner.email, name: owner.name, by: by?.name ?? null, task: await taskEmailInfo(task) });
-    } catch (e) {
-      console.error('[iowa tasks] assignment email failed', e);
-    }
-  });
+  after(() => sendTaskAssignedNow(taskId, by));
 }
 
 export function notifyHelpOffered(taskId: string, helper: IowaStaff) {

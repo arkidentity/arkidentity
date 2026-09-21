@@ -51,7 +51,8 @@ export async function proxy(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     const loginUrl = new URL(loginPage, req.url);
-    loginUrl.searchParams.set('from', pathname);
+    // Keep the query too, so a one-tap email link (?v=yes) survives the login.
+    loginUrl.searchParams.set('from', pathname + req.nextUrl.search);
     return NextResponse.redirect(loginUrl);
   }
 

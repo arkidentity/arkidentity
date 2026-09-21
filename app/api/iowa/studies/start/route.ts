@@ -1,6 +1,7 @@
 import { NextResponse, after } from 'next/server';
 import { startStudy, formatSlot } from '@/lib/bibleStudies';
 import { sendStudyAdminAlert } from '@/lib/email';
+import { queueSeated } from '@/lib/campusAutomation';
 
 export const dynamic = 'force-dynamic';
 
@@ -15,6 +16,7 @@ export async function POST(req: Request) {
     phone?: string;
     email?: string;
     year?: string;
+    metBy?: string; // staff id | friend | self | other — "Who did you meet?"
     hpField?: string; // honeypot — real users leave it empty
   };
 
@@ -43,7 +45,9 @@ export async function POST(req: Request) {
       phone,
       email,
       year: body.year,
+      metBy: body.metBy,
     });
+    queueSeated(member.id); // first-ever seat → welcome-text task
     const slot = formatSlot(study);
     after(async () => {
       try {

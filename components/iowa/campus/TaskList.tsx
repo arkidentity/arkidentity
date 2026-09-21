@@ -246,7 +246,8 @@ function TaskDetail(props: TaskListProps & { t: CampusTask; busy: boolean; call:
   const url = `/api/iowa/admin/tasks/${t.id}`;
   const mineOwned = t.owner_id === meId;
   const helping = !!meId && t.helper_ids.includes(meId);
-  const nameOf = (id: string | null) => staff.find((s) => s.id === id)?.name ?? 'Someone';
+  // Activity with no person is the automation (welcome, confirm, reconnect…).
+  const nameOf = (id: string | null) => (id ? staff.find((s) => s.id === id)?.name ?? 'Someone' : 'Auto:');
   const log = activity.filter((a) => a.task_id === t.id);
   const helpers = t.helper_ids.map((id) => nameOf(id));
 

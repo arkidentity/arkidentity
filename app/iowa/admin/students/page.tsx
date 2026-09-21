@@ -1,4 +1,5 @@
 import { listCampusStudents, listStudies, CURRENT_SEMESTER } from '@/lib/bibleStudies';
+import { listStaff } from '@/lib/iowaStaff';
 import { CampusStudents } from '@/components/iowa/CampusStudents';
 
 export const dynamic = 'force-dynamic';
@@ -8,9 +9,10 @@ export const metadata = { title: 'ARK Iowa — students' };
 // filtered to ARK Iowa and shown with the facts that only matter here — year,
 // life-cycle status, and which study they're sitting in.
 export default async function CampusStudentsPage() {
-  const [students, studies] = await Promise.all([listCampusStudents(), listStudies()]);
+  const [students, studies, staff] = await Promise.all([listCampusStudents(), listStudies(), listStaff()]);
   return (
     <CampusStudents
+      staff={staff.filter((p) => p.active).map((p) => ({ id: p.id, name: p.name }))}
       initial={students}
       studies={studies.map((s) => ({
         id: s.id,

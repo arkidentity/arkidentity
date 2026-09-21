@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { spotsLabel } from '@/lib/bibleStudyFormat';
+import MetByPicker from '@/components/iowa/MetByPicker';
 
 interface Contact {
   name: string;
@@ -36,7 +37,7 @@ export default function JoinForm({
   capacity,
   onJoined,
 }: Props) {
-  const [form, setForm] = useState({ name: '', phone: '', email: '', year: '', hpField: '' });
+  const [form, setForm] = useState({ name: '', phone: '', email: '', year: '', metBy: '', hpField: '' });
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [message, setMessage] = useState('');
   const [roster, setRoster] = useState<Contact[]>([]);
@@ -197,6 +198,8 @@ export default function JoinForm({
           ))}
         </div>
       </div>
+
+      <MetByPicker value={form.metBy} onChange={(metBy) => setForm({ ...form, metBy })} />
 
       {/* honeypot — real users never see or fill this. Named so browser
           autofill / password managers won't touch it (avoid company, name,

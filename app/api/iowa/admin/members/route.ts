@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { addMember } from '@/lib/bibleStudies';
 import { queueStudySync } from '@/lib/calendarSync';
+import { queueSeated } from '@/lib/campusAutomation';
 
 export const dynamic = 'force-dynamic';
 
@@ -14,6 +15,7 @@ export async function POST(req: Request) {
     year?: string;
     source?: string;
     notes?: string;
+    metBy?: string;
   };
 
   if (!body.studyId?.trim()) return bad('Missing study.');
@@ -29,8 +31,10 @@ export async function POST(req: Request) {
       year: body.year,
       source: body.source,
       notes: body.notes,
+      metBy: body.metBy,
     });
     queueStudySync(member.study_id);
+    queueSeated(member.id);
     return NextResponse.json({ member }, { status: 201 });
   } catch (e) {
     return NextResponse.json({ error: (e as Error).message }, { status: 400 });

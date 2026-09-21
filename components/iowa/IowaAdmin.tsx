@@ -549,10 +549,10 @@ function StudyEditor({
         {s.members.length === 0 && <p className="text-sm text-[#8a8378]">No students yet.</p>}
         <ul className="space-y-1.5">
           {s.members.map((m) => (
-            <MemberRow key={m.id} m={m} studyId={s.id} others={all} busy={busy} call={call} />
+            <MemberRow key={m.id} m={m} studyId={s.id} others={all} staff={staff} busy={busy} call={call} />
           ))}
         </ul>
-        <AddMemberForm studyId={s.id} busy={busy} call={call} />
+        <AddMemberForm studyId={s.id} staff={staff} busy={busy} call={call} />
       </div>
     </div>
   );
@@ -562,12 +562,14 @@ function MemberRow({
   m,
   studyId,
   others,
+  staff,
   busy,
   call,
 }: {
   m: StudyMember;
   studyId: string;
   others: StudyWithMembers[];
+  staff: Map<string, StaffOption>;
   busy: boolean;
   call: CallFn;
 }) {
@@ -587,7 +589,18 @@ function MemberRow({
           <span className="text-[#8a8378]">
             {' · '}{[m.phone, m.email].filter(Boolean).join(' · ')}
             {m.year ? ` · ${m.year}` : ''}
+            {m.met_by_staff_id && staff.get(m.met_by_staff_id)
+              ? ` · met ${staff.get(m.met_by_staff_id)!.name.split(' ')[0]}`
+              : m.met_by_other === 'friend'
+                ? ' · friend invited'
+                : ''}
           </span>
+          {!dropped && m.first_showed === true && (
+            <span className="ml-1 text-xs font-semibold text-green-700" title="Made it to their first study">✓ came</span>
+          )}
+          {!dropped && m.first_showed === false && (
+            <span className="ml-1 text-xs font-semibold text-red-700" title="Missed their first study">✗ no-show</span>
+          )}
           {dropped && reasonLabel && (
             <span className="no-underline inline-block ml-1 text-xs text-[#8a8378]" style={{ textDecoration: 'none' }}>
               ({reasonLabel}
@@ -684,8 +697,18 @@ function MemberRow({
   );
 }
 
-function AddMemberForm({ studyId, busy, call }: { studyId: string; busy: boolean; call: CallFn }) {
-  const [f, setF] = useState({ name: '', phone: '', email: '', year: '', source: '' });
+function AddMemberForm({
+  studyId,
+  staff,
+  busy,
+  call,
+}: {
+  studyId: string;
+  staff: Map<string, StaffOption>;
+  busy: boolean;
+  call: CallFn;
+}) {
+  const [f, setF] = useState({ name: '', phone: '', email: '', year: '', source: '', metBy: '' });
   const [open, setOpen] = useState(false);
 
   if (!open) {
@@ -706,8 +729,20 @@ function AddMemberForm({ studyId, busy, call }: { studyId: string; busy: boolean
       <input className={input} placeholder="Phone" value={f.phone} onChange={(e) => setF({ ...f, phone: e.target.value })} />
       <input className={input} placeholder="Email" value={f.email} onChange={(e) => setF({ ...f, email: e.target.value })} />
       <input className={input} placeholder="Year (optional)" value={f.year} onChange={(e) => setF({ ...f, year: e.target.value })} />
+      <select className={input} value={f.metBy} onChange={(e) => setF({ ...f, metBy: e.target.value })}>
+        <option value="">Who met them? (optional)</option>
+        {[...staff.values()]
+          .filter((p) => p.active)
+          .map((p) => (
+            <option key={p.id} value={p.id}>
+              {p.name}
+            </option>
+          ))}
+        <option value="friend">A friend invited them</option>
+        <option value="self">Found it on their own</option>
+      </select>
       <input
-        className={`${input} sm:col-span-2`}
+        className={input}
         placeholder="Source — org fair / referred by / cold (optional)"
         value={f.source}
         onChange={(e) => setF({ ...f, source: e.target.value })}
@@ -718,7 +753,7 @@ function AddMemberForm({ studyId, busy, call }: { studyId: string; busy: boolean
           onClick={async () => {
             const ok = await call('/api/iowa/admin/members', 'POST', { ...f, studyId });
             if (ok) {
-              setF({ name: '', phone: '', email: '', year: '', source: '' });
+              setF({ name: '', phone: '', email: '', year: '', source: '', metBy: '' });
               setOpen(false);
             }
           }}

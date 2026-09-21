@@ -68,11 +68,32 @@ Code: `lib/googleCalendar.ts` (auth + REST, no deps), `lib/calendarSync.ts` (all
 Env: `GOOGLE_SERVICE_ACCOUNT_EMAIL`, `GOOGLE_SERVICE_ACCOUNT_KEY`, `IOWA_GOOGLE_CALENDAR_ID`. Without
 them every sync is a no-op.
 
-## Phase 2 — Automation
+## Phase 2 — Follow-up automation (built, migration 015)
 
-New-student follow-up sequence · drop → follow-up, and next-semester re-invite list driven by drop
-reason (schedule changed = first to re-invite; not interested = leave alone) · new-study setup
-checklist · monthly templates (Taco Night, Prayer & Worship Night) · dropped-students list.
+Code: `lib/campusAutomation.ts`. Every auto task has an `auto_key`, so nothing ever doubles.
+
+- **"Who did you meet?"** on both signup forms (optional): active staff + interns by first name, "a
+  friend invited me", "found it on my own", "other". Stored on `campus_students`
+  (`met_by_staff_id` / `met_by_other`), first answer wins; staff can fix it on the Students page.
+  Shown on rosters, in the Google roster description ("met Taylor"), and in follow-up tasks.
+- **Welcome** — a student's first seat ever → urgent task "Welcome text to {name}", due today, with
+  a suggested text (study day/time/place). Owner: who met them → staff on point → unowned. Owner is
+  emailed. Closed automatically if they drop.
+- **Weekly confirm (Travis's rhythm)** — morning cron (~8 AM CT) two days before each study, while a
+  staff member is on point and the study has **no student leader** (setting a leader hands follow-up
+  off and stops it): one email per person with every student as a tap-to-text link (prefilled
+  message), first-timers flagged NEW, plus a task per study due the day before. Confirm tasks
+  auto-close once the study has met.
+- **Did they make it?** — the morning after a student's first study, the same email asks Yes / No
+  (one-tap links → `/iowa/admin/showed/<member>`, behind login). No → urgent "missed their first
+  study" follow-up task. Result shows on the roster (✓ came / ✗ no-show).
+- **Stale students** (morning cron, once per student per semester): dropped as unresponsive 30+
+  days ago → reconnect; marked dormant → reconnect; met 14+ days ago and never placed → help find a
+  study; dropped because their schedule changed, and it's a new semester → re-invite. Not
+  interested / left school / graduated → nothing. Owner: who met them.
+- **Reconnect ideas** — every reconnect / no-show task lists the next campus events (Taco Night,
+  outings) in the coming 3 weeks and suggests a **prayer call from a student** ("You signed up for a
+  Bible study; how can I pray for you?"), naming their old study's student leader when there is one.
 
 ## Phase 3 — Student leaders
 

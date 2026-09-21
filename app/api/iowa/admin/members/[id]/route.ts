@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { setMemberStatus, moveMember } from '@/lib/bibleStudies';
 import { getSupabaseAdmin } from '@/lib/supabaseAdmin';
 import { queueStudySync } from '@/lib/calendarSync';
+import { queueDropped } from '@/lib/campusAutomation';
 
 export const dynamic = 'force-dynamic';
 
@@ -41,6 +42,7 @@ export async function PATCH(
       note: body.dropNote,
     });
     queueStudySync(member.study_id);
+    if (body.status === 'dropped') queueDropped(member.contact_id);
     return NextResponse.json({ member });
   } catch (e) {
     return NextResponse.json({ error: (e as Error).message }, { status: 400 });

@@ -22,6 +22,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     year?: string | null;
     status?: StudentStatus;
     notes?: string | null;
+    metBy?: string | null; // staff id | friend | self | other | '' to clear
     name?: string;
     phone?: string | null;
     email?: string | null;
@@ -38,10 +39,11 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   }
 
   try {
-    const campus: { year?: string | null; status?: StudentStatus; notes?: string | null } = {};
+    const campus: { year?: string | null; status?: StudentStatus; notes?: string | null; metBy?: string | null } = {};
     if ('year' in body) campus.year = body.year;
     if ('status' in body) campus.status = body.status;
     if ('notes' in body) campus.notes = body.notes;
+    if ('metBy' in body) campus.metBy = body.metBy;
     if (Object.keys(campus).length) await updateCampusStudent(id, campus);
 
     const person: { name?: string; phone?: string | null; email?: string | null } = {};

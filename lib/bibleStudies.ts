@@ -21,6 +21,16 @@ export type MemberStatus = 'active' | 'dropped';
 // disagree. This covers only what the roster can't tell you.
 export type StudentStatus = 'active' | 'dormant' | 'graduated' | 'transferred' | 'left_school';
 export type PulseStatus = 'green' | 'yellow' | 'red';
+// Non-staff answers to "Who did you meet?" on the signup form (migration 015).
+export type MetByOther = 'friend' | 'self' | 'other';
+const MET_BY_OTHER: MetByOther[] = ['friend', 'self', 'other'];
+// Form value: a staff uuid, one of MET_BY_OTHER, or '' (skipped).
+export function parseMetBy(v: unknown): { met_by_staff_id: string | null; met_by_other: MetByOther | null } | null {
+  if (typeof v !== 'string' || !v) return null;
+  if (MET_BY_OTHER.includes(v as MetByOther)) return { met_by_staff_id: null, met_by_other: v as MetByOther };
+  if (/^[0-9a-f-]{36}$/i.test(v)) return { met_by_staff_id: v, met_by_other: null };
+  return null;
+}
 
 export interface BibleStudy {
   id: string;
@@ -65,6 +75,10 @@ export interface StudyMember {
   left_at: string | null;
   drop_reason: string | null; // migration 013
   drop_note: string | null;
+  first_showed: boolean | null; // migration 015 — did they make it to their first study?
+  first_show_asked_on: string | null;
+  met_by_staff_id: string | null; // from campus_students, first touch
+  met_by_other: MetByOther | null;
 }
 
 export interface StudyWithMembers extends BibleStudy {
@@ -113,6 +127,8 @@ function flattenMember(row: MemberRow): StudyMember {
     email: contacts?.email ?? '',
     year: null,
     student_status: 'active',
+    met_by_staff_id: null,
+    met_by_other: null,
   };
 }
 
@@ -123,17 +139,18 @@ async function withCampus(members: StudyMember[]): Promise<StudyMember[]> {
   if (members.length === 0) return members;
   const { data, error } = await getSupabaseAdmin()
     .from('campus_students')
-    .select('contact_id, year, status')
+    .select('contact_id, year, status, met_by_staff_id, met_by_other')
     .in('contact_id', members.map((m) => m.contact_id));
   if (error) throw error;
 
-  const byContact = new Map<string, { year: string | null; status: StudentStatus }>();
-  for (const r of (data ?? []) as { contact_id: string; year: string | null; status: StudentStatus }[]) {
-    byContact.set(r.contact_id, { year: r.year, status: r.status });
-  }
+  type Campus = { contact_id: string; year: string | null; status: StudentStatus; met_by_staff_id: string | null; met_by_other: MetByOther | null };
+  const byContact = new Map<string, Campus>();
+  for (const r of (data ?? []) as Campus[]) byContact.set(r.contact_id, r);
   return members.map((m) => {
-    const campus = byContact.get(m.contact_id);
-    return campus ? { ...m, year: campus.year, student_status: campus.status } : m;
+    const c = byContact.get(m.contact_id);
+    return c
+      ? { ...m, year: c.year, student_status: c.status, met_by_staff_id: c.met_by_staff_id, met_by_other: c.met_by_other }
+      : m;
   });
 }
 
@@ -308,6 +325,7 @@ export interface JoinInput {
   phone: string;
   email: string;
   year?: string | null;
+  metBy?: string | null;
 }
 
 export interface JoinResult {
@@ -367,6 +385,7 @@ async function contactForStudent(input: {
   phone: string;
   email: string;
   year?: string | null;
+  metBy?: string | null;
 }) {
   const tag = await ensureTag('ARK Iowa', 'role');
   const contact = await findOrCreateContact({
@@ -377,34 +396,39 @@ async function contactForStudent(input: {
     subscribed: false,
     tagIds: [tag.id],
   });
-  await ensureCampusStudent(contact.id, input.year);
+  await ensureCampusStudent(contact.id, input.year, input.metBy);
   return contact;
 }
 
 // Every student on a roster has a campus_students row. Year is only written
 // when we're told one — a blank on a later signup must not erase what's there.
+// Who met them follows the same rule as year: first answer wins, a later
+// signup never overwrites it (staff can still correct it in the admin).
 export async function ensureCampusStudent(
   contactId: string,
-  year?: string | null
+  year?: string | null,
+  metBy?: string | null
 ): Promise<void> {
   const db = getSupabaseAdmin();
   const { data: existing } = await db
     .from('campus_students')
-    .select('contact_id, year')
+    .select('contact_id, year, met_by_staff_id, met_by_other')
     .eq('contact_id', contactId)
     .maybeSingle();
 
   const trimmed = year?.trim() || null;
+  const met = parseMetBy(metBy);
   if (!existing) {
-    const { error } = await db.from('campus_students').insert({ contact_id: contactId, year: trimmed });
+    const { error } = await db.from('campus_students').insert({ contact_id: contactId, year: trimmed, ...(met ?? {}) });
     if (error) throw error;
     return;
   }
-  if (trimmed && !existing.year) {
-    await db
-      .from('campus_students')
-      .update({ year: trimmed, updated_at: new Date().toISOString() })
-      .eq('contact_id', contactId);
+  const update: Record<string, unknown> = {};
+  if (trimmed && !existing.year) update.year = trimmed;
+  if (met && !existing.met_by_staff_id && !existing.met_by_other) Object.assign(update, met);
+  if (Object.keys(update).length) {
+    update.updated_at = new Date().toISOString();
+    await db.from('campus_students').update(update).eq('contact_id', contactId);
   }
 }
 
@@ -429,6 +453,7 @@ export interface StartInput {
   phone: string;
   email: string;
   year?: string | null;
+  metBy?: string | null;
   semester?: string;
 }
 
@@ -564,6 +589,7 @@ export interface AddMemberInput {
   year?: string;
   source?: string;
   notes?: string;
+  metBy?: string | null;
 }
 
 export async function addMember(studyId: string, input: AddMemberInput): Promise<StudyMember> {
@@ -656,6 +682,8 @@ export interface CampusStudent {
   year: string | null;
   status: StudentStatus;
   notes: string | null;
+  met_by_staff_id: string | null;
+  met_by_other: MetByOther | null;
   // Derived, never stored: the studies they currently hold an active seat in.
   // Empty means unplaced — met, but not in a study yet.
   studies: { id: string; label: string; member_id: string }[];
@@ -695,7 +723,14 @@ export async function listCampusStudents(): Promise<CampusStudent[]> {
   if (sErr) throw sErr;
 
   const campusByContact = new Map(
-    ((campus ?? []) as { contact_id: string; year: string | null; status: StudentStatus; notes: string | null }[])
+    ((campus ?? []) as {
+      contact_id: string;
+      year: string | null;
+      status: StudentStatus;
+      notes: string | null;
+      met_by_staff_id: string | null;
+      met_by_other: MetByOther | null;
+    }[])
       .map((r) => [r.contact_id, r])
   );
 
@@ -727,6 +762,8 @@ export async function listCampusStudents(): Promise<CampusStudent[]> {
         year: c?.year ?? null,
         status: c?.status ?? ('active' as StudentStatus),
         notes: c?.notes ?? null,
+        met_by_staff_id: c?.met_by_staff_id ?? null,
+        met_by_other: c?.met_by_other ?? null,
         studies: seatsByContact.get(p.contact_id) ?? [],
       };
     })
@@ -735,7 +772,7 @@ export async function listCampusStudents(): Promise<CampusStudent[]> {
 
 export async function updateCampusStudent(
   contactId: string,
-  patch: { year?: string | null; status?: StudentStatus; notes?: string | null }
+  patch: { year?: string | null; status?: StudentStatus; notes?: string | null; metBy?: string | null }
 ): Promise<void> {
   const db = getSupabaseAdmin();
   await ensureCampusStudent(contactId);
@@ -744,6 +781,8 @@ export async function updateCampusStudent(
   if ('year' in patch) update.year = patch.year?.trim() || null;
   if ('status' in patch) update.status = patch.status;
   if ('notes' in patch) update.notes = patch.notes?.trim() || null;
+  // Staff correcting it: overwrite, and '' clears it.
+  if ('metBy' in patch) Object.assign(update, parseMetBy(patch.metBy) ?? { met_by_staff_id: null, met_by_other: null });
 
   const { error } = await db.from('campus_students').update(update).eq('contact_id', contactId);
   if (error) throw error;

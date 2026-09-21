@@ -10,6 +10,7 @@ import {
   spotsLabel,
 } from '@/lib/bibleStudyFormat';
 import JoinForm from '@/components/iowa/JoinForm';
+import MetByPicker from '@/components/iowa/MetByPicker';
 
 interface PublicStudy {
   id: string;
@@ -243,6 +244,7 @@ function StartForm() {
     phone: '',
     email: '',
     year: '',
+    metBy: '',
     hpField: '',
   });
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
@@ -364,6 +366,8 @@ function StartForm() {
           </button>
         ))}
       </div>
+
+      <MetByPicker value={form.metBy} onChange={(metBy) => setForm({ ...form, metBy })} />
 
       {/* honeypot — see JoinForm for why it's named this way */}
       <div aria-hidden="true" style={{ position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0 0 0 0)', whiteSpace: 'nowrap' }}>

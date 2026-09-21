@@ -67,7 +67,17 @@ function studyEligible(s: StudyWithMembers): boolean {
   return LIVE.includes(s.status) && s.activeCount > 0 && !!s.location;
 }
 
-export function studyEvent(s: StudyWithMembers, onPoint: string | null): GEvent {
+export function studyEvent(
+  s: StudyWithMembers,
+  onPoint: string | null,
+  staffNames: Map<string, string> = new Map()
+): GEvent {
+  const metBy = (m: StudyWithMembers['members'][number]) =>
+    m.met_by_staff_id && staffNames.get(m.met_by_staff_id)
+      ? `met ${staffNames.get(m.met_by_staff_id)!.split(' ')[0]}`
+      : m.met_by_other === 'friend'
+        ? 'friend invited'
+        : null;
   // Anchor the weekly series at the first meeting on/after the study was made,
   // so past weeks stay put when the roster changes.
   const created = chicagoParts(new Date(s.created_at)).date;
@@ -77,7 +87,7 @@ export function studyEvent(s: StudyWithMembers, onPoint: string | null): GEvent 
   const active = s.members.filter((m) => m.status === 'active');
   const lines = [
     `Students (${active.length}/${s.capacity}):`,
-    ...active.map((m) => `• ${[m.name, m.phone, m.email, m.year].filter(Boolean).join(' — ')}`),
+    ...active.map((m) => `• ${[m.name, m.phone, m.email, m.year, metBy(m)].filter(Boolean).join(' — ')}`),
   ];
   if (s.leader_name) lines.push('', `Student leader: ${[s.leader_name, s.leader_phone].filter(Boolean).join(' — ')}`);
   lines.push('', `On point: ${onPoint ?? 'nobody (student-led)'}`);
@@ -104,7 +114,7 @@ async function pushStudy(s: StudyWithMembers, staffNames: Map<string, string>): 
     }
     return;
   }
-  const event = studyEvent(s, s.point_staff_id ? staffNames.get(s.point_staff_id) ?? null : null);
+  const event = studyEvent(s, s.point_staff_id ? staffNames.get(s.point_staff_id) ?? null : null, staffNames);
   // Deleted by hand in Google? patch returns null — put it back.
   const saved = (s.google_event_id && (await patchCalendarEvent(s.google_event_id, event))) || (await insertCalendarEvent(event));
   if (saved.id !== s.google_event_id) {

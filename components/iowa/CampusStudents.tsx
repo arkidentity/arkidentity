@@ -80,10 +80,12 @@ export function CampusStudents({
   initial,
   studies,
   semester,
+  staff = [],
 }: {
   initial: CampusStudent[];
   studies: StudyOption[];
   semester: string;
+  staff?: { id: string; name: string }[];
 }) {
   const router = useRouter();
   const [students, setStudents] = useState(initial);
@@ -117,7 +119,7 @@ export function CampusStudents({
   // phone / email on the contact itself — so a fix here is a fix everywhere.
   async function patchStudent(
     contactId: string,
-    patch: { year?: string | null; status?: StudentStatus; name?: string; phone?: string | null; email?: string | null }
+    patch: { year?: string | null; status?: StudentStatus; name?: string; phone?: string | null; email?: string | null; metBy?: string }
   ) {
     setBusy(true);
     setError('');
@@ -131,7 +133,14 @@ export function CampusStudents({
       setError((await res.json().catch(() => ({}))).error || 'Could not save.');
       return;
     }
-    setStudents((list) => list.map((s) => (s.contact_id === contactId ? { ...s, ...patch } : s)));
+    const { metBy, ...rest } = patch;
+    const met =
+      metBy === undefined
+        ? {}
+        : ['friend', 'self', 'other'].includes(metBy)
+          ? { met_by_staff_id: null, met_by_other: metBy as CampusStudent['met_by_other'] }
+          : { met_by_staff_id: metBy || null, met_by_other: null };
+    setStudents((list) => list.map((s) => (s.contact_id === contactId ? { ...s, ...rest, ...met } : s)));
   }
 
   // Moving keeps the same roster row, so joined_at and history survive.
@@ -221,6 +230,23 @@ export function CampusStudents({
                 >
                   <option value="">Year?</option>
                   {YEARS.map((y) => <option key={y} value={y}>{y}</option>)}
+                </select>
+
+                {/* Who met them. First answer comes from the signup form; fix it here. */}
+                <select
+                  value={s.met_by_staff_id ?? s.met_by_other ?? ''}
+                  onChange={(e) => patchStudent(s.contact_id, { metBy: e.target.value })}
+                  disabled={busy}
+                  className={input}
+                  title="Who did they meet?"
+                >
+                  <option value="">Met who?</option>
+                  {staff.map((p) => (
+                    <option key={p.id} value={p.id}>Met {p.name.split(' ')[0]}</option>
+                  ))}
+                  <option value="friend">Friend invited</option>
+                  <option value="self">Found it on their own</option>
+                  <option value="other">Other</option>
                 </select>
 
                 <select

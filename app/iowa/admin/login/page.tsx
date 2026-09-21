@@ -30,7 +30,9 @@ function LoginForm() {
     });
     setLoading(false);
     if (res.ok) {
-      router.push(params.get('from') || '/iowa/admin');
+      // Only same-site paths — never bounce to another origin ('//evil.com').
+      const from = params.get('from');
+      router.push(from && from.startsWith('/') && !from.startsWith('//') ? from : '/iowa/admin');
       router.refresh();
     } else {
       const data = await res.json().catch(() => ({}));

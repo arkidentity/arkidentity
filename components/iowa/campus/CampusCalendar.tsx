@@ -54,7 +54,8 @@ export default function CampusCalendar({
   types: TypeOption[];
   meId: string | null;
 }) {
-  const [mineOnly, setMineOnly] = useState(true);
+  // Everyone by default (Travis); Mine is one tap away.
+  const [mineOnly, setMineOnly] = useState(false);
   const [editing, setEditing] = useState<string | 'new' | null>(null);
   const [clickedDate, setClickedDate] = useState<string | null>(null); // which week's box was clicked
   const { call, busy, error } = useCall();

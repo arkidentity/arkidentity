@@ -52,7 +52,8 @@ export default function TaskList(props: TaskListProps) {
   const { tasks, staff, types, meId, compact, openTaskId, prefill } = props;
   const { call, busy, error } = useCall();
   const today = chicagoToday();
-  const [view, setView] = useState<View>(openTaskId ? 'all' : 'mine');
+  // Everyone's open tasks by default (Travis); Mine is one tap away.
+  const [view, setView] = useState<View>('all');
   const [typeFilter, setTypeFilter] = useState('');
   const [personFilter, setPersonFilter] = useState('');
   const [search, setSearch] = useState('');
@@ -230,7 +231,7 @@ function TaskRow(
           >
             {t.title}
           </span>
-          <span className="block text-xs text-[#8a8378] mt-0.5">
+          <span className="block text-sm md:text-xs text-[#8a8378] mt-0.5">
             {[
               owner ? owner.name : 'Unowned',
               t.helper_ids.length
@@ -246,7 +247,7 @@ function TaskRow(
         <span className="flex flex-col items-end gap-1 shrink-0">
           {overdue ? <OverdueTag /> : t.status !== 'open' && <StatusPill status={t.status} />}
           {t.due_date && (
-            <span className="text-xs" style={{ color: overdue ? '#b91c1c' : '#8a8378' }}>
+            <span className="text-sm md:text-xs" style={{ color: overdue ? '#b91c1c' : '#8a8378' }}>
               {formatDate(t.due_date)}
             </span>
           )}
@@ -276,8 +277,8 @@ function TaskDetail(props: TaskListProps & { t: CampusTask; busy: boolean; call:
 
   return (
     <div className="border-t border-gray-100 px-4 py-3 space-y-3">
-      {t.description && <p className="text-sm text-[#4a4540] whitespace-pre-wrap">{t.description}</p>}
-      <p className="text-xs text-[#8a8378]">
+      {t.description && <p className="text-[15px] md:text-sm text-[#4a4540] whitespace-pre-wrap">{t.description}</p>}
+      <p className="text-sm md:text-xs text-[#8a8378]">
         {[
           t.due_date ? `Due ${formatDate(t.due_date)}` : 'No due date',
           owner ? `Owner: ${owner.name}` : 'Unowned',
@@ -337,7 +338,7 @@ function TaskDetail(props: TaskListProps & { t: CampusTask; busy: boolean; call:
       )}
 
       {history && (
-        <ul className="text-xs text-[#8a8378] space-y-0.5">
+        <ul className="text-sm md:text-xs text-[#8a8378] space-y-0.5">
           {log.map((a) => (
             <li key={a.id}>
               {nameOf(a.staff_id)} {a.action} ·{' '}

@@ -165,7 +165,7 @@ export default function WeekView({
             {periodsOn(d, periods).map((p) => (
               <div
                 key={p.id}
-                className="mx-1.5 mt-1.5 rounded px-1.5 py-0.5 text-[11px] font-semibold"
+                className="mx-1.5 mt-1.5 rounded px-1.5 py-0.5 text-xs md:text-[11px] font-semibold"
                 style={{ backgroundColor: p.kind === 'finals' ? '#fee2e2' : '#fef3c7', color: p.kind === 'finals' ? '#b91c1c' : '#92400e' }}
                 title={p.note ?? undefined}
               >
@@ -182,10 +182,11 @@ export default function WeekView({
                       {i.priority && <PriorityDot priority={i.priority} />}
                       <span className={i.overdue ? 'text-red-700' : ''}>{i.title}</span>
                     </span>
-                    {i.sub && <span className="block text-[11px] text-[#8a8378] leading-tight mt-0.5">{i.sub}</span>}
+                    {i.sub && <span className="block text-sm md:text-[11px] text-[#8a8378] leading-snug md:leading-tight mt-0.5">{i.sub}</span>}
                   </>
                 );
-                const cls = 'block w-full text-left rounded px-1.5 py-1 text-xs hover:brightness-95';
+                // Phones stack the days full-width, so text can be a size up there.
+                const cls = 'block w-full text-left rounded px-2 py-1.5 md:px-1.5 md:py-1 text-[15px] md:text-xs hover:brightness-95';
                 const st = {
                   backgroundColor: style.bg,
                   borderLeft: `3px solid ${i.overdue ? '#b91c1c' : style.bar}`,

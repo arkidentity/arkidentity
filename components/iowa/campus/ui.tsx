@@ -144,9 +144,9 @@ export function PageShell({ children }: { children: React.ReactNode }) {
   );
 }
 
-// A card over the page: slides up from the bottom on phones, centered on
-// wider screens. Closes on ✕, the backdrop, or Escape; the page underneath
-// keeps its scroll position.
+// A card over the page, centered with breathing room on every screen size
+// (a bottom sheet felt cramped on phones). Closes on ✕, the backdrop, or
+// Escape; the page underneath keeps its scroll position.
 export function Modal({ title, sub, onClose, children }: { title: string; sub?: React.ReactNode; onClose: () => void; children: React.ReactNode }) {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
@@ -159,10 +159,10 @@ export function Modal({ title, sub, onClose, children }: { title: string; sub?: 
     };
   }, [onClose]);
   return (
-    <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center" role="dialog" aria-modal="true">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6" role="dialog" aria-modal="true">
       <div className="absolute inset-0 bg-black/40" onClick={onClose} />
-      <div className="relative w-full md:max-w-2xl max-h-[88vh] overflow-y-auto bg-[#FAF8F5] rounded-t-2xl md:rounded-2xl shadow-xl">
-        <div className="sticky top-0 z-10 flex items-start justify-between gap-3 px-5 pt-4 pb-3 bg-[#FAF8F5] border-b border-gray-200">
+      <div className="relative w-full max-w-2xl max-h-[85dvh] overflow-y-auto bg-[#FAF8F5] rounded-2xl shadow-xl">
+        <div className="sticky top-0 z-10 flex items-start justify-between gap-3 px-5 pt-4 pb-3 bg-[#FAF8F5] border-b border-gray-200 rounded-t-2xl">
           <div className="min-w-0">
             <h2 className="text-xl font-bold leading-tight" style={{ color: 'var(--navy)' }}>{title}</h2>
             {sub && <div className="text-sm text-[#4a4540] mt-0.5">{sub}</div>}

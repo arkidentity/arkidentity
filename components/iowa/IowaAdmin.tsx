@@ -980,7 +980,7 @@ function LinkedTasks({ studyId }: { studyId: string }) {
           Tasks
         </p>
         <a
-          href={`/iowa/admin/tasks?new=1&study=${studyId}`}
+          href={`/iowa/admin?new=1&study=${studyId}#tasks`}
           className="text-sm font-semibold hover:underline"
           style={{ color: 'var(--navy)' }}
         >
@@ -991,7 +991,7 @@ function LinkedTasks({ studyId }: { studyId: string }) {
       <ul className="space-y-1.5">
         {tasks.map((t) => (
           <li key={t.id} className="text-sm flex flex-wrap items-center gap-2">
-            <a href={`/iowa/admin/tasks?task=${t.id}`} className="font-semibold hover:underline" style={{ color: 'var(--navy)' }}>
+            <a href={`/iowa/admin?task=${t.id}#tasks`} className="font-semibold hover:underline" style={{ color: 'var(--navy)' }}>
               {t.title}
             </a>
             <PriorityBadge priority={t.priority} />

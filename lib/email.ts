@@ -427,7 +427,7 @@ export interface TaskEmailInfo {
 }
 
 function taskUrl(id: string): string {
-  return `${siteUrl()}/iowa/admin/tasks?task=${id}`;
+  return `${siteUrl()}/iowa/admin?task=${id}#tasks`;
 }
 
 function taskBlock(t: TaskEmailInfo): string {

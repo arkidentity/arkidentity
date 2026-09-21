@@ -222,7 +222,7 @@ function appEvent(e: EventRow, names: Map<string, string>): GEvent {
     going.length ? `Going: ${going.join(', ')}` : null,
     e.meeting_link ? `Join: ${e.meeting_link}` : null,
     e.notes ? `\n${e.notes}` : null,
-    `\nManaged in the ARK Iowa admin, so edits made here get overwritten: ${siteUrl()}/iowa/admin/calendar`,
+    `\nManaged in the ARK Iowa admin, so edits made here get overwritten: ${siteUrl()}/iowa/admin`,
   ].filter(Boolean);
 
   const timed = !!e.start_time;

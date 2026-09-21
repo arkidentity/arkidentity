@@ -19,7 +19,6 @@ import WeekView, { MineToggle, WeekLegend, buildWeekItems } from '@/components/i
 import {
   ErrorBox,
   Field,
-  PageShell,
   btnPrimary,
   input,
   useCall,
@@ -55,7 +54,7 @@ export default function CampusCalendar({
   types: TypeOption[];
   meId: string | null;
 }) {
-  const [mineOnly, setMineOnly] = useState(false);
+  const [mineOnly, setMineOnly] = useState(true);
   const [editing, setEditing] = useState<string | 'new' | null>(null);
   const [clickedDate, setClickedDate] = useState<string | null>(null); // which week's box was clicked
   const { call, busy, error } = useCall();
@@ -68,11 +67,11 @@ export default function CampusCalendar({
   const editingEvent = editing && editing !== 'new' ? events.find((e) => e.id === editing) : undefined;
 
   return (
-    <PageShell>
+    <section id="week" className="mb-10 scroll-mt-4">
       <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
-        <h1 className="text-3xl font-bold" style={{ color: 'var(--navy)' }}>
-          Calendar
-        </h1>
+        <h2 className="text-lg font-bold" style={{ color: 'var(--navy)' }}>
+          This week
+        </h2>
         <button onClick={() => setEditing(editing === 'new' ? null : 'new')} className={btnPrimary} style={{ backgroundColor: 'var(--navy)' }}>
           {editing === 'new' ? 'Close' : '+ New event'}
         </button>
@@ -80,13 +79,13 @@ export default function CampusCalendar({
 
       <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
         <div className="flex items-center gap-2 text-sm font-semibold" style={{ color: 'var(--navy)' }}>
-          <a href={`?week=${addDays(weekStart, -7)}`} className="px-2 py-1 rounded border border-gray-300 bg-white">
+          <a href={`?week=${addDays(weekStart, -7)}#week`} className="px-2 py-1 rounded border border-gray-300 bg-white">
             ←
           </a>
-          <a href="?" className="px-2 py-1 rounded border border-gray-300 bg-white">
+          <a href="?#week" className="px-2 py-1 rounded border border-gray-300 bg-white">
             This week
           </a>
-          <a href={`?week=${addDays(weekStart, 7)}`} className="px-2 py-1 rounded border border-gray-300 bg-white">
+          <a href={`?week=${addDays(weekStart, 7)}#week`} className="px-2 py-1 rounded border border-gray-300 bg-white">
             →
           </a>
           <span className="ml-2">
@@ -192,7 +191,7 @@ export default function CampusCalendar({
           />
         </div>
       )}
-    </PageShell>
+    </section>
   );
 }
 
@@ -569,7 +568,7 @@ function EventChecklist({
           {open.map((t) => (
             <li key={t.id} className="flex flex-wrap gap-x-2">
               <span className="w-24 shrink-0 text-[#8a8378]">{t.due_date ? formatDate(t.due_date, { month: 'short', day: 'numeric' }) : ''}</span>
-              <a href={`/iowa/admin/tasks?task=${t.id}`} className="hover:underline" style={{ color: 'var(--navy)' }}>
+              <a href={`/iowa/admin?task=${t.id}#tasks`} className="hover:underline" style={{ color: 'var(--navy)' }}>
                 {t.title}
               </a>
               <span className="text-[#8a8378]">

@@ -5,8 +5,6 @@ import { usePathname, useRouter } from 'next/navigation';
 
 const TABS = [
   { href: '/iowa/admin', label: 'Dashboard' },
-  { href: '/iowa/admin/tasks', label: 'Tasks' },
-  { href: '/iowa/admin/calendar', label: 'Calendar' },
   { href: '/iowa/admin/studies', label: 'Studies' },
   { href: '/iowa/admin/students', label: 'Students' },
   { href: '/iowa/admin/staff', label: 'Staff' },

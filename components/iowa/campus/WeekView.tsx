@@ -118,7 +118,7 @@ export function buildWeekItems(opts: {
       kind: 'task',
       title: t.title,
       sub: [overdue ? `overdue · was ${formatDate(t.due_date)}` : 'due', t.owner_id ? nameOf(t.owner_id) : 'unowned'].join(' · '),
-      href: `/iowa/admin/tasks?task=${t.id}`,
+      href: `/iowa/admin?task=${t.id}#tasks`,
       priority: t.priority,
       overdue,
     });

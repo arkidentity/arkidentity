@@ -172,6 +172,15 @@ Mission trip (examples; edit in Settings → Checklists).
 - Removing a template deletes its not-started future tasks; started ones stay.
 - Events repeat weekly only; a monthly Taco Night is one event per month (type-tied template helps).
 
+## One screen (2026-09-21, Travis)
+
+The Dashboard (`/iowa/admin`) is the working screen: count tiles → the week calendar (arrows, This
+week, Mine/Everyone, + New event, Google sync bar, duplicate list, event panel with checklists) →
+the full task list (filters, + New task) beside "Who's carrying what". The Calendar and Tasks nav
+tabs are gone; `/iowa/admin/calendar` and `/iowa/admin/tasks` redirect to the dashboard keeping
+`?week=` / `?task=` / `?new=` (emails already sent still work). Nav: Dashboard · Studies · Students
+· Staff · Settings.
+
 ## Email rhythm (2026-09-21, Travis)
 
 **One email per person per morning, Monday–Saturday, ~8 AM CT, skipped entirely when empty. No

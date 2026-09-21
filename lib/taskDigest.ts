@@ -19,7 +19,7 @@ export function taskLine(t: CampusTask, today: string): string {
         : `due ${formatDate(t.due_date)}`
       : null,
   ].filter(Boolean);
-  return `<li style="margin:0 0 6px;"><a href="${siteUrl()}/iowa/admin/tasks?task=${t.id}" style="color:#143348;">${esc(
+  return `<li style="margin:0 0 6px;"><a href="${siteUrl()}/iowa/admin?task=${t.id}#tasks" style="color:#143348;">${esc(
     t.title
   )}</a> <span style="color:#8a8378; font-size:14px;">· ${bits.join(' · ')}</span></li>`;
 }

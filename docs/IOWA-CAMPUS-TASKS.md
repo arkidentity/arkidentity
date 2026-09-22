@@ -181,6 +181,30 @@ tabs are gone; `/iowa/admin/calendar` and `/iowa/admin/tasks` redirect to the da
 `?week=` / `?task=` / `?new=` (emails already sent still work). Nav: Dashboard · Studies · Students
 · Staff · Settings.
 
+Layout + behavior refinements (same day, from Travis using it on his phone):
+- **Opens on Everyone** (calendar and tasks); Mine is one tap away.
+- **Calendar header** is the date range ("Sep 21 – 27") with + New event; ← This week → and
+  Mine/Everyone share one row. Sync line shortened ("Google synced 3:05 PM · Sync now") to fit one
+  phone line. + New task sits on the Tasks heading line.
+- **Bigger detail text below the `md` breakpoint** (calendar item details, task sub-lines, opened task
+  details/history); desktop sizes unchanged.
+- **Tap-to-open cards** (`Modal` in `components/iowa/campus/ui.tsx`): tapping a study or event on the
+  week grid opens a **centered floating card** on every screen size (85dvh max, scrolls inside; a bottom
+  sheet felt cramped on phones). Closes on ✕, backdrop, or Escape.
+  - **Study card** (`StudyCard.tsx`): when/where, count, student leader (call/text), on point, the
+    week's **Team** (shadowing / assisting / leading), roster with call · text · email, year, met-by,
+    first-study result, and **Move / Drop** per student (drop asks the reason) + Restore for dropped;
+    "Edit in Studies →" for everything else.
+  - **Event card**: when/where, Join button, Team invites + RSVPs, checklist; the edit form and
+    skip-a-week tucked behind "Edit event ▾".
+- **Tasks**: rows show everyone on the task ("Travis, with Kayla"). Opening a task shows a short summary
+  (details, one meta line, ✓ Mark done / Take this / I can help); **Edit ▾** and **History ▾** open on
+  demand. Save closes the editor with "Saved ✓" and shows any error beside the button ("Didn't save: …"),
+  since errors used to land off-screen at the top of the list.
+- **"Also on it"**: one accountable owner plus any number of staff via name chips in the task form
+  (`helper_ids`, `setHelpers()` in `lib/campusTasks.ts`); newly added people are emailed and the task
+  shows in their Mine. Only people with a staff login can be assigned (student-leader logins = Phase 3).
+
 ## Invites and RSVPs (migration 020)
 
 Code: `lib/eventInvites.ts`. Built for the internship (Keilor, Sep 2026): Travis schedules things with an

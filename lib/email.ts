@@ -166,6 +166,40 @@ export async function sendTableSignupEmail(signup: TableSignup) {
   });
 }
 
+export interface BajaInterest {
+  name: string;
+  phone: string;
+  email?: string;
+  hasPassport: string;
+  message?: string;
+}
+
+// A student raising a hand for Baja 2027 on /iowa/baja. Goes to the campus inbox.
+export async function sendBajaInterestEmail(signup: BajaInterest) {
+  const row = (label: string, value: string) =>
+    `<p style="margin:0 0 6px;"><strong style="color:#143348;">${label}:</strong> ${escapeHtml(value)}</p>`;
+
+  const html = wrap(`
+    <h1 style="color:#143348; font-size:22px;">Baja 2027 interest — ARK Iowa</h1>
+    ${row('Name', signup.name)}
+    ${row('Phone', signup.phone)}
+    ${signup.email ? row('Email', signup.email) : ''}
+    ${row('Passport', signup.hasPassport)}
+    ${signup.message ? row('Message', signup.message) : ''}
+    <p style="margin:20px 0 0; color:#8a8378; font-size:14px;">
+      Submitted ${new Date().toLocaleString('en-US', { timeZone: 'America/Chicago' })} CT.
+    </p>
+  `);
+
+  return getResend().emails.send({
+    from: fromAddress(),
+    to: process.env.IOWA_INBOX || 'travis@arkidentity.com',
+    replyTo: signup.email || undefined,
+    subject: `Baja interest — ${signup.name}`,
+    html,
+  });
+}
+
 function escapeHtml(s: string): string {
   return s.replace(/[&<>"']/g, (c) =>
     ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c] as string

@@ -1,6 +1,16 @@
 'use client';
 
 import { useState } from 'react';
+import Image from 'next/image';
+
+// Photos from uReach's Baja base and build sites.
+function Photo({ src, alt, className = '' }: { src: string; alt: string; className?: string }) {
+  return (
+    <div className={`relative rounded-xl overflow-hidden bg-gray-200 ${className}`}>
+      <Image src={src} alt={alt} fill sizes="(min-width: 768px) 384px, 100vw" className="object-cover" />
+    </div>
+  );
+}
 
 // Source copy: "Baja Mission Trip 2027" doc (Travis, 2026-09-21). Keep in sync.
 // Set this once the video exists; the section shows a placeholder until then.
@@ -150,9 +160,9 @@ export default function BajaPageContent() {
     <>
       {/* HERO */}
       <section className="relative min-h-[75vh] flex items-center justify-center py-24">
-        <div className="absolute inset-0 bg-gradient-to-br from-gray-800 to-gray-900">
-          {/* TODO: photo from a uReach week in San Quintín. */}
-          <div className="absolute inset-0 bg-black opacity-45"></div>
+        <div className="absolute inset-0 bg-gray-900">
+          <Image src="/iowa/baja/roof.jpg" alt="" fill priority sizes="100vw" className="object-cover object-[center_30%]" />
+          <div className="absolute inset-0 bg-black opacity-50"></div>
         </div>
         <div className="relative z-10 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center text-white">
           <p className="uppercase tracking-widest text-sm mb-4" style={{ color: 'var(--gold)' }}>
@@ -208,6 +218,10 @@ export default function BajaPageContent() {
             </li>
           ))}
         </ul>
+        <div className="grid grid-cols-2 gap-4 mb-6">
+          <Photo src="/iowa/baja/framing.jpg" alt="A team framing the walls of a home" className="aspect-[4/5]" />
+          <Photo src="/iowa/baja/saw.jpg" alt="A student cutting lumber on a build site" className="aspect-[4/5]" />
+        </div>
         <p className={body}>
           We will also pray, worship, and debrief together every day. The goal is for you to come home more like
           Jesus and more ready to make disciples.
@@ -230,6 +244,11 @@ export default function BajaPageContent() {
             </div>
           ))}
         </dl>
+        <div className="grid sm:grid-cols-2 gap-4 mt-8">
+          <Photo src="/iowa/baja/base-night.jpg" alt="The uReach base courtyard at dusk" className="aspect-video" />
+          <Photo src="/iowa/baja/base-day.jpg" alt="The uReach base and dining hall" className="aspect-video" />
+        </div>
+        <p className="mt-3 text-sm text-[#8a8378]">Home for the week: the uReach base in the San Quintín Valley.</p>
       </Section>
 
       {/* COST */}

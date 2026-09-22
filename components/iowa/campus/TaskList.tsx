@@ -19,6 +19,7 @@ import {
 import {
   ErrorBox,
   Field,
+  Modal,
   OverdueTag,
   PriorityBadge,
   StatusPill,
@@ -711,5 +712,59 @@ function OptionSelect({
         </option>
       ))}
     </select>
+  );
+}
+
+// Tap a task (or a grouped line) on the calendar: it opens here, over the
+// calendar, instead of reloading the dashboard and scrolling to the list.
+export function TaskPopup(props: TaskListProps & { taskIds: string[]; onClose: () => void }) {
+  const { taskIds, onClose, tasks } = props;
+  const { call, busy } = useCall();
+  const list = taskIds.map((id) => tasks.find((t) => t.id === id)).filter((t): t is CampusTask => !!t);
+  const [expanded, setExpanded] = useState<string | null>(list.length === 1 ? list[0].id : null);
+  if (list.length === 0) return null;
+  const single = list.length === 1;
+  const key = taskGroupKey(list[0]);
+  const followUp = !single && !!key && !!FOLLOW_UP[key];
+  const open = list.filter((t) => t.status !== 'done').length;
+
+  return (
+    <Modal
+      title={single ? list[0].title : taskGroupTitle(key ?? '', list.length)}
+      sub={single ? undefined : `${open} of ${list.length} still open`}
+      onClose={onClose}
+    >
+      {followUp && (
+        <div className="mb-4">
+          <a
+            href="/iowa/admin/students?report=1"
+            className="inline-block px-3 py-2 rounded-md text-sm font-semibold"
+            style={{ backgroundColor: 'var(--navy)', color: 'white' }}
+          >
+            Open check-in report →
+          </a>
+          <p className="text-xs text-[#8a8378] mt-2">Logging a check-in on the report marks that student&apos;s task done.</p>
+        </div>
+      )}
+      {single ? (
+        <div className="rounded-lg border border-gray-200 bg-white">
+          <TaskDetail {...props} t={list[0]} busy={busy} call={call} />
+        </div>
+      ) : (
+        <ul className="space-y-2">
+          {list.map((t) => (
+            <TaskRow
+              key={t.id}
+              t={t}
+              {...props}
+              expanded={expanded === t.id}
+              onToggle={() => setExpanded(expanded === t.id ? null : t.id)}
+              busy={busy}
+              call={call}
+            />
+          ))}
+        </ul>
+      )}
+    </Modal>
   );
 }

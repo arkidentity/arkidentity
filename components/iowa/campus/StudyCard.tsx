@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import type { StudyMember, StudyWithMembers } from '@/lib/bibleStudies';
+import type { StudyMember, StudyStatus, StudyWithMembers } from '@/lib/bibleStudies';
 import { DAY_NAMES, formatTime } from '@/lib/bibleStudyFormat';
 import { formatDate } from '@/lib/campusFormat';
 import { DROP_REASONS, STUDY_ROLES, roleVerb, teamOn, type StudyRole, type StudyTeamRow } from '@/lib/campusFormat';
@@ -14,7 +14,9 @@ const sms = (p: string) => `sms:${p.replace(/[^\d+]/g, '')}`;
 
 // Tap a Bible study on the calendar: everything you need at a glance — where,
 // who's leading, who's on point, and the roster with one-tap call / text /
-// email. Editing lives on the Studies page.
+// email. Study details (status, leader, on point, time, place) edit right here
+// under "Edit details"; the Studies page is for creating studies and the
+// all-semesters list.
 export default function StudyCard({
   study: s,
   date,
@@ -84,6 +86,8 @@ export default function StudyCard({
         )}
       </dl>
 
+      <DetailsEditor s={s} staff={staff} />
+
       <TeamSection s={s} date={date} staff={staff} team={team} meId={meId} busy={busy} call={call} />
 
       <p className="text-sm font-bold mb-2" style={{ color: 'var(--navy)' }}>Roster</p>
@@ -150,12 +154,8 @@ export default function StudyCard({
         </details>
       )}
 
-      <a
-        href="/iowa/admin/studies"
-        className="inline-block px-4 py-2 rounded-md text-sm font-semibold border border-gray-300 bg-white"
-        style={{ color: 'var(--navy)' }}
-      >
-        Edit in Studies →
+      <a href="/iowa/admin/studies" className="text-sm text-[#8a8378] underline">
+        All studies →
       </a>
     </Modal>
   );
@@ -343,6 +343,141 @@ function TeamSection({
           Invite
         </button>
       </div>
+    </div>
+  );
+}
+
+const STATUS_OPTIONS: { key: StudyStatus; label: string }[] = [
+  { key: 'pending_setup', label: 'Pending setup' },
+  { key: 'forming', label: 'Forming' },
+  { key: 'full', label: 'Full' },
+  { key: 'activated', label: 'Activated' },
+  { key: 'paused', label: 'Paused' },
+  { key: 'ended', label: 'Ended' },
+];
+
+// Everything about the study itself, same fields as the Studies page. Saves in
+// one PATCH (which re-syncs Google and emails a newly assigned point person).
+function DetailsEditor({ s, staff }: { s: StudyWithMembers; staff: StaffOption[] }) {
+  const { call, busy, error } = useCall();
+  const [open, setOpen] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const initial = () => ({
+    status: s.status,
+    point_staff_id: s.point_staff_id ?? '',
+    leader_name: s.leader_name ?? '',
+    leader_phone: s.leader_phone ?? '',
+    leader_email: s.leader_email ?? '',
+    day_of_week: s.day_of_week,
+    start_time: s.start_time.slice(0, 5),
+    location: s.location ?? '',
+    online: s.online,
+    capacity: s.capacity,
+    accepting_signups: s.accepting_signups,
+    notes: s.notes ?? '',
+  });
+  const [f, setF] = useState(initial);
+  const set = (p: Partial<ReturnType<typeof initial>>) => setF((c) => ({ ...c, ...p }));
+  const field = 'w-full px-2 py-1.5 border border-gray-300 rounded-md text-sm text-gray-900 bg-white';
+  const label = 'block text-xs font-semibold text-[#8a8378] mb-1';
+
+  async function save() {
+    const ok = await call(`/api/iowa/admin/studies/${s.id}`, 'PATCH', {
+      ...f,
+      point_staff_id: f.point_staff_id || null,
+      leader_name: f.leader_name.trim() || null,
+      leader_phone: f.leader_phone.trim() || null,
+      leader_email: f.leader_email.trim() || null,
+      notes: f.notes.trim() || null,
+      start_time: f.start_time.length === 5 ? `${f.start_time}:00` : f.start_time,
+      capacity: Number(f.capacity) || s.capacity,
+    });
+    if (ok) {
+      setOpen(false);
+      setSaved(true);
+    }
+  }
+
+  return (
+    <div className="mb-5">
+      <div className="flex items-center gap-3">
+        <button
+          onClick={() => { if (!open) setF(initial()); setOpen((v) => !v); setSaved(false); }}
+          className="text-xs font-semibold px-2 py-1 rounded border border-gray-300 hover:bg-gray-50"
+          style={{ color: 'var(--navy)' }}
+        >
+          {open ? 'Close edit ▴' : 'Edit details ▾'}
+        </button>
+        {saved && <span className="text-xs font-semibold text-green-700">Saved ✓</span>}
+      </div>
+      {open && (
+        <div className="mt-3 rounded-lg border border-gray-200 bg-[#FAF8F5] p-3 grid grid-cols-2 gap-3">
+          <div>
+            <span className={label}>Status</span>
+            <select className={field} value={f.status} onChange={(e) => set({ status: e.target.value as StudyStatus })}>
+              {STATUS_OPTIONS.map((o) => <option key={o.key} value={o.key}>{o.label}</option>)}
+            </select>
+          </div>
+          <div>
+            <span className={label}>On point</span>
+            <select className={field} value={f.point_staff_id} onChange={(e) => set({ point_staff_id: e.target.value })}>
+              <option value="">Nobody</option>
+              {staff.filter((p) => p.active || p.id === f.point_staff_id).map((p) => (
+                <option key={p.id} value={p.id}>{p.name}</option>
+              ))}
+            </select>
+          </div>
+          <div className="col-span-2">
+            <span className={label}>Student leader</span>
+            <div className="grid sm:grid-cols-3 gap-2">
+              <input className={field} placeholder="Name" value={f.leader_name} onChange={(e) => set({ leader_name: e.target.value })} />
+              <input className={field} placeholder="Phone" value={f.leader_phone} onChange={(e) => set({ leader_phone: e.target.value })} />
+              <input className={field} placeholder="Email" value={f.leader_email} onChange={(e) => set({ leader_email: e.target.value })} />
+            </div>
+          </div>
+          <div>
+            <span className={label}>Day</span>
+            <select className={field} value={f.day_of_week} onChange={(e) => set({ day_of_week: Number(e.target.value) })}>
+              {DAY_NAMES.map((d, i) => <option key={d} value={i}>{d}</option>)}
+            </select>
+          </div>
+          <div>
+            <span className={label}>Time</span>
+            <input type="time" className={field} value={f.start_time} onChange={(e) => set({ start_time: e.target.value })} />
+          </div>
+          <div className="col-span-2">
+            <span className={label}>Location</span>
+            <input className={field} placeholder="Where they meet" value={f.location} onChange={(e) => set({ location: e.target.value })} />
+          </div>
+          <div>
+            <span className={label}>Capacity</span>
+            <input type="number" min={1} className={field} value={f.capacity} onChange={(e) => set({ capacity: Number(e.target.value) })} />
+          </div>
+          <div className="flex flex-col justify-end gap-1 text-sm text-[#4a4540]">
+            <label className="flex items-center gap-2">
+              <input type="checkbox" checked={f.online} onChange={(e) => set({ online: e.target.checked })} /> Online
+            </label>
+            <label className="flex items-center gap-2">
+              <input type="checkbox" checked={f.accepting_signups} onChange={(e) => set({ accepting_signups: e.target.checked })} /> Taking signups
+            </label>
+          </div>
+          <div className="col-span-2">
+            <span className={label}>Notes</span>
+            <textarea className={field} rows={2} value={f.notes} onChange={(e) => set({ notes: e.target.value })} />
+          </div>
+          {error && <p className="col-span-2 text-sm text-red-700">{error}</p>}
+          <div className="col-span-2">
+            <button
+              disabled={busy}
+              onClick={save}
+              className="px-4 py-2 rounded-md text-sm font-semibold text-white disabled:opacity-50"
+              style={{ backgroundColor: 'var(--navy)' }}
+            >
+              Save
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -53,7 +53,9 @@ Code: `lib/googleCalendar.ts` (auth + REST, no deps), `lib/calendarSync.ts` (all
 - **Admin-created events: admin → Google** (who's going + meeting link go in the description; the
   app can't mint Meet links or invite people on Gmail).
 - **Google-created events: Google → admin**, read-only in the admin (edit in Google), everyone's
-  (no attendee info). Plain weekly rules map to our weekly repeat; anything fancier imports as its
+  (no attendee info). **"Manage it here instead"** (event popup) flips one to `source='app'`,
+  keeping the same Google event id, and stamps it with `arkSource` so the importer skips it
+  from then on (`takeOverGoogleEvent`). Plain weekly rules map to our weekly repeat; anything fancier imports as its
   first date with a note.
 - Everything the app writes carries `extendedProperties.private.arkSource`; the importer skips it.
 - **Held back:** a Google event on the same weekday + start time as a study (weekly, or "bible"/
@@ -290,6 +292,12 @@ Urgent with no date counts as This week. The automation's per-student tasks
 collapse into one card per kind ("Reconnect with 6 students"), and welcome texts
 into one card per study, with a link to the check-in report. A group of one
 shows as a normal task. Done view is a flat list.
+
+### Calendar popups (2026-09-22)
+Everything on the week calendar opens in a popup, no page loads. Study popup has **Edit details**
+(status, on point, student leader, day/time, location, capacity, online, taking signups, notes). The
+Studies page is for creating studies + the all-semesters list. Tasks (and grouped task lines) open
+in a task popup with Mark done / Take this / Edit.
 
 ## Phase 3 — Student leaders
 

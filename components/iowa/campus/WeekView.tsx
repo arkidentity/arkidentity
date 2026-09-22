@@ -36,6 +36,7 @@ export interface WeekItem {
   priority?: TaskPriority;
   overdue?: boolean;
   paused?: boolean; // in-person study on a break week
+  taskIds?: string[]; // a task (or a grouped line) — opens in a popup, no reload
 }
 
 const KIND_STYLE: Record<WeekItem['kind'], { bar: string; bg: string }> = {
@@ -148,6 +149,7 @@ export function buildWeekItems(opts: {
       title: t.title,
       sub: [overdue ? `overdue · was ${formatDate(t.due_date)}` : 'due', t.owner_id ? nameOf(t.owner_id) : 'unowned'].join(' · '),
       href: `/iowa/admin?task=${t.id}#tasks`,
+      taskIds: [t.id],
       priority: t.priority,
       overdue,
     });
@@ -163,6 +165,7 @@ export function buildWeekItems(opts: {
         title: t.title,
         sub: [g.overdue ? `overdue · was ${formatDate(t.due_date!)}` : 'due', g.owner ? nameOf(g.owner) : 'unowned'].join(' · '),
         href: `/iowa/admin?task=${t.id}#tasks`,
+        taskIds: [t.id],
         priority: t.priority,
         overdue: g.overdue,
       });
@@ -178,6 +181,7 @@ export function buildWeekItems(opts: {
       sub: [g.overdue ? 'overdue' : null, g.owner ? nameOf(g.owner) : 'unowned', names].filter(Boolean).join(' · '),
       // Opens the dashboard with this group expanded.
       href: `/iowa/admin?task=${t.id}#tasks`,
+      taskIds: g.tasks.map((x) => x.id),
       priority: t.priority,
       overdue: g.overdue,
     });
@@ -196,6 +200,7 @@ export default function WeekView({
   items,
   onEventClick,
   onStudyClick,
+  onTaskClick,
   periods = [],
 }: {
   days: string[];
@@ -203,6 +208,7 @@ export default function WeekView({
   periods?: SchoolPeriod[];
   onEventClick?: (eventId: string, date: string) => void;
   onStudyClick?: (studyId: string, date: string) => void;
+  onTaskClick?: (taskIds: string[]) => void;
 }) {
   const today = chicagoToday();
   return (
@@ -261,6 +267,10 @@ export default function WeekView({
                       </button>
                     ) : i.studyId && onStudyClick ? (
                       <button className={cls} style={st} onClick={() => onStudyClick(i.studyId!, i.date)}>
+                        {body}
+                      </button>
+                    ) : i.taskIds && onTaskClick ? (
+                      <button className={cls} style={st} onClick={() => onTaskClick(i.taskIds!)}>
                         {body}
                       </button>
                     ) : i.href ? (

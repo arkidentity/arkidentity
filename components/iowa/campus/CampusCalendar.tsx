@@ -48,7 +48,9 @@ export default function CampusCalendar({
   rsvps = [],
   students = [],
   team = [],
+  onTaskClick,
 }: {
+  onTaskClick?: (taskIds: string[]) => void;
   team?: StudyTeamRow[];
   templates: { id: string; name: string; itemCount: number }[];
   rsvps?: Rsvp[];
@@ -170,6 +172,7 @@ export default function CampusCalendar({
           setEditOpen(false);
         }}
         onStudyClick={(id, date) => setStudyOpen({ id, date })}
+        onTaskClick={onTaskClick}
       />
 
       {studyOpen && studies.find((x) => x.id === studyOpen.id) && (
@@ -429,8 +432,12 @@ function weekRange(from: string, to: string): string {
   return from.slice(0, 7) === to.slice(0, 7) ? `${a} – ${Number(to.slice(8))}` : `${a} – ${formatDate(to, { month: 'short', day: 'numeric' })}`;
 }
 
-// Events that came from Google are owned by Google: show them, link out to edit.
+// Events that came from Google are owned by Google: show them, link out to
+// edit — or take them over so they're edited here (and gain team, RSVPs,
+// checklists) from then on.
 function GoogleEventDetails({ event }: { event: CampusEvent }) {
+  const { call, busy, error } = useCall();
+  const [confirming, setConfirming] = useState(false);
   const when = [
     event.repeat_weekly ? `Weekly from ${formatDate(event.event_date)}` : formatDate(event.event_date),
     event.start_time ? `${formatTime(event.start_time)}${event.end_time ? `–${formatTime(event.end_time)}` : ''}` : 'All day',
@@ -452,6 +459,33 @@ function GoogleEventDetails({ event }: { event: CampusEvent }) {
           </>
         )}
       </p>
+      <div className="pt-2 border-t border-gray-100">
+        {!confirming ? (
+          <button onClick={() => setConfirming(true)} className="text-sm font-semibold underline" style={{ color: 'var(--navy)' }}>
+            Manage it here instead
+          </button>
+        ) : (
+          <div className="space-y-2">
+            <p className="text-xs text-[#4a4540]">
+              From now on you edit this event here, and changes update Google Calendar. It&apos;s the same event, so
+              there&apos;s no duplicate. Edits made in Google afterward get overwritten. A repeat Google can do but the
+              admin can&apos;t (every other week, several days) becomes plain weekly.
+            </p>
+            <div className="flex gap-2">
+              <button
+                disabled={busy}
+                onClick={() => call(`/api/iowa/admin/events/${event.id}/take-over`, 'POST')}
+                className="px-3 py-1.5 rounded-md text-sm font-semibold text-white disabled:opacity-50"
+                style={{ backgroundColor: 'var(--navy)' }}
+              >
+                Manage it here
+              </button>
+              <button onClick={() => setConfirming(false)} className="text-sm text-[#8a8378]">Cancel</button>
+            </div>
+          </div>
+        )}
+        {error && <p className="text-xs text-red-700 mt-2">{error}</p>}
+      </div>
     </div>
   );
 }

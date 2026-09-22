@@ -276,6 +276,40 @@ export async function syncAppEvent(eventId: string): Promise<void> {
   }
 }
 
+// "Manage it here instead": a Google-created event becomes an admin event,
+// keeping the same Google event (no duplicate). Once the app has stamped it
+// with arkSource, the importer skips it and app edits push to Google.
+//
+// Order matters: flip to 'app' first, then write Google. If a pull runs in
+// between it may import a second copy, but that copy has no Google event of
+// its own once arkSource lands, so the next pull removes it. The other order
+// would let a pull delete the row outright.
+export async function takeOverGoogleEvent(eventId: string): Promise<void> {
+  if (!calendarConfigured()) throw new Error('Google Calendar isn’t connected.');
+  const db = getSupabaseAdmin();
+  const { data: row, error } = await db.from('iowa_events').select('id, source, google_event_id').eq('id', eventId).maybeSingle();
+  if (error) throw error;
+  if (!row) throw new Error('Event not found.');
+  if (row.source !== 'google') return; // already managed here
+  if (!row.google_event_id) throw new Error('This event has no Google event to take over.');
+
+  const { error: flipErr } = await db.from('iowa_events').update({ source: 'app' }).eq('id', eventId);
+  if (flipErr) throw flipErr;
+  try {
+    const { data, error: loadErr } = await db
+      .from('iowa_events')
+      .select('*, type:iowa_item_types(name), staff:iowa_event_staff(staff_id)')
+      .eq('id', eventId)
+      .single();
+    if (loadErr) throw loadErr;
+    const saved = await patchCalendarEvent(row.google_event_id, appEvent(data as EventRow, await staffNameMap()));
+    if (!saved) throw new Error('That event is gone from Google Calendar.');
+  } catch (e) {
+    await db.from('iowa_events').update({ source: 'google' }).eq('id', eventId);
+    throw e;
+  }
+}
+
 export function queueEventSync(eventId: string) {
   if (calendarConfigured()) after(() => syncAppEvent(eventId));
 }

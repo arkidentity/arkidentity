@@ -1,9 +1,9 @@
 'use client';
 
-import type { ComponentProps } from 'react';
+import { useState, type ComponentProps } from 'react';
 import { chicagoToday, formatDate, isOverdue, weekDays } from '@/lib/campusFormat';
 import CampusCalendar from '@/components/iowa/campus/CampusCalendar';
-import TaskList, { type TaskListProps } from '@/components/iowa/campus/TaskList';
+import TaskList, { TaskPopup, type TaskListProps } from '@/components/iowa/campus/TaskList';
 import { PageShell, Section } from '@/components/iowa/campus/ui';
 import PendingInvites from '@/components/iowa/campus/PendingInvites';
 import type { PendingInvite } from '@/lib/eventInvites';
@@ -23,6 +23,7 @@ export default function Dashboard({
   thisWeekStart: string;
 }) {
   const { tasks, staff, meId } = taskProps;
+  const [taskPopup, setTaskPopup] = useState<string[] | null>(null);
   const today = chicagoToday();
   const me = staff.find((s) => s.id === meId);
   const endOfWeek = weekDays(thisWeekStart)[6];
@@ -74,7 +75,8 @@ export default function Dashboard({
 
       <PendingInvites invites={pending} />
 
-      <CampusCalendar {...calendar} />
+      <CampusCalendar {...calendar} onTaskClick={setTaskPopup} />
+      {taskPopup && <TaskPopup {...taskProps} taskIds={taskPopup} onClose={() => setTaskPopup(null)} />}
 
       <div id="tasks" className="grid lg:grid-cols-3 gap-8 scroll-mt-4">
         <div className="lg:col-span-2">

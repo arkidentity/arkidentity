@@ -85,6 +85,7 @@ export function CampusStudents({
   staff = [],
   report = null,
   events = [],
+  openReport = false,
 }: {
   initial: CampusStudent[];
   studies: StudyOption[];
@@ -92,6 +93,7 @@ export function CampusStudents({
   staff?: { id: string; name: string }[];
   report?: CheckinRow[] | null; // null = not staff/intern, no report
   events?: SocialEventOption[];
+  openReport?: boolean; // ?report=1 — from the dashboard's follow-up cards
 }) {
   const router = useRouter();
   const [students, setStudents] = useState(initial);
@@ -100,7 +102,7 @@ export function CampusStudents({
   const [statusFilter, setStatusFilter] = useState<StudentStatus | ''>('');
   const [placement, setPlacement] = useState<Placement>('all');
   const [editing, setEditing] = useState<string | null>(null);
-  const [showReport, setShowReport] = useState(false);
+  const [showReport, setShowReport] = useState(openReport);
 
   // Moving a student refreshes the server data; pick it up (see EventDetail).
   useEffect(() => { setStudents(initial); }, [initial]);

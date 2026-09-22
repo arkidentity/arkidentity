@@ -10,7 +10,12 @@ export const metadata = { title: 'ARK Iowa — students' };
 // The campus view of the contacts table: the same people as /admin/contacts,
 // filtered to ARK Iowa and shown with the facts that only matter here — year,
 // life-cycle status, and which study they're sitting in.
-export default async function CampusStudentsPage() {
+export default async function CampusStudentsPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | undefined>>;
+}) {
+  const sp = await searchParams;
   const [students, studies, staff, me] = await Promise.all([listCampusStudents(), listStudies(), listStaff(), currentStaff()]);
   // The check-in report is staff + interns only, not student leaders.
   const canReport = !!me && me.role !== 'leader';
@@ -18,6 +23,7 @@ export default async function CampusStudentsPage() {
   return (
     <CampusStudents
       report={report}
+      openReport={sp.report === '1'}
       events={events}
       staff={staff.filter((p) => p.active).map((p) => ({ id: p.id, name: p.name }))}
       initial={students}

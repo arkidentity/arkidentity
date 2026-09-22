@@ -5,6 +5,7 @@ import type { CampusTask, TaskActivity } from '@/lib/campusTasks';
 import {
   PRIORITIES,
   TASK_STATUSES,
+  addDays,
   chicagoToday,
   compareTasks,
   formatDate,
@@ -184,20 +185,196 @@ export default function TaskList(props: TaskListProps) {
           {compact || view === 'mine' ? 'Nothing on your plate. 🎉' : 'No tasks here.'}
         </p>
       )}
-      <ul className="space-y-2">
-        {shown.map((t) => (
-          <TaskRow
-            key={t.id}
-            t={t}
-            {...props}
-            expanded={expanded === t.id}
-            onToggle={() => setExpanded(expanded === t.id ? null : t.id)}
-            busy={busy}
-            call={call}
-          />
-        ))}
-      </ul>
+      {view === 'done' && !compact ? (
+        <ul className="space-y-2">
+          {shown.map((t) => (
+            <TaskRow
+              key={t.id}
+              t={t}
+              {...props}
+              expanded={expanded === t.id}
+              onToggle={() => setExpanded(expanded === t.id ? null : t.id)}
+              busy={busy}
+              call={call}
+            />
+          ))}
+        </ul>
+      ) : (
+        bucketize(groupTasks(shown), today).map((b) => (
+          <Bucket key={b.key} bucket={b} forceOpen={!!openTaskId && b.items.some((i) => hasTask(i, openTaskId))}>
+            <ul className="space-y-2">
+              {b.items.map((item) =>
+                item.kind === 'task' ? (
+                  <TaskRow
+                    key={item.t.id}
+                    t={item.t}
+                    {...props}
+                    expanded={expanded === item.t.id}
+                    onToggle={() => setExpanded(expanded === item.t.id ? null : item.t.id)}
+                    busy={busy}
+                    call={call}
+                  />
+                ) : (
+                  <GroupRow key={item.key} group={item} startOpen={!!openTaskId && hasTask(item, openTaskId)}>
+                    {item.tasks.map((t) => (
+                      <TaskRow
+                        key={t.id}
+                        t={t}
+                        {...props}
+                        expanded={expanded === t.id}
+                        onToggle={() => setExpanded(expanded === t.id ? null : t.id)}
+                        busy={busy}
+                        call={call}
+                      />
+                    ))}
+                  </GroupRow>
+                )
+              )}
+            </ul>
+          </Bucket>
+        ))
+      )}
     </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Grouping + time buckets (2026-09-22, Travis): 30 tasks on one day was too
+// many. When it's due comes first, priority second, and the automation's
+// one-task-per-student follow-ups collapse into one card per kind.
+// ---------------------------------------------------------------------------
+
+type Group = { kind: 'group'; key: string; title: string; sub: string | null; followUp: boolean; tasks: CampusTask[] };
+type Item = { kind: 'task'; t: CampusTask } | Group;
+
+// Same job as a check-in on the report — logging one there closes these.
+const FOLLOW_UP: Record<string, (n: number) => string> = {
+  missed: (n) => `Follow up with ${n} students who missed their first study`,
+  reconnect: (n) => `Reconnect with ${n} students`,
+  place: (n) => `Help ${n} students find a Bible study`,
+  reinvite: (n) => `Re-invite ${n} students`,
+};
+
+const hasTask = (i: Item, id: string) => (i.kind === 'task' ? i.t.id === id : i.tasks.some((t) => t.id === id));
+const firstOf = (i: Item) => (i.kind === 'task' ? i.t : i.tasks[0]);
+
+// Input is already sorted; a group sits where its most pressing task would.
+function groupTasks(sorted: CampusTask[]): Item[] {
+  const groups = new Map<string, Group>();
+  const items: Item[] = [];
+  for (const t of sorted) {
+    const key =
+      t.auto_kind && FOLLOW_UP[t.auto_kind] ? t.auto_kind
+      : t.auto_kind === 'welcome' ? `welcome:${t.study_id ?? ''}`
+      : null;
+    if (!key) { items.push({ kind: 'task', t }); continue; }
+    let g = groups.get(key);
+    if (!g) {
+      g = { kind: 'group', key, title: '', sub: null, followUp: !!FOLLOW_UP[key], tasks: [] };
+      groups.set(key, g);
+      items.push(g);
+    }
+    g.tasks.push(t);
+  }
+  return items.map((i) => {
+    if (i.kind === 'task' || i.tasks.length > 1) {
+      if (i.kind === 'group') {
+        const names = i.tasks.map((t) => (t.contact_name ?? '').split(' ')[0]).filter(Boolean);
+        i.title = FOLLOW_UP[i.key] ? FOLLOW_UP[i.key](i.tasks.length) : `Welcome texts to ${i.tasks.length} new students`;
+        i.sub = names.slice(0, 4).join(', ') + (names.length > 4 ? ` +${names.length - 4}` : '');
+      }
+      return i;
+    }
+    return { kind: 'task', t: i.tasks[0] }; // a group of one is just a task
+  });
+}
+
+type BucketKey = 'overdue' | 'week' | 'soon' | 'later' | 'nodate';
+const BUCKETS: { key: BucketKey; label: string; collapsed: boolean }[] = [
+  { key: 'overdue', label: 'Overdue', collapsed: false },
+  { key: 'week', label: 'This week', collapsed: false },
+  { key: 'soon', label: 'Next 2 weeks', collapsed: false },
+  { key: 'later', label: 'Later', collapsed: true },
+  { key: 'nodate', label: 'No due date', collapsed: true },
+];
+type BucketData = (typeof BUCKETS)[number] & { items: Item[]; count: number };
+
+function bucketOf(t: CampusTask, today: string): BucketKey {
+  if (isOverdue(t, today)) return 'overdue';
+  // Urgent with no date means "now", not "someday".
+  if (!t.due_date) return t.priority === 'urgent' ? 'week' : 'nodate';
+  if (t.due_date <= addDays(today, 6)) return 'week';
+  if (t.due_date <= addDays(today, 20)) return 'soon';
+  return 'later';
+}
+
+function bucketize(items: Item[], today: string): BucketData[] {
+  const by = new Map<BucketKey, Item[]>();
+  for (const i of items) {
+    const k = bucketOf(firstOf(i), today);
+    by.set(k, [...(by.get(k) ?? []), i]);
+  }
+  return BUCKETS.filter((b) => by.has(b.key)).map((b) => {
+    const list = by.get(b.key)!;
+    return { ...b, items: list, count: list.reduce((n, i) => n + (i.kind === 'task' ? 1 : i.tasks.length), 0) };
+  });
+}
+
+function Bucket({ bucket, forceOpen, children }: { bucket: BucketData; forceOpen: boolean; children: React.ReactNode }) {
+  const [open, setOpen] = useState(!bucket.collapsed || forceOpen);
+  const red = bucket.key === 'overdue';
+  return (
+    <section className="mb-5">
+      <button
+        onClick={() => setOpen((v) => !v)}
+        className="w-full flex items-center justify-between text-left mb-2 text-sm font-bold uppercase tracking-wide"
+        style={{ color: red ? '#b91c1c' : '#8a8378' }}
+      >
+        <span>{bucket.label} ({bucket.count})</span>
+        <span className="text-xs font-semibold normal-case">{open ? 'Hide ▴' : 'Show ▾'}</span>
+      </button>
+      {open && children}
+    </section>
+  );
+}
+
+function GroupRow({ group, startOpen, children }: { group: Group; startOpen: boolean; children: React.ReactNode }) {
+  const [open, setOpen] = useState(startOpen);
+  const top = [...group.tasks].sort((a, b) => compareTasks(a, b))[0];
+  const overdue = group.tasks.some((t) => isOverdue(t));
+  const due = group.tasks.map((t) => t.due_date).filter(Boolean).sort()[0] as string | undefined;
+  return (
+    <li className="rounded-lg border bg-white" style={{ borderColor: overdue ? '#fca5a5' : '#e5e7eb' }}>
+      <button onClick={() => setOpen((v) => !v)} className="w-full px-4 py-3 text-left flex items-start gap-3">
+        <span className="mt-0.5"><PriorityBadge priority={top.priority} /></span>
+        <span className="min-w-0 flex-1">
+          <span className="block font-semibold" style={{ color: 'var(--navy)' }}>{group.title}</span>
+          <span className="block text-sm md:text-xs text-[#8a8378] mt-0.5">{group.sub}</span>
+        </span>
+        <span className="flex flex-col items-end gap-1 shrink-0">
+          {overdue && <OverdueTag />}
+          {due && <span className="text-sm md:text-xs" style={{ color: overdue ? '#b91c1c' : '#8a8378' }}>{formatDate(due)}</span>}
+          <span className="text-xs font-semibold" style={{ color: 'var(--navy)' }}>{open ? '▴' : `${group.tasks.length} ▾`}</span>
+        </span>
+      </button>
+      {open && (
+        <div className="border-t border-gray-100 px-3 py-3">
+          {group.followUp && (
+            <a
+              href="/iowa/admin/students?report=1"
+              className="inline-block mb-3 px-3 py-2 rounded-md text-sm font-semibold"
+              style={{ backgroundColor: 'var(--navy)', color: 'white' }}
+            >
+              Open check-in report →
+            </a>
+          )}
+          {group.followUp && (
+            <p className="text-xs text-[#8a8378] mb-3">Logging a check-in on the report marks that student&apos;s task done here.</p>
+          )}
+          <ul className="space-y-2">{children}</ul>
+        </div>
+      )}
+    </li>
   );
 }
 

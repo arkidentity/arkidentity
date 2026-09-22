@@ -6,6 +6,7 @@ import { whenText } from '@/lib/eventInvites';
 import type { IowaStaff } from '@/lib/iowaStaff';
 import {
   DORMANT_REASONS,
+  outcomeLabel,
   type CheckinOutcome,
   type CheckinRow,
   type QuietReason,
@@ -156,7 +157,33 @@ export async function logCheckin(
     .select('created_at, outcome, note')
     .single();
   if (error) throw error;
+  await closeFollowUpTasks(contactId, outcome, by);
   return { at: data.created_at, by: by?.name ?? null, outcome: data.outcome, note: data.note };
+}
+
+// The automation's per-student follow-ups (reconnect, place, re-invite, missed
+// first study) are the same job as a check-in — so logging one closes them.
+// One place to track a student, not two.
+export const FOLLOW_UP_KINDS = ['reconnect', 'place', 'reinvite', 'missed'];
+
+async function closeFollowUpTasks(contactId: string, outcome: CheckinOutcome, by: IowaStaff | null) {
+  const db = getSupabaseAdmin();
+  const { data: closed, error } = await db
+    .from('iowa_tasks')
+    .update({ status: 'done', completed_at: new Date().toISOString(), updated_at: new Date().toISOString() })
+    .eq('contact_id', contactId)
+    .in('auto_kind', FOLLOW_UP_KINDS)
+    .neq('status', 'done')
+    .select('id');
+  if (error) {
+    console.error('[iowa checkins] closing follow-up tasks failed', error);
+    return;
+  }
+  if (closed?.length) {
+    await db.from('iowa_task_activity').insert(
+      closed.map((t) => ({ task_id: t.id, staff_id: by?.id ?? null, action: `marked done (check-in logged: ${outcomeLabel(outcome)})` }))
+    );
+  }
 }
 
 // Events a student could be invited to: anything still ahead, socials first.

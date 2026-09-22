@@ -280,6 +280,17 @@ The point is care, not recruitment: sometimes the goal is just "how's school?"
   types listed first, ★) → personal RSVP links via `invitePerson` (emailed when
   there's an email; Text button pre-fills the link). New event type: **Social**.
 
+- **Closes follow-up tasks:** logging a check-in marks that student's open
+  automation tasks (reconnect / place / re-invite / missed first study) done.
+
+### Task list layout (2026-09-22)
+Open tasks are sectioned by when they're due: Overdue · This week · Next 2 weeks
+· Later (collapsed) · No due date (collapsed); priority orders within a section.
+Urgent with no date counts as This week. The automation's per-student tasks
+collapse into one card per kind ("Reconnect with 6 students"), and welcome texts
+into one card per study, with a link to the check-in report. A group of one
+shows as a normal task. Done view is a flat list.
+
 ## Phase 3 — Student leaders
 
 Leader logins; see only their own studies' students; claim/update own tasks, offer help.

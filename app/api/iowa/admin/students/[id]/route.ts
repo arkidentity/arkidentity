@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { updateCampusStudent, type StudentStatus } from '@/lib/bibleStudies';
 import { updateContact } from '@/lib/contacts';
+import { DORMANT_REASONS } from '@/lib/checkinFormat';
 
 export const dynamic = 'force-dynamic';
 
@@ -23,6 +24,8 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     status?: StudentStatus;
     notes?: string | null;
     metBy?: string | null; // staff id | friend | self | other | '' to clear
+    dormantReason?: string | null;
+    dormantNote?: string | null;
     name?: string;
     phone?: string | null;
     email?: string | null;
@@ -30,6 +33,9 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
 
   if (body.status && !STATUSES.includes(body.status)) {
     return NextResponse.json({ error: 'Unknown student status.' }, { status: 400 });
+  }
+  if (body.dormantReason && !DORMANT_REASONS.some((r) => r.key === body.dormantReason)) {
+    return NextResponse.json({ error: 'Unknown dormant reason.' }, { status: 400 });
   }
   if ('name' in body && !body.name?.trim()) {
     return NextResponse.json({ error: 'Name is required.' }, { status: 400 });
@@ -39,11 +45,13 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   }
 
   try {
-    const campus: { year?: string | null; status?: StudentStatus; notes?: string | null; metBy?: string | null } = {};
+    const campus: Parameters<typeof updateCampusStudent>[1] = {};
     if ('year' in body) campus.year = body.year;
     if ('status' in body) campus.status = body.status;
     if ('notes' in body) campus.notes = body.notes;
     if ('metBy' in body) campus.metBy = body.metBy;
+    if ('dormantReason' in body) campus.dormantReason = body.dormantReason;
+    if ('dormantNote' in body) campus.dormantNote = body.dormantNote;
     if (Object.keys(campus).length) await updateCampusStudent(id, campus);
 
     const person: { name?: string; phone?: string | null; email?: string | null } = {};

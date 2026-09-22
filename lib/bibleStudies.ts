@@ -727,6 +727,8 @@ export interface CampusStudent {
   notes: string | null;
   met_by_staff_id: string | null;
   met_by_other: MetByOther | null;
+  dormant_reason: string | null; // migration 023 — why they went dormant
+  dormant_note: string | null;
   // Derived, never stored: the studies they currently hold an active seat in.
   // Empty means unplaced — met, but not in a study yet.
   studies: { id: string; label: string; member_id: string }[];
@@ -773,6 +775,8 @@ export async function listCampusStudents(): Promise<CampusStudent[]> {
       notes: string | null;
       met_by_staff_id: string | null;
       met_by_other: MetByOther | null;
+      dormant_reason: string | null;
+      dormant_note: string | null;
     }[])
       .map((r) => [r.contact_id, r])
   );
@@ -807,6 +811,8 @@ export async function listCampusStudents(): Promise<CampusStudent[]> {
         notes: c?.notes ?? null,
         met_by_staff_id: c?.met_by_staff_id ?? null,
         met_by_other: c?.met_by_other ?? null,
+        dormant_reason: c?.dormant_reason ?? null,
+        dormant_note: c?.dormant_note ?? null,
         studies: seatsByContact.get(p.contact_id) ?? [],
       };
     })
@@ -815,14 +821,33 @@ export async function listCampusStudents(): Promise<CampusStudent[]> {
 
 export async function updateCampusStudent(
   contactId: string,
-  patch: { year?: string | null; status?: StudentStatus; notes?: string | null; metBy?: string | null }
+  patch: {
+    year?: string | null;
+    status?: StudentStatus;
+    notes?: string | null;
+    metBy?: string | null;
+    dormantReason?: string | null;
+    dormantNote?: string | null;
+  }
 ): Promise<void> {
   const db = getSupabaseAdmin();
   await ensureCampusStudent(contactId);
 
   const update: Record<string, unknown> = { updated_at: new Date().toISOString() };
   if ('year' in patch) update.year = patch.year?.trim() || null;
-  if ('status' in patch) update.status = patch.status;
+  if ('status' in patch) {
+    update.status = patch.status;
+    // Dormant stamps when it started (the check-in report counts from it);
+    // anything else clears the why.
+    if (patch.status === 'dormant') {
+      const { data: cur } = await db.from('campus_students').select('status').eq('contact_id', contactId).single();
+      if (cur?.status !== 'dormant') update.dormant_at = new Date().toISOString();
+    } else {
+      Object.assign(update, { dormant_at: null, dormant_reason: null, dormant_note: null });
+    }
+  }
+  if ('dormantReason' in patch) update.dormant_reason = patch.dormantReason || null;
+  if ('dormantNote' in patch) update.dormant_note = patch.dormantNote?.trim() || null;
   if ('notes' in patch) update.notes = patch.notes?.trim() || null;
   // Staff correcting it: overwrite, and '' clears it.
   if ('metBy' in patch) Object.assign(update, parseMetBy(patch.metBy) ?? { met_by_staff_id: null, met_by_other: null });

@@ -257,6 +257,29 @@ Retired: the separate Monday digest cron and the 6 PM "due tomorrow" email. Unch
 reminder to *students* about tomorrow's study. Event confirms ("text who you invited to Taco
 Night") deferred, since they need per-event invite tracking.
 
+## Check-in report (migration 023, 2026-09-22)
+
+Students tab → **Check-in report** button (staff + interns only; hidden from
+student leaders, and the APIs refuse them). Opens full-screen, built for a phone.
+The point is care, not recruitment: sometimes the goal is just "how's school?"
+
+- **Who's on it** is derived, never stored: anyone not graduated/transferred/left
+  school who either never made it to their first study (`first_showed = false`),
+  was dropped (latest dropped seat, not `left_school`), is marked dormant, or
+  was never placed. Students in a study and showing up aren't listed.
+- **Each row** shows the reason, the study (day/time/place) they joined or were
+  dropped from, the drop or dormant reason + note, days quiet, and the last check-in.
+- **Filters:** went quiet 30/60/90/any days · reason · not checked on in 30
+  days (default) / never / everyone. CSV download of what's shown.
+- **Log check-in:** Talked / Texted–replied / Texted–no reply + optional note
+  (`campus_checkins`). Logging drops them off the default view for 30 days so
+  two people don't text the same student the same week.
+- **Dormant reason:** picking Dormant on the Students tab shows a "why?" select
+  + note (`campus_students.dormant_reason/_note/_at`). Leaving dormant clears them.
+- **Invite to…:** select students → pick an upcoming event (Social/Gathering
+  types listed first, ★) → personal RSVP links via `invitePerson` (emailed when
+  there's an email; Text button pre-fills the link). New event type: **Social**.
+
 ## Phase 3 — Student leaders
 
 Leader logins; see only their own studies' students; claim/update own tasks, offer help.

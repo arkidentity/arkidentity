@@ -4,6 +4,8 @@ import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import type { CampusStudent, StudentStatus } from '@/lib/bibleStudies';
 import { DAY_NAMES, formatTime } from '@/lib/bibleStudyFormat';
+import { DORMANT_REASONS, type CheckinRow, type SocialEventOption } from '@/lib/checkinFormat';
+import { CheckinReport } from '@/components/iowa/CheckinReport';
 
 // Managing students as people rather than as roster lines. Every student here
 // is also a contact in the main database — this view just adds the campus facts
@@ -81,11 +83,15 @@ export function CampusStudents({
   studies,
   semester,
   staff = [],
+  report = null,
+  events = [],
 }: {
   initial: CampusStudent[];
   studies: StudyOption[];
   semester: string;
   staff?: { id: string; name: string }[];
+  report?: CheckinRow[] | null; // null = not staff/intern, no report
+  events?: SocialEventOption[];
 }) {
   const router = useRouter();
   const [students, setStudents] = useState(initial);
@@ -94,6 +100,7 @@ export function CampusStudents({
   const [statusFilter, setStatusFilter] = useState<StudentStatus | ''>('');
   const [placement, setPlacement] = useState<Placement>('all');
   const [editing, setEditing] = useState<string | null>(null);
+  const [showReport, setShowReport] = useState(false);
 
   // Moving a student refreshes the server data; pick it up (see EventDetail).
   useEffect(() => { setStudents(initial); }, [initial]);
@@ -119,7 +126,10 @@ export function CampusStudents({
   // phone / email on the contact itself — so a fix here is a fix everywhere.
   async function patchStudent(
     contactId: string,
-    patch: { year?: string | null; status?: StudentStatus; name?: string; phone?: string | null; email?: string | null; metBy?: string }
+    patch: {
+      year?: string | null; status?: StudentStatus; name?: string; phone?: string | null; email?: string | null; metBy?: string;
+      dormantReason?: string | null; dormantNote?: string | null;
+    }
   ) {
     setBusy(true);
     setError('');
@@ -133,14 +143,19 @@ export function CampusStudents({
       setError((await res.json().catch(() => ({}))).error || 'Could not save.');
       return;
     }
-    const { metBy, ...rest } = patch;
+    const { metBy, dormantReason, dormantNote, ...rest } = patch;
+    const dormant = {
+      ...(dormantReason !== undefined && { dormant_reason: dormantReason || null }),
+      ...(dormantNote !== undefined && { dormant_note: dormantNote || null }),
+      ...(rest.status && rest.status !== 'dormant' && { dormant_reason: null, dormant_note: null }),
+    };
     const met =
       metBy === undefined
         ? {}
         : ['friend', 'self', 'other'].includes(metBy)
           ? { met_by_staff_id: null, met_by_other: metBy as CampusStudent['met_by_other'] }
           : { met_by_staff_id: metBy || null, met_by_other: null };
-    setStudents((list) => list.map((s) => (s.contact_id === contactId ? { ...s, ...rest, ...met } : s)));
+    setStudents((list) => list.map((s) => (s.contact_id === contactId ? { ...s, ...rest, ...met, ...dormant } : s)));
   }
 
   // Moving keeps the same roster row, so joined_at and history survive.
@@ -170,7 +185,23 @@ export function CampusStudents({
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
         <div className="flex flex-wrap items-center justify-between gap-3 mb-1">
           <h1 className="text-3xl font-bold" style={{ color: 'var(--navy)' }}>Students</h1>
+          {report && (
+            <button
+              onClick={() => setShowReport(true)}
+              className="px-4 py-2 rounded-lg font-semibold text-sm"
+              style={{ backgroundColor: 'var(--navy)', color: 'white' }}
+            >
+              Check-in report{report.length > 0 && ` (${report.length})`}
+            </button>
+          )}
         </div>
+        {showReport && report && (
+          <CheckinReport
+            initial={report}
+            events={events}
+            onClose={() => { setShowReport(false); router.refresh(); }}
+          />
+        )}
         <p className="mb-6" style={{ color: '#8a8378' }}>
           {semester} · {counts.total} students
           {counts.unplaced > 0 && ` · ${counts.unplaced} active but not in a study`}
@@ -269,6 +300,31 @@ export function CampusStudents({
                   {editing === s.contact_id ? 'Close' : 'Edit'}
                 </button>
               </div>
+
+              {/* Dormant: say why, so whoever checks in later knows. */}
+              {s.status === 'dormant' && (
+                <div className="mt-3 flex flex-wrap items-center gap-2 text-sm">
+                  <span style={{ color: '#9d855a' }}>Why dormant?</span>
+                  <select
+                    value={s.dormant_reason ?? ''}
+                    onChange={(e) => patchStudent(s.contact_id, { dormantReason: e.target.value || null })}
+                    disabled={busy}
+                    className={input}
+                  >
+                    <option value="">— pick a reason —</option>
+                    {DORMANT_REASONS.map((r) => <option key={r.key} value={r.key}>{r.label}</option>)}
+                  </select>
+                  <input
+                    key={s.dormant_note ?? ''}
+                    defaultValue={s.dormant_note ?? ''}
+                    onBlur={(e) => {
+                      if (e.target.value !== (s.dormant_note ?? '')) patchStudent(s.contact_id, { dormantNote: e.target.value });
+                    }}
+                    placeholder="Note (optional)"
+                    className={`${input} flex-1 min-w-[180px]`}
+                  />
+                </div>
+              )}
 
               {editing === s.contact_id && (
                 <ContactFields

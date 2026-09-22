@@ -137,10 +137,12 @@ function BrochureDrawer({
   isOpen,
   onClose,
   isIowa,
+  showPick,
 }: {
   isOpen: boolean;
   onClose: () => void;
   isIowa: boolean;
+  showPick: boolean;
 }) {
   const [mounted, setMounted] = useState(false);
 
@@ -166,7 +168,7 @@ function BrochureDrawer({
         </div>
 
         <div className="settings-menu-items">
-          {isIowa && (
+          {showPick && (
             <a href="#pick" className="settings-menu-item gold-pill" onClick={onClose}>
               <span className="links-drawer-item-label">Pick your day and time</span>
             </a>
@@ -234,6 +236,8 @@ export default function Header() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const pathname = usePathname();
   const isIowa = pathname === '/iowa' || pathname.startsWith('/iowa/');
+  // The Baja page has its own CTA; the table-signup button would pull students off it.
+  const showPick = isIowa && !pathname.startsWith('/iowa/baja');
 
   return (
     <>
@@ -279,7 +283,7 @@ export default function Header() {
               <Link href="/feed" className="text-white hover:text-gold transition">
                 Updates
               </Link>
-              {isIowa ? (
+              {isIowa ? (showPick && (
                 <a
                   href="#pick"
                   className="px-4 py-2 rounded-lg font-semibold transition hover:opacity-90"
@@ -287,7 +291,7 @@ export default function Header() {
                 >
                   Pick your day and time
                 </a>
-              ) : (
+              )) : (
                 <>
                   <Link
                     href="/giving"
@@ -318,7 +322,7 @@ export default function Header() {
         </nav>
       </header>
 
-      <BrochureDrawer isOpen={drawerOpen} onClose={() => setDrawerOpen(false)} isIowa={isIowa} />
+      <BrochureDrawer isOpen={drawerOpen} onClose={() => setDrawerOpen(false)} isIowa={isIowa} showPick={showPick} />
     </>
   );
 }

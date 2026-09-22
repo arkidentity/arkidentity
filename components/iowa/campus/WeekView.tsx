@@ -5,12 +5,15 @@ import type { CampusEvent, CampusTask } from '@/lib/campusTasks';
 import { formatSlot, formatTime } from '@/lib/bibleStudyFormat';
 import {
   chicagoToday,
+  compareTasks,
   dayOfWeek,
   eventDatesInRange,
   formatDate,
   isOverdue,
   periodsOn,
   studyPausedBy,
+  taskGroupKey,
+  taskGroupTitle,
   roleVerb,
   teamOn,
   type SchoolPeriod,
@@ -117,7 +120,10 @@ export function buildWeekItems(opts: {
     }
   }
 
+  // Same-kind automation tasks (six "Reconnect with…" on one Friday) collapse
+  // into one line per day per owner, names listed. Unowned ones stay separate.
   const today = chicagoToday();
+  const grouped = new Map<string, { date: string; key: string; owner: string | null; tasks: CampusTask[]; overdue: boolean }>();
   for (const t of tasks) {
     if (t.status === 'done' || !t.due_date) continue;
     if (mineOnly && t.owner_id !== meId && !t.helper_ids.includes(meId ?? '')) continue;
@@ -125,6 +131,15 @@ export function buildWeekItems(opts: {
     const overdue = isOverdue(t, today);
     const date = overdue && today >= from && today <= to ? today : t.due_date;
     if (date < from || date > to) continue;
+    const gk = taskGroupKey(t);
+    if (gk) {
+      const k = `${date}|${gk}|${t.owner_id ?? ''}`;
+      const g = grouped.get(k) ?? { date, key: gk, owner: t.owner_id, tasks: [], overdue: false };
+      g.tasks.push(t);
+      g.overdue ||= overdue;
+      grouped.set(k, g);
+      continue;
+    }
     items.push({
       key: `t-${t.id}`,
       date,
@@ -135,6 +150,36 @@ export function buildWeekItems(opts: {
       href: `/iowa/admin?task=${t.id}#tasks`,
       priority: t.priority,
       overdue,
+    });
+  }
+  for (const [k, g] of grouped) {
+    const [t] = [...g.tasks].sort((a, b) => compareTasks(a, b, today));
+    if (g.tasks.length === 1) {
+      items.push({
+        key: `t-${t.id}`,
+        date: g.date,
+        time: null,
+        kind: 'task',
+        title: t.title,
+        sub: [g.overdue ? `overdue · was ${formatDate(t.due_date!)}` : 'due', g.owner ? nameOf(g.owner) : 'unowned'].join(' · '),
+        href: `/iowa/admin?task=${t.id}#tasks`,
+        priority: t.priority,
+        overdue: g.overdue,
+      });
+      continue;
+    }
+    const names = g.tasks.map((x) => x.contact_name ?? '?').join(', ');
+    items.push({
+      key: `g-${k}`,
+      date: g.date,
+      time: null,
+      kind: 'task',
+      title: taskGroupTitle(g.key, g.tasks.length),
+      sub: [g.overdue ? 'overdue' : null, g.owner ? nameOf(g.owner) : 'unowned', names].filter(Boolean).join(' · '),
+      // Opens the dashboard with this group expanded.
+      href: `/iowa/admin?task=${t.id}#tasks`,
+      priority: t.priority,
+      overdue: g.overdue,
     });
   }
 

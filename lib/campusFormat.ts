@@ -108,6 +108,27 @@ export function compareTasks(
   return a.created_at < b.created_at ? -1 : 1;
 }
 
+// The automation's one-task-per-student kinds, collapsed into one line on the
+// task list and the calendar ("Reconnect with 6 students"). Follow-ups are the
+// same job as a check-in on the report; logging one there closes them.
+export const FOLLOW_UP_TITLES: Record<string, (n: number) => string> = {
+  missed: (n) => `Follow up with ${n} students who missed their first study`,
+  reconnect: (n) => `Reconnect with ${n} students`,
+  place: (n) => `Help ${n} students find a Bible study`,
+  reinvite: (n) => `Re-invite ${n} students`,
+};
+
+// Group key for a task, or null if it stands alone. Welcome texts group per study.
+export function taskGroupKey(t: { auto_kind: string | null; study_id: string | null }): string | null {
+  if (t.auto_kind && FOLLOW_UP_TITLES[t.auto_kind]) return t.auto_kind;
+  if (t.auto_kind === 'welcome') return `welcome:${t.study_id ?? ''}`;
+  return null;
+}
+
+export function taskGroupTitle(key: string, n: number): string {
+  return FOLLOW_UP_TITLES[key]?.(n) ?? `Welcome texts to ${n} new students`;
+}
+
 // ---------------------------------------------------------------------------
 // Events
 // ---------------------------------------------------------------------------

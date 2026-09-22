@@ -5,11 +5,14 @@ import type { CampusTask, TaskActivity } from '@/lib/campusTasks';
 import {
   PRIORITIES,
   TASK_STATUSES,
+  FOLLOW_UP_TITLES,
   addDays,
   chicagoToday,
   compareTasks,
   formatDate,
   isOverdue,
+  taskGroupKey,
+  taskGroupTitle,
   type TaskPriority,
   type TaskStatus,
 } from '@/lib/campusFormat';
@@ -247,13 +250,7 @@ export default function TaskList(props: TaskListProps) {
 type Group = { kind: 'group'; key: string; title: string; sub: string | null; followUp: boolean; tasks: CampusTask[] };
 type Item = { kind: 'task'; t: CampusTask } | Group;
 
-// Same job as a check-in on the report — logging one there closes these.
-const FOLLOW_UP: Record<string, (n: number) => string> = {
-  missed: (n) => `Follow up with ${n} students who missed their first study`,
-  reconnect: (n) => `Reconnect with ${n} students`,
-  place: (n) => `Help ${n} students find a Bible study`,
-  reinvite: (n) => `Re-invite ${n} students`,
-};
+const FOLLOW_UP = FOLLOW_UP_TITLES;
 
 const hasTask = (i: Item, id: string) => (i.kind === 'task' ? i.t.id === id : i.tasks.some((t) => t.id === id));
 const firstOf = (i: Item) => (i.kind === 'task' ? i.t : i.tasks[0]);
@@ -263,10 +260,7 @@ function groupTasks(sorted: CampusTask[]): Item[] {
   const groups = new Map<string, Group>();
   const items: Item[] = [];
   for (const t of sorted) {
-    const key =
-      t.auto_kind && FOLLOW_UP[t.auto_kind] ? t.auto_kind
-      : t.auto_kind === 'welcome' ? `welcome:${t.study_id ?? ''}`
-      : null;
+    const key = taskGroupKey(t);
     if (!key) { items.push({ kind: 'task', t }); continue; }
     let g = groups.get(key);
     if (!g) {
@@ -280,7 +274,7 @@ function groupTasks(sorted: CampusTask[]): Item[] {
     if (i.kind === 'task' || i.tasks.length > 1) {
       if (i.kind === 'group') {
         const names = i.tasks.map((t) => (t.contact_name ?? '').split(' ')[0]).filter(Boolean);
-        i.title = FOLLOW_UP[i.key] ? FOLLOW_UP[i.key](i.tasks.length) : `Welcome texts to ${i.tasks.length} new students`;
+        i.title = taskGroupTitle(i.key, i.tasks.length);
         i.sub = names.slice(0, 4).join(', ') + (names.length > 4 ? ` +${names.length - 4}` : '');
       }
       return i;

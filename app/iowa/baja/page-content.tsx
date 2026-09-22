@@ -20,9 +20,9 @@ const PHONE_DISPLAY = '(319) 359-7117';
 const PHONE_HREF = 'tel:+13193597117';
 
 const COSTS: [string, string][] = [
-  ['uReach trip cost', '$900'],
+  ['uReach trip cost (includes required $31.50 travel insurance)', '$927'],
   ['Round-trip flight to San Diego', '$400 to $600, updated once flights are booked'],
-  ['Spending money for the beach day and shopping day', '$50 to $100'],
+  ['Spending money for the activity day', '$50 to $100'],
   ['Passport, if you need one', 'About $165'],
 ];
 
@@ -209,9 +209,9 @@ export default function BajaPageContent() {
         <ul className="grid sm:grid-cols-2 gap-4 mb-6">
           {[
             'Building a home for a family in need',
-            'Youth camps and sports outreach with local kids',
+            'Youth camps and outreach with local kids',
             'Serving alongside local churches and ministries',
-            'A beach day and a shopping day',
+            'An activity day, often at the beach',
           ].map((item) => (
             <li key={item} className="bg-white rounded-xl border border-gray-100 shadow-sm px-5 py-4 text-[#4a4540]">
               {item}
@@ -255,7 +255,7 @@ export default function BajaPageContent() {
       <Section bg="#FAF8F5">
         <H2>What it costs</H2>
         <p className={`${body} mb-6`}>
-          The trip cost covers van travel from San Diego, all meals, and lodging at the base. Your own costs are
+          The trip cost covers van travel from the San Diego airport, all meals, lodging at the base, purified water, project materials, and travel insurance. Your own costs are
           the flight to San Diego, a little spending money, and a passport if you need one.
         </p>
         <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden mb-6">
@@ -270,7 +270,7 @@ export default function BajaPageContent() {
               <tr style={{ background: '#faf6ee' }}>
                 <td className="px-5 py-4 font-bold" style={navy}>Total</td>
                 <td className="px-5 py-4 font-bold text-right" style={navy}>
-                  About $1,350 to $1,600, plus a passport if needed
+                  About $1,400 to $1,650, plus a passport if needed
                 </td>
               </tr>
             </tbody>

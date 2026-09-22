@@ -3,6 +3,17 @@
 import { useState } from 'react';
 import Image from 'next/image';
 
+// Messaging: StoryBrand/PEACE set locked with Travis 2026-09-22. Source of truth +
+// reasoning: ark-workspace/projects/ark-identity/messaging/iowa/baja-2027.md.
+//   Problem: You intend to serve God and people somewhere, someday.
+//   Empathy: Somehow someday never gets a date.
+//   Answer:  We'll take you to Baja for a week and hand you a hammer.
+//   Change:  You find out what Jesus can do through your two hands.
+//   End:     A family in Mexico moves into a home you built, and you come home as someone who takes action.
+// Villain = "someday" (the drift), never the student's reluctance.
+// Hero is the student. The fundraising schedule lives in the admin checklist and
+// the interest meeting, not on this page.
+
 // Photos from uReach's Baja base and build sites.
 function Photo({ src, alt, className = '' }: { src: string; alt: string; className?: string }) {
   return (
@@ -12,32 +23,13 @@ function Photo({ src, alt, className = '' }: { src: string; alt: string; classNa
   );
 }
 
-// Source copy: "Baja Mission Trip 2027" doc (Travis, 2026-09-21). Keep in sync.
 // Set this once the video exists; the section shows a placeholder until then.
 const VIDEO_EMBED_URL = '';
 
 const PHONE_DISPLAY = '(319) 359-7117';
 const PHONE_HREF = 'tel:+13193597117';
 
-const COSTS: [string, string][] = [
-  ['uReach trip cost (includes required $31.50 travel insurance)', '$927'],
-  ['Round-trip flight to San Diego', '$400 to $600, updated once flights are booked'],
-  ['Spending money for the activity day', '$50 to $100'],
-  ['Passport, if you need one', 'About $165'],
-];
-
-const SCHEDULE: [string, string, string][] = [
-  ['Sept 2026', 'Overview and video go out. Everyone prays.', '$0'],
-  ['Oct 2026', 'Interest meeting. Passport applications begin.', '$0'],
-  ['Nov 2026', 'Commit and pay the deposit to hold your spot. Write your support letter.', '$100'],
-  ['Dec 2026', 'Send support letters before Christmas. Ask family and your home church.', '$300'],
-  ['Jan 2027', 'Thank every giver. Share one prayer update.', '$500'],
-  ['Feb 2027', 'Flights booked. Team fundraiser.', '$750'],
-  ['Mar 2027', 'Second round of asks. Spring break follow-ups.', '$1,000'],
-  ['Apr 2027', 'uReach second payment due.', '$1,250'],
-  ['May 2027', 'Final payment due. Goal fully raised.', '$1,500'],
-  ['June or July 2027', 'Commissioning night, then we go.', 'Done'],
-];
+const CTA = 'Hold my spot at the interest meeting';
 
 const navy = { color: 'var(--navy)' };
 const body = 'text-lg text-[#4a4540] leading-relaxed';
@@ -55,6 +47,18 @@ function H2({ children }: { children: React.ReactNode }) {
     <h2 className="text-3xl md:text-4xl font-bold mb-6" style={navy}>
       {children}
     </h2>
+  );
+}
+
+function CtaButton({ className = '' }: { className?: string }) {
+  return (
+    <button
+      onClick={() => document.getElementById('interested')?.scrollIntoView({ behavior: 'smooth' })}
+      className={`px-8 py-4 rounded-lg font-semibold text-lg transition hover:opacity-90 ${className}`}
+      style={{ backgroundColor: 'var(--gold)', color: 'var(--navy)' }}
+    >
+      {CTA}
+    </button>
   );
 }
 
@@ -144,73 +148,126 @@ function InterestForm() {
         className="w-full sm:w-auto px-8 py-4 rounded-lg font-semibold text-lg transition hover:opacity-90 disabled:opacity-60"
         style={{ backgroundColor: 'var(--gold)', color: 'var(--navy)' }}
       >
-        {state === 'sending' ? 'Sending…' : 'I’m interested'}
+        {state === 'sending' ? 'Sending…' : CTA}
       </button>
       <p className="text-sm text-[#8a8378]">
-        Saying you’re interested isn’t a commitment. It just gets you the interest meeting details.
+        Holding a spot isn’t a commitment. It just gets you the interest meeting details.
       </p>
     </form>
   );
 }
 
 export default function BajaPageContent() {
-  const scrollToForm = () => document.getElementById('interested')?.scrollIntoView({ behavior: 'smooth' });
-
   return (
     <>
-      {/* HERO */}
-      <section className="relative min-h-[75vh] flex items-center justify-center py-24">
+      {/* HERO — the End Result, with the student in it */}
+      <section className="relative min-h-[80vh] flex items-center justify-center py-24">
         <div className="absolute inset-0 bg-gray-900">
           <Image src="/iowa/baja/roof.jpg" alt="" fill priority sizes="100vw" className="object-cover object-[center_30%]" />
-          <div className="absolute inset-0 bg-black opacity-50"></div>
+          <div className="absolute inset-0 bg-black opacity-55"></div>
         </div>
         <div className="relative z-10 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center text-white">
           <p className="uppercase tracking-widest text-sm mb-4" style={{ color: 'var(--gold)' }}>
-            ARK Iowa · Summer 2027
+            ARK Iowa · Baja, Mexico · Summer 2027
           </p>
-          <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold leading-tight mb-6">Baja Mission Trip</h1>
-          <p className="text-xl md:text-2xl mb-8 text-gray-200">
-            A week of serving and sharing Jesus in Baja California, Mexico.
-          </p>
-          <button
-            onClick={scrollToForm}
-            className="px-8 py-4 rounded-lg font-semibold text-lg transition hover:opacity-90"
-            style={{ backgroundColor: 'var(--gold)', color: 'var(--navy)' }}
-          >
-            I’m interested
-          </button>
+          <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold leading-tight mb-6">
+            This summer, a family in Mexico moves into a home you built.
+          </h1>
+          <p className="text-xl md:text-2xl mb-8 text-gray-200">One week in Baja with ARK Iowa.</p>
+          <CtaButton />
+          <p className="mt-4 text-gray-300">Not a commitment. Just a seat at the meeting.</p>
         </div>
       </section>
 
-      {/* WHY BAJA */}
+      {/* SOMEDAY — Problem + Empathy + Answer */}
       <Section bg="#F5F2EE">
-        <H2>Why Baja</H2>
+        <H2>Someday</H2>
         <div className={`space-y-5 ${body}`}>
+          <p className="text-xl">You intend to serve God and people somewhere, someday.</p>
           <p>
-            This summer we are taking a team of college students to Baja California, Mexico, for a week of
-            serving and sharing Jesus. We are partnering with uReach, a ministry that hosts teams at a base in
-            the San Quintín Valley and connects them with local churches and families.
+            Maybe after graduation. Maybe once you have more money, or more time, or better Spanish. Maybe
+            when going somewhere hard feels a little less scary than it does right now.
+          </p>
+          <p className="text-2xl font-bold pt-2" style={navy}>
+            Somehow someday never gets a date.
           </p>
           <p>
-            This is an invitation to pray about. Some of you will feel a clear yes. Some of you will need months
-            to sort out money, school, and summer plans. That is why we are putting everything in your hands
-            now, almost a year ahead.
+            Every summer fills up with a job, an internship, a trip home. Serving stays a plan you really do
+            mean to get to.
+          </p>
+          <p className="text-xl">
+            So let’s put it on the calendar. We’ll take you to Baja for a week and hand you a hammer.
           </p>
         </div>
       </Section>
 
-      {/* WHAT WE'LL DO */}
+      {/* FRIDAY — Change, shown as a scene.
+          TODO(uReach call): confirm teams finish and hand over the house by Friday. */}
       <Section bg="#FAF8F5">
-        <H2>What we’ll do</H2>
+        <H2>Friday afternoon</H2>
+        <div className="grid grid-cols-2 gap-4 mb-8">
+          <Photo src="/iowa/baja/framing.jpg" alt="A team framing the walls of a home" className="aspect-[4/5]" />
+          <Photo src="/iowa/baja/saw.jpg" alt="A student cutting lumber on a build site" className="aspect-[4/5]" />
+        </div>
+        <div className={`space-y-5 ${body}`}>
+          <p>
+            On Monday it was a slab of concrete in a dirt lot. By Friday there are walls you framed, a roof you
+            nailed down, and paint still drying on the door. A mom walks through that door with her kids
+            behind her, and they start arguing over which room is theirs.
+          </p>
+          <p>
+            Your whole team circles up in the yard and prays over the house. Your hands are blistered. Your
+            shirt is ruined. You have never been this tired or this sure that God was in something.
+          </p>
+          <p className="text-2xl font-bold pt-2" style={navy}>
+            You find out what Jesus can do through your two hands.
+          </p>
+        </div>
+      </Section>
+
+      {/* THE PLAN */}
+      <Section bg="#F5F2EE">
+        <H2>How you get there</H2>
+        <ol className="space-y-6">
+          {[
+            ['Hold your spot', 'Fill out the form below. It takes a minute and it isn’t a commitment.', 'Now'],
+            ['Come to the interest meeting', 'Dates, cost, passports, fundraising, and every question you have.', 'October'],
+            ['Go', 'One week in Baja with your team.', 'Summer 2027'],
+          ].map(([title, text, when], i) => (
+            <li key={title} className="flex gap-5">
+              <span
+                className="shrink-0 w-10 h-10 rounded-full flex items-center justify-center font-bold"
+                style={{ background: 'var(--gold)', color: 'var(--navy)' }}
+              >
+                {i + 1}
+              </span>
+              <div>
+                <p className="text-xl font-semibold" style={navy}>
+                  {title} <span className="text-sm font-semibold ml-1" style={{ color: 'var(--maroon)' }}>{when}</span>
+                </p>
+                <p className="text-[#4a4540] text-lg">{text}</p>
+              </div>
+            </li>
+          ))}
+        </ol>
+        <div className="mt-10">
+          <CtaButton className="w-full sm:w-auto" />
+        </div>
+      </Section>
+
+      {/* THE WEEK — enlightenment starts here */}
+      <Section bg="#FAF8F5">
+        <H2>What the week looks like</H2>
         <p className={`${body} mb-6`}>
-          A week with uReach mixes hands-on work with time spent with people. The exact projects get set closer
-          to the trip, and they usually include:
+          We’re going with uReach, a ministry that hosts teams at a base in the San Quintín Valley and connects
+          them with local churches and families. They’ve built more than 170 homes and schools there since
+          2008. The exact projects get set closer to the trip, and they usually include:
         </p>
-        <ul className="grid sm:grid-cols-2 gap-4 mb-6">
+        <ul className="grid sm:grid-cols-2 gap-4 mb-8">
           {[
             'Building a home for a family in need',
             'Youth camps and outreach with local kids',
-            'Serving alongside local churches and ministries',
+            'Serving alongside local churches',
             'An activity day, often at the beach',
           ].map((item) => (
             <li key={item} className="bg-white rounded-xl border border-gray-100 shadow-sm px-5 py-4 text-[#4a4540]">
@@ -218,74 +275,16 @@ export default function BajaPageContent() {
             </li>
           ))}
         </ul>
-        <div className="grid grid-cols-2 gap-4 mb-6">
-          <Photo src="/iowa/baja/framing.jpg" alt="A team framing the walls of a home" className="aspect-[4/5]" />
-          <Photo src="/iowa/baja/saw.jpg" alt="A student cutting lumber on a build site" className="aspect-[4/5]" />
-        </div>
-        <p className={body}>
-          We will also pray, worship, and debrief together every day. The goal is for you to come home more like
-          Jesus and more ready to make disciples.
-        </p>
-      </Section>
-
-      {/* WHEN AND WHERE */}
-      <Section bg="#F5F2EE">
-        <H2>When and where</H2>
-        <dl className="space-y-5">
-          {[
-            ['Dates', 'June or July 2027, exact week to be confirmed with uReach. The trip is 7 days on the ground, plus travel days, so plan for 8 or 9 days total.'],
-            ['Where', 'uReach’s base in the San Quintín Valley, Baja California, about a 4 to 5 hour drive south of San Diego.'],
-            ['Travel', 'We fly to San Diego together, and uReach vans take us to the base and back.'],
-            ['Passport', 'You need a valid passport. If you do not have one, start the application this fall.'],
-          ].map(([k, v]) => (
-            <div key={k} className="sm:flex gap-6">
-              <dt className="font-semibold sm:w-32 shrink-0" style={{ color: 'var(--maroon)' }}>{k}</dt>
-              <dd className="text-[#4a4540] text-lg">{v}</dd>
-            </div>
-          ))}
-        </dl>
-        <div className="grid sm:grid-cols-2 gap-4 mt-8">
+        <div className="grid sm:grid-cols-2 gap-4">
           <Photo src="/iowa/baja/base-night.jpg" alt="The uReach base courtyard at dusk" className="aspect-video" />
           <Photo src="/iowa/baja/base-day.jpg" alt="The uReach base and dining hall" className="aspect-video" />
         </div>
-        <p className="mt-3 text-sm text-[#8a8378]">Home for the week: the uReach base in the San Quintín Valley.</p>
-      </Section>
-
-      {/* COST */}
-      <Section bg="#FAF8F5">
-        <H2>What it costs</H2>
-        <p className={`${body} mb-6`}>
-          The trip cost covers van travel from the San Diego airport, all meals, lodging at the base, purified water, project materials, and travel insurance. Your own costs are
-          the flight to San Diego, a little spending money, and a passport if you need one.
+        <p className="mt-3 text-sm text-[#8a8378]">Home for the week: the uReach base.</p>
+        <p className={`${body} mt-8`}>
+          Every day we pray, worship, and talk through what God is doing. You come home more like Jesus and
+          more ready to make disciples.
         </p>
-        <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden mb-6">
-          <table className="w-full text-left">
-            <tbody>
-              {COSTS.map(([item, est]) => (
-                <tr key={item} className="border-b border-gray-100">
-                  <td className="px-5 py-4 text-[#4a4540]">{item}</td>
-                  <td className="px-5 py-4 text-[#4a4540] text-right">{est}</td>
-                </tr>
-              ))}
-              <tr style={{ background: '#faf6ee' }}>
-                <td className="px-5 py-4 font-bold" style={navy}>Total</td>
-                <td className="px-5 py-4 font-bold text-right" style={navy}>
-                  About $1,400 to $1,650, plus a passport if needed
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-        <p className="text-xl font-semibold" style={navy}>
-          Money should never be the only reason you stay home.
-        </p>
-        <p className={body}>Read the fundraising schedule below and talk to me.</p>
-      </Section>
-
-      {/* VIDEO */}
-      <Section bg="#F5F2EE">
-        <H2>Watch the video</H2>
-        <div className="aspect-video rounded-xl overflow-hidden bg-gray-900 mb-6 flex items-center justify-center">
+        <div className="aspect-video rounded-xl overflow-hidden bg-gray-900 mt-10 flex items-center justify-center">
           {VIDEO_EMBED_URL ? (
             <iframe
               src={VIDEO_EMBED_URL}
@@ -298,9 +297,6 @@ export default function BajaPageContent() {
             <p className="text-gray-300">Video coming soon.</p>
           )}
         </div>
-        <p className={body}>
-          Watch it once to see what a week in Baja looks like. Then take it to prayer.
-        </p>
       </Section>
 
       {/* PRAY */}
@@ -312,7 +308,7 @@ export default function BajaPageContent() {
           </blockquote>
           <p className="text-gray-300 mb-8">Isaiah 6:8 NASB</p>
           <p className="text-lg text-gray-200 mb-6">
-            Before you decide anything about money or schedules, ask the Father if He is sending you. Choose the
+            Before you decide anything about money or schedules, ask the Father if he is sending you. Choose the
             one that lands hardest for you:
           </p>
           <ol className="space-y-4 list-decimal pl-6 text-lg text-gray-100">
@@ -323,42 +319,36 @@ export default function BajaPageContent() {
         </div>
       </section>
 
-      {/* FUNDRAISING */}
-      <Section bg="#FAF8F5">
-        <H2>Fundraising schedule</H2>
-        <p className={`${body} mb-8`}>
-          The goal for each student is about $1,500, which covers the trip cost, the flight, and spending money.
-          The dates below are targets. We will match them to uReach’s actual payment deadlines once they are
-          confirmed. Details on how gifts are given will be shared at the interest meeting.
-        </p>
-        <ol className="relative border-l-2 ml-2" style={{ borderColor: 'var(--gold)' }}>
-          {SCHEDULE.map(([when, what, total]) => (
-            <li key={when} className="ml-6 pb-6 last:pb-0">
-              <span
-                className="absolute -left-[7px] mt-1.5 w-3 h-3 rounded-full"
-                style={{ background: 'var(--gold)' }}
-              />
-              <div className="flex flex-wrap items-baseline justify-between gap-x-4">
-                <p className="font-semibold" style={navy}>{when}</p>
-                <p className="text-sm font-semibold" style={{ color: 'var(--maroon)' }}>
-                  {total === 'Done' ? 'Done' : `${total} raised`}
-                </p>
-              </div>
-              <p className="text-[#4a4540]">{what}</p>
-            </li>
+      {/* THE DETAILS */}
+      <Section bg="#F5F2EE">
+        <H2>The details</H2>
+        <dl className="space-y-5">
+          {[
+            ['When', 'June or July 2027. The exact week gets confirmed with uReach. Plan on 8 or 9 days with travel.'],
+            ['Where', 'The uReach base in the San Quintín Valley, Baja California, about 4 hours south of the border.'],
+            ['Travel', 'We fly to San Diego together, and uReach vans take us from the airport to the base and back.'],
+            ['Passport', 'You need a valid one. If you don’t have one, start the application this fall.'],
+            ['Cost', 'About $1,400 to $1,650 total. That’s $927 to uReach for meals, lodging, the vans, project materials, and insurance, plus your flight and a little spending money. A passport is about $165 more if you need one.'],
+          ].map(([k, v]) => (
+            <div key={k} className="sm:flex gap-6">
+              <dt className="font-semibold sm:w-28 shrink-0" style={{ color: 'var(--maroon)' }}>{k}</dt>
+              <dd className="text-[#4a4540] text-lg">{v}</dd>
+            </div>
           ))}
-        </ol>
+        </dl>
+        <p className="mt-8 text-xl font-semibold" style={navy}>
+          Money should never be the only reason you stay home.
+        </p>
+        <p className={body}>We’ll walk through fundraising step by step at the interest meeting.</p>
       </Section>
 
-      {/* NEXT STEPS + FORM */}
-      <Section bg="#F5F2EE" id="interested">
-        <H2>Next steps</H2>
-        <ol className={`space-y-3 list-decimal pl-6 mb-10 ${body}`}>
-          <li>Watch the video and pray about it.</li>
-          <li>Tell me you are interested by the interest meeting.</li>
-          <li>Come to the interest meeting in October (date to be announced).</li>
-          <li>If you do not have a passport, start your application now.</li>
-        </ol>
+      {/* FINAL BAND + FORM */}
+      <Section bg="#FAF8F5" id="interested">
+        <H2>Give someday a date.</H2>
+        <p className={`${body} mb-8`}>
+          A family in Mexico moves into a home you built, and you come home as someone who takes action. It
+          starts with a seat at the interest meeting.
+        </p>
         <InterestForm />
         <p className="mt-6 text-[#4a4540]">
           Rather talk? Call or text{' '}

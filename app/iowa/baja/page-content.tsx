@@ -99,9 +99,21 @@ function InterestForm() {
           <input id="baja-phone" name="phone" type="tel" required className={input} autoComplete="tel" />
         </div>
         <div>
-          <label className="block text-sm font-semibold mb-1" style={navy} htmlFor="baja-email">Email (optional)</label>
-          <input id="baja-email" name="email" type="email" className={input} autoComplete="email" />
+          <label className="block text-sm font-semibold mb-1" style={navy} htmlFor="baja-email">Email</label>
+          <input id="baja-email" name="email" type="email" required className={input} autoComplete="email" />
         </div>
+      </div>
+      <div>
+        <label className="block text-sm font-semibold mb-1" style={navy} htmlFor="baja-year">Year (optional)</label>
+        <select id="baja-year" name="year" className={input} defaultValue="">
+          <option value="">—</option>
+          <option value="first-year">First-year</option>
+          <option value="sophomore">Sophomore</option>
+          <option value="junior">Junior</option>
+          <option value="senior">Senior</option>
+          <option value="grad">Grad</option>
+          <option value="other">Other</option>
+        </select>
       </div>
       <div>
         <label className="block text-sm font-semibold mb-1" style={navy} htmlFor="baja-passport">Do you have a valid passport?</label>

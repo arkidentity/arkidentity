@@ -188,6 +188,7 @@ export async function sendBajaInterestEmail(signup: BajaInterest) {
     ${signup.message ? row('Message', signup.message) : ''}
     <p style="margin:20px 0 0; color:#8a8378; font-size:14px;">
       Submitted ${new Date().toLocaleString('en-US', { timeZone: 'America/Chicago' })} CT.
+      Added to Students, tagged Baja 2027.
     </p>
   `);
 

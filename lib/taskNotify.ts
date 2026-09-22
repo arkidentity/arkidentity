@@ -4,7 +4,7 @@ import { getTask, type CampusTask } from '@/lib/campusTasks';
 import { getStaff, type IowaStaff } from '@/lib/iowaStaff';
 import { formatSlot } from '@/lib/bibleStudyFormat';
 import { PRIORITY, formatDate } from '@/lib/campusFormat';
-import { sendTaskAssigned, sendTaskHelpOffered, type TaskEmailInfo } from '@/lib/email';
+import { sendTaskAssigned, sendTaskComment, sendTaskHelpOffered, type TaskEmailInfo } from '@/lib/email';
 
 // Task emails, sent after the response via `after()` (a bare promise gets
 // frozen on Vercel). Failures are logged, never surfaced — the save succeeded.
@@ -78,6 +78,28 @@ export function notifyHelpOffered(taskId: string, helper: IowaStaff) {
       await sendTaskHelpOffered({ to: owner.email, name: owner.name, helper: helper.name, task: await taskEmailInfo(task) });
     } catch (e) {
       console.error('[iowa tasks] help email failed', e);
+    }
+  });
+}
+
+// A comment goes to the owner and everyone helping, minus whoever wrote it —
+// otherwise it sits unread until someone happens to open the task.
+export function notifyTaskComment(taskId: string, comment: string, by: IowaStaff | null) {
+  after(async () => {
+    try {
+      const task = await getTask(taskId);
+      if (!task) return;
+      const ids = [...new Set([task.owner_id, ...task.helper_ids].filter((id): id is string => !!id && id !== by?.id))];
+      if (ids.length === 0) return;
+      const info = await taskEmailInfo(task);
+      for (const id of ids) {
+        const p = await getStaff(id);
+        if (p?.active) {
+          await sendTaskComment({ to: p.email, name: p.name, from: by?.name ?? 'Someone', comment, task: info });
+        }
+      }
+    } catch (e) {
+      console.error('[iowa tasks] comment email failed', e);
     }
   });
 }

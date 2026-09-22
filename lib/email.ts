@@ -503,6 +503,20 @@ export async function sendTaskHelpOffered(opts: { to: string; name: string; help
   });
 }
 
+export async function sendTaskComment(opts: { to: string; name: string; from: string; comment: string; task: TaskEmailInfo }) {
+  const { to, name, from, comment, task } = opts;
+  return getResend().emails.send({
+    from: fromAddress(),
+    to,
+    subject: `${from} on: ${task.title}`,
+    html: wrap(`
+      <p>${escapeHtml(name)}, <strong>${escapeHtml(from)}</strong> wrote on a task you're on:</p>
+      <p style="margin:12px 0; padding:12px 14px; border-left:3px solid #143348; color:#4a4540; white-space:pre-wrap;">${escapeHtml(comment)}</p>
+      ${taskBlock(task)}
+    `),
+  });
+}
+
 // One email per person, sent in a Resend batch.
 export async function sendEmailBatch(
   items: { to: string; subject: string; html: string }[]

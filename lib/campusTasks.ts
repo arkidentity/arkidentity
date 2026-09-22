@@ -50,6 +50,7 @@ export interface TaskActivity {
   task_id: string;
   staff_id: string | null;
   action: string;
+  kind: 'log' | 'comment'; // migration 024 — 'comment' is a person writing
   created_at: string;
 }
 
@@ -169,7 +170,7 @@ export async function getTask(id: string): Promise<CampusTask | null> {
 export async function listTaskActivity(taskIds?: string[]): Promise<TaskActivity[]> {
   let q = getSupabaseAdmin()
     .from('iowa_task_activity')
-    .select('id, task_id, staff_id, action, created_at')
+    .select('id, task_id, staff_id, action, kind, created_at')
     .order('created_at', { ascending: true });
   if (taskIds) {
     if (taskIds.length === 0) return [];
@@ -186,6 +187,21 @@ async function logActivity(taskId: string, actorId: string | null, actions: stri
     .from('iowa_task_activity')
     .insert(actions.map((action) => ({ task_id: taskId, staff_id: actorId, action })));
   if (error) console.error('[iowa tasks] activity log failed', error);
+}
+
+// Someone writing on a task ("Songs: Great Are You Lord, …"). Lands on the same
+// timeline as the automatic activity, and shows on the event it's tied to.
+export async function addTaskComment(taskId: string, body: string, by: IowaStaff | null): Promise<TaskActivity> {
+  const text = body.trim();
+  if (!text) throw new Error('Write something first.');
+  if (text.length > 2000) throw new Error('That comment is too long.');
+  const { data, error } = await getSupabaseAdmin()
+    .from('iowa_task_activity')
+    .insert({ task_id: taskId, staff_id: by?.id ?? null, action: text, kind: 'comment' })
+    .select('id, task_id, staff_id, action, kind, created_at')
+    .single();
+  if (error) throw error;
+  return data as TaskActivity;
 }
 
 export interface TaskInput {

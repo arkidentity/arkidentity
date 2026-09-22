@@ -299,6 +299,36 @@ Everything on the week calendar opens in a popup, no page loads. Study popup has
 Studies page is for creating studies + the all-semesters list. Tasks (and grouped task lines) open
 in a task popup with Mark done / Take this / Edit.
 
+## Task comments (migration 024, 2026-09-22)
+
+`iowa_task_activity.kind` splits the timeline: `'log'` is the app ("marked done"), `'comment'` is a
+person writing. Comments answer "I picked the songs — here they are" without overwriting the
+description.
+
+- **Notes box** on every task (task list + task popup). Posting emails the owner and everyone
+  helping, minus the writer (`notifyTaskComment` → `sendTaskComment`).
+- **Mark done asks "Anything to pass along?"** — optional; sent as a comment with the same PATCH
+  (`{ status: 'done', comment }`).
+- **On the event:** the event panel shows the comments from that date's prep tasks. A repeating
+  event's tasks carry `event_occurrence`, so this Thursday's songs don't mix with next Thursday's.
+  Clicking a note opens its task.
+- History (the `log` rows) stays behind its own toggle.
+
+## Songs (migration 025, 2026-09-22)
+
+`iowa_event_songs` = a setlist on ONE date of an event (`event_id` + `occurrence`), like checklist
+tasks. Any event can have songs; the section is quiet until the first one is added. Code:
+`lib/eventSongs.ts`, route `POST /api/iowa/admin/events/:id/songs`.
+
+- Title + key + link, ordered (↑ ↓). Added whenever they're picked, not at event creation.
+- **Copy from {last date}** (same event) and **Copy these to…** (any event date in the next 30 days —
+  practice Thursday → service Sunday).
+- **Rides to Google:** the description carries the next date's set, so the team sees it on their
+  phones without logging in (`songLines`; queued by the route, not `eventSongs`, to avoid an import
+  cycle with `calendarSync`).
+- Deliberately NOT a song library: no usage history, CCLI, arrangements or SongSelect. These rows
+  are the history if that's ever wanted.
+
 ## Phase 3 — Student leaders
 
 Leader logins; see only their own studies' students; claim/update own tasks, offer help.

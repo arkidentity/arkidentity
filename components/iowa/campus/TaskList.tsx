@@ -437,12 +437,15 @@ function TaskDetail(props: TaskListProps & { t: CampusTask; busy: boolean; call:
   const [editing, setEditing] = useState(false);
   const [history, setHistory] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [finishing, setFinishing] = useState(false);
   const url = `/api/iowa/admin/tasks/${t.id}`;
   const mineOwned = t.owner_id === meId;
   const helping = !!meId && t.helper_ids.includes(meId);
   // Activity with no person is the automation (welcome, confirm, reconnect…).
   const nameOf = (id: string | null) => (id ? staff.find((s) => s.id === id)?.name ?? 'Someone' : 'Auto:');
   const log = activity.filter((a) => a.task_id === t.id);
+  const comments = log.filter((a) => a.kind === 'comment');
+  const logs = log.filter((a) => a.kind !== 'comment');
   const owner = staff.find((s) => s.id === t.owner_id);
   const link = linkLabel(t, props);
   const toggle = 'text-xs font-semibold px-2 py-1 rounded border border-gray-300 hover:bg-gray-50';
@@ -463,7 +466,7 @@ function TaskDetail(props: TaskListProps & { t: CampusTask; busy: boolean; call:
 
       <div className="flex flex-wrap items-center gap-2">
         {t.status !== 'done' ? (
-          <button disabled={busy} onClick={() => call(url, 'PATCH', { status: 'done' })} className={btnPrimary} style={{ backgroundColor: '#15803d' }}>
+          <button disabled={busy} onClick={() => setFinishing((v) => !v)} className={btnPrimary} style={{ backgroundColor: '#15803d' }}>
             ✓ Mark done
           </button>
         ) : (
@@ -485,9 +488,9 @@ function TaskDetail(props: TaskListProps & { t: CampusTask; busy: boolean; call:
           <button onClick={() => { setEditing((v) => !v); setSaved(false); }} className={toggle} style={{ color: 'var(--navy)' }}>
             {editing ? 'Close edit ▴' : 'Edit ▾'}
           </button>
-          {log.length > 0 && (
+          {logs.length > 0 && (
             <button onClick={() => setHistory((v) => !v)} className={toggle} style={{ color: '#8a8378' }}>
-              History ({log.length}) {history ? '▴' : '▾'}
+              History ({logs.length}) {history ? '▴' : '▾'}
             </button>
           )}
         </span>
@@ -509,18 +512,22 @@ function TaskDetail(props: TaskListProps & { t: CampusTask; busy: boolean; call:
         </div>
       )}
 
+      {finishing && (
+        <FinishForm
+          busy={busy}
+          onDone={(comment) => call(url, 'PATCH', comment ? { status: 'done', comment } : { status: 'done' }).then((ok) => { if (ok) setFinishing(false); })}
+          onCancel={() => setFinishing(false)}
+        />
+      )}
+
+      <Comments t={t} comments={comments} nameOf={nameOf} />
+
       {history && (
         <ul className="text-sm md:text-xs text-[#8a8378] space-y-0.5">
-          {log.map((a) => (
+          {logs.map((a) => (
             <li key={a.id}>
               {nameOf(a.staff_id)} {a.action} ·{' '}
-              {new Date(a.created_at).toLocaleString('en-US', {
-                timeZone: 'America/Chicago',
-                month: 'short',
-                day: 'numeric',
-                hour: 'numeric',
-                minute: '2-digit',
-              })}
+              {when(a.created_at)}
             </li>
           ))}
         </ul>
@@ -766,5 +773,98 @@ export function TaskPopup(props: TaskListProps & { taskIds: string[]; onClose: (
         </ul>
       )}
     </Modal>
+  );
+}
+
+export function when(iso: string): string {
+  return new Date(iso).toLocaleString('en-US', {
+    timeZone: 'America/Chicago',
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  });
+}
+
+// Marking done is the natural moment to say what came of it ("Songs: …"), so
+// ask once, optionally, instead of making it a separate step.
+function FinishForm({ busy, onDone, onCancel }: { busy: boolean; onDone: (comment: string) => void; onCancel: () => void }) {
+  const [text, setText] = useState('');
+  return (
+    <div className="rounded-md border border-gray-200 bg-[#FAF8F5] p-3">
+      <p className="text-xs font-semibold text-[#8a8378] mb-2">Anything to pass along? (optional)</p>
+      <textarea
+        className={input}
+        rows={2}
+        value={text}
+        onChange={(e) => setText(e.target.value)}
+        placeholder="Songs: Great Are You Lord, Goodness of God…"
+      />
+      <div className="flex gap-2 mt-2">
+        <button disabled={busy} onClick={() => onDone(text.trim())} className={btnPrimary} style={{ backgroundColor: '#15803d' }}>
+          {text.trim() ? 'Done + send note' : 'Mark done'}
+        </button>
+        <button onClick={onCancel} className={btnSmall}>Cancel</button>
+      </div>
+    </div>
+  );
+}
+
+// What people wrote, oldest first, with a box to add one. Comments email the
+// owner and anyone helping, and show on the event this task belongs to.
+function Comments({
+  t,
+  comments,
+  nameOf,
+}: {
+  t: CampusTask;
+  comments: TaskActivity[];
+  nameOf: (id: string | null) => string;
+}) {
+  const { call, busy, error } = useCall();
+  const [text, setText] = useState('');
+  const [open, setOpen] = useState(comments.length === 0);
+
+  return (
+    <div className="rounded-md border border-gray-200 bg-white p-3">
+      <p className="text-xs font-semibold text-[#8a8378] mb-2">
+        Notes{comments.length > 0 ? ` (${comments.length})` : ''}
+      </p>
+      <ul className="space-y-2 mb-2">
+        {comments.map((c) => (
+          <li key={c.id} className="text-[15px] md:text-sm">
+            <span className="font-semibold" style={{ color: 'var(--navy)' }}>{nameOf(c.staff_id)}</span>{' '}
+            <span className="text-xs text-[#8a8378]">{when(c.created_at)}</span>
+            <p className="text-[#4a4540] whitespace-pre-wrap">{c.action}</p>
+          </li>
+        ))}
+      </ul>
+      {open ? (
+        <>
+          <textarea
+            className={input}
+            rows={2}
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            placeholder="What happened? Everyone on this task gets emailed."
+          />
+          {error && <p className="text-xs text-red-700 mt-1">{error}</p>}
+          <button
+            disabled={busy || !text.trim()}
+            onClick={async () => {
+              if (await call(`/api/iowa/admin/tasks/${t.id}`, 'PATCH', { comment: text })) setText('');
+            }}
+            className="mt-2 px-3 py-1.5 rounded-md text-sm font-semibold text-white disabled:opacity-50"
+            style={{ backgroundColor: 'var(--navy)' }}
+          >
+            Post note
+          </button>
+        </>
+      ) : (
+        <button onClick={() => setOpen(true)} className="text-sm font-semibold" style={{ color: 'var(--navy)' }}>
+          + Add a note
+        </button>
+      )}
+    </div>
   );
 }

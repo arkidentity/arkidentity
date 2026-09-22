@@ -5,7 +5,8 @@ import { semesterContext } from '@/lib/semesters';
 import { realignEvent } from '@/lib/eventChecklists';
 import { listStaff } from '@/lib/iowaStaff';
 import { formatSlot, formatTime, DAY_NAMES } from '@/lib/bibleStudyFormat';
-import { addDays, dayOfWeek, nextMeetingOnOrAfter, studyPausedBy, type SchoolPeriod, type Semester } from '@/lib/campusFormat';
+import { addDays, chicagoToday, dayOfWeek, eventDatesInRange, nextMeetingOnOrAfter, studyPausedBy, type SchoolPeriod, type Semester } from '@/lib/campusFormat';
+import { songLines, songsFor } from '@/lib/eventSongs';
 import { siteUrl } from '@/lib/email';
 import {
   calendarConfigured,
@@ -215,12 +216,13 @@ interface EventRow {
   staff: { staff_id: string }[] | null;
 }
 
-function appEvent(e: EventRow, names: Map<string, string>): GEvent {
+function appEvent(e: EventRow, names: Map<string, string>, songs: string[] = [], songsDate: string | null = null): GEvent {
   const going = (e.staff ?? []).map((x) => names.get(x.staff_id)).filter(Boolean);
   const lines = [
     e.type?.name ? `Type: ${e.type.name}` : null,
     going.length ? `Going: ${going.join(', ')}` : null,
     e.meeting_link ? `Join: ${e.meeting_link}` : null,
+    songs.length ? `\nSongs${songsDate ? ` (${songsDate})` : ''}:\n${songs.join('\n')}` : null,
     e.notes ? `\n${e.notes}` : null,
     `\nManaged in the ARK Iowa admin, so edits made here get overwritten: ${siteUrl()}/iowa/admin`,
   ].filter(Boolean);
@@ -266,7 +268,12 @@ export async function syncAppEvent(eventId: string): Promise<void> {
     if (error) throw error;
     const e = data as EventRow | null;
     if (!e || e.source !== 'app') return;
-    const event = appEvent(e, await staffNameMap());
+    // A weekly event has one description for the series, so it carries the
+    // next date's set — the one people are about to need.
+    const today = chicagoToday();
+    const next = eventDatesInRange(e, today, addDays(today, 120))[0] ?? e.event_date;
+    const songs = await songsFor(e.id, next).catch(() => []);
+    const event = appEvent(e, await staffNameMap(), songLines(songs), e.repeat_weekly && songs.length ? next : null);
     const saved = (e.google_event_id && (await patchCalendarEvent(e.google_event_id, event))) || (await insertCalendarEvent(event));
     if (saved.id !== e.google_event_id) {
       await db.from('iowa_events').update({ google_event_id: saved.id }).eq('id', e.id);

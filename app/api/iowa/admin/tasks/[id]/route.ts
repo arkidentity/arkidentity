@@ -1,13 +1,15 @@
 import { NextResponse } from 'next/server';
-import { deleteTask, setHelper, setHelpers, updateTask, type TaskInput } from '@/lib/campusTasks';
+import { addTaskComment, deleteTask, setHelper, setHelpers, updateTask, type TaskInput } from '@/lib/campusTasks';
 import { currentStaff } from '@/lib/iowaStaff';
-import { notifyAddedToTask, notifyHelpOffered, notifyTaskAssigned } from '@/lib/taskNotify';
+import { notifyAddedToTask, notifyHelpOffered, notifyTaskAssigned, notifyTaskComment } from '@/lib/taskNotify';
 
 export const dynamic = 'force-dynamic';
 
 // PATCH /api/iowa/admin/tasks/:id
 //   { help: true | false }  — the signed-in person offers / withdraws help
 //   helper_ids: string[]    — everyone "also on it" (replaces the list; new people are emailed)
+//   { comment: string }     — a note on the task (emails the owner + helpers);
+//                             may ride along with a status change ("done, here's what I picked")
 //   any task fields         — edit (owner change emails the new owner)
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -20,7 +22,18 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       if (body.help && task.owner_id && task.owner_id !== me.id) notifyHelpOffered(task.id, me);
       return NextResponse.json({ task });
     }
-    const { task, before } = await updateTask(id, body, me);
+    // A comment on its own: no task fields to write.
+    const { comment, ...fields } = body as typeof body & { comment?: string };
+    if (comment !== undefined && Object.keys(fields).length === 0) {
+      const activity = await addTaskComment(id, comment, me);
+      notifyTaskComment(id, comment.trim(), me);
+      return NextResponse.json({ activity });
+    }
+    const { task, before } = await updateTask(id, fields, me);
+    if (comment !== undefined && comment.trim()) {
+      await addTaskComment(id, comment, me);
+      notifyTaskComment(id, comment.trim(), me);
+    }
     if (task.owner_id && task.owner_id !== before.owner_id && task.owner_id !== me?.id) {
       notifyTaskAssigned(task.id, me);
     }

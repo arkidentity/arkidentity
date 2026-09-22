@@ -75,7 +75,7 @@ export default function Dashboard({
 
       <PendingInvites invites={pending} />
 
-      <CampusCalendar {...calendar} onTaskClick={setTaskPopup} />
+      <CampusCalendar {...calendar} activity={taskProps.activity} onTaskClick={setTaskPopup} />
       {taskPopup && <TaskPopup {...taskProps} taskIds={taskPopup} onClose={() => setTaskPopup(null)} />}
 
       <div id="tasks" className="grid lg:grid-cols-3 gap-8 scroll-mt-4">

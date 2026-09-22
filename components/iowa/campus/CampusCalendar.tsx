@@ -2,9 +2,10 @@
 
 import { useMemo, useState } from 'react';
 import type { StudyWithMembers } from '@/lib/bibleStudies';
-import type { CampusEvent, CampusTask } from '@/lib/campusTasks';
+import type { CampusEvent, CampusTask, TaskActivity } from '@/lib/campusTasks';
 import type { HeldEvent } from '@/lib/calendarSync';
 import type { Rsvp } from '@/lib/eventInvites';
+import type { EventSong } from '@/lib/eventSongs';
 import type { StudyTeamRow } from '@/lib/campusFormat';
 import EventPeople from '@/components/iowa/campus/EventPeople';
 import StudyCard from '@/components/iowa/campus/StudyCard';
@@ -46,14 +47,18 @@ export default function CampusCalendar({
   semesters,
   templates,
   rsvps = [],
+  songs = [],
   students = [],
   team = [],
+  activity = [],
   onTaskClick,
 }: {
+  activity?: TaskActivity[];
   onTaskClick?: (taskIds: string[]) => void;
   team?: StudyTeamRow[];
   templates: { id: string; name: string; itemCount: number }[];
   rsvps?: Rsvp[];
+  songs?: EventSong[];
   students?: { id: string; label: string }[];
   periods: SchoolPeriod[];
   semesters: Semester[];
@@ -223,8 +228,20 @@ export default function CampusCalendar({
             rsvps={rsvps.filter((r) => r.event_id === editingEvent.id)}
             students={students}
           />
+          <EventSongs
+            event={editingEvent}
+            occurrence={clickedDate ?? editingEvent.event_date}
+            songs={songs.filter((x) => x.event_id === editingEvent.id)}
+            events={events}
+            busy={busy}
+            call={call}
+          />
+
           <EventChecklist
             event={editingEvent}
+            occurrence={clickedDate}
+            activity={activity}
+            onTaskClick={onTaskClick}
             tasks={tasks.filter((t) => t.event_id === editingEvent.id)}
             templates={templates}
             staff={staff}
@@ -622,8 +639,14 @@ function EventChecklist({
   meId,
   busy,
   call,
+  occurrence = null,
+  activity = [],
+  onTaskClick,
 }: {
   event: CampusEvent;
+  occurrence?: string | null;
+  activity?: TaskActivity[];
+  onTaskClick?: (taskIds: string[]) => void;
   tasks: CampusTask[];
   templates: { id: string; name: string; itemCount: number }[];
   staff: StaffOption[];
@@ -678,9 +701,15 @@ function EventChecklist({
           {open.map((t) => (
             <li key={t.id} className="flex flex-wrap gap-x-2">
               <span className="w-24 shrink-0 text-[#8a8378]">{t.due_date ? formatDate(t.due_date, { month: 'short', day: 'numeric' }) : ''}</span>
-              <a href={`/iowa/admin?task=${t.id}#tasks`} className="hover:underline" style={{ color: 'var(--navy)' }}>
-                {t.title}
-              </a>
+              {onTaskClick ? (
+                <button onClick={() => onTaskClick([t.id])} className="hover:underline text-left" style={{ color: 'var(--navy)' }}>
+                  {t.title}
+                </button>
+              ) : (
+                <a href={`/iowa/admin?task=${t.id}#tasks`} className="hover:underline" style={{ color: 'var(--navy)' }}>
+                  {t.title}
+                </a>
+              )}
               <span className="text-[#8a8378]">
                 · {when(t.offset_days)}
                 {event.repeat_weekly && t.event_occurrence ? ` of ${formatDate(t.event_occurrence, { month: 'short', day: 'numeric' })}` : ''}
@@ -692,6 +721,8 @@ function EventChecklist({
           {done > 0 && <li className="text-xs text-[#8a8378]">{done} done</li>}
         </ul>
       )}
+
+      <EventNotes event={event} occurrence={occurrence} tasks={tasks} activity={activity} staff={staff} onTaskClick={onTaskClick} />
 
       <div className="pt-3 border-t border-gray-100 flex flex-wrap items-center gap-2 text-sm">
         <input
@@ -733,6 +764,190 @@ function EventChecklist({
           Add
         </button>
       </div>
+    </div>
+  );
+}
+
+// What people wrote on this date's prep tasks — the songs for THIS practice,
+// not last week's. A repeating event gets a fresh set of tasks per occurrence
+// (migration 019), so filtering by event_occurrence keeps the weeks apart.
+function EventNotes({
+  event,
+  occurrence,
+  tasks,
+  activity,
+  staff,
+  onTaskClick,
+}: {
+  event: CampusEvent;
+  occurrence: string | null;
+  tasks: CampusTask[];
+  activity: TaskActivity[];
+  staff: StaffOption[];
+  onTaskClick?: (taskIds: string[]) => void;
+}) {
+  const here = event.repeat_weekly && occurrence ? tasks.filter((t) => t.event_occurrence === occurrence) : tasks;
+  const byTask = new Map(here.map((t) => [t.id, t]));
+  const notes = activity
+    .filter((a) => a.kind === 'comment' && byTask.has(a.task_id))
+    .sort((a, b) => a.created_at.localeCompare(b.created_at));
+  if (notes.length === 0) return null;
+  const nameOf = (id: string | null) => (id ? staff.find((s) => s.id === id)?.name.split(' ')[0] ?? 'Someone' : 'Auto');
+
+  return (
+    <div className="pt-3 border-t border-gray-100">
+      <p className="text-sm font-bold mb-2" style={{ color: 'var(--navy)' }}>
+        Notes{event.repeat_weekly && occurrence ? ` · ${formatDate(occurrence, { month: 'short', day: 'numeric' })}` : ''}
+      </p>
+      <ul className="space-y-2 text-sm">
+        {notes.map((n) => (
+          <li key={n.id}>
+            <span className="text-xs text-[#8a8378]">
+              {byTask.get(n.task_id)!.title} · {nameOf(n.staff_id)}
+            </span>
+            {onTaskClick ? (
+              <button onClick={() => onTaskClick([n.task_id])} className="block text-left text-[#4a4540] whitespace-pre-wrap hover:underline">
+                {n.action}
+              </button>
+            ) : (
+              <p className="text-[#4a4540] whitespace-pre-wrap">{n.action}</p>
+            )}
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+// Songs on this date (migration 025) — a setlist, not a song library. Shows on
+// every event; stays out of the way until someone adds the first song. A
+// repeating event keeps a separate set per date, and the next date's set rides
+// along to Google Calendar so the team sees it on their phones.
+function EventSongs({
+  event,
+  occurrence,
+  songs,
+  events,
+  busy,
+  call,
+}: {
+  event: CampusEvent;
+  occurrence: string;
+  songs: EventSong[];
+  events: CampusEvent[];
+  busy: boolean;
+  call: CallFn;
+}) {
+  const [f, setF] = useState({ title: '', song_key: '', link: '' });
+  const [adding, setAdding] = useState(false);
+  const [copyTo, setCopyTo] = useState('');
+  const url = `/api/iowa/admin/events/${event.id}/songs`;
+  const field = 'px-2 py-1.5 border border-gray-300 rounded-md text-sm bg-white';
+  const here = songs.filter((s) => s.occurrence === occurrence).sort((a, b) => a.sort - b.sort);
+  // Same event, the most recent earlier date that has songs.
+  const lastSet = [...new Set(songs.filter((s) => s.occurrence < occurrence).map((s) => s.occurrence))].sort().at(-1);
+
+  async function move(i: number, dir: -1 | 1) {
+    const order = here.map((s) => s.id);
+    const j = i + dir;
+    if (j < 0 || j >= order.length) return;
+    [order[i], order[j]] = [order[j], order[i]];
+    await call(url, 'POST', { occurrence, order });
+  }
+
+  return (
+    <div className="mt-4 rounded-lg border border-gray-200 bg-white p-4 space-y-3">
+      <div className="flex flex-wrap items-baseline justify-between gap-2">
+        <p className="text-sm font-bold" style={{ color: 'var(--navy)' }}>
+          Songs{event.repeat_weekly ? ` · ${formatDate(occurrence, { month: 'short', day: 'numeric' })}` : ''}
+        </p>
+        {here.length === 0 && <p className="text-xs text-[#8a8378]">Nothing yet — add them whenever they&apos;re picked.</p>}
+      </div>
+
+      {here.length > 0 && (
+        <ol className="text-sm divide-y divide-gray-100">
+          {here.map((s, i) => (
+            <li key={s.id} className="py-2 flex flex-wrap items-center gap-x-2">
+              <span className="text-[#8a8378] w-5 shrink-0">{i + 1}.</span>
+              <span className="font-semibold text-[#1f2937]">{s.title}</span>
+              {s.song_key && <span className="text-[#8a8378]">· {s.song_key}</span>}
+              {s.link && (
+                <a href={s.link} target="_blank" rel="noreferrer" className="underline text-xs" style={{ color: 'var(--navy)' }}>
+                  link ↗
+                </a>
+              )}
+              <span className="ml-auto flex items-center gap-1">
+                <button disabled={busy || i === 0} onClick={() => move(i, -1)} className="text-xs px-1.5 py-0.5 text-[#8a8378] disabled:opacity-30" title="Up">↑</button>
+                <button disabled={busy || i === here.length - 1} onClick={() => move(i, 1)} className="text-xs px-1.5 py-0.5 text-[#8a8378] disabled:opacity-30" title="Down">↓</button>
+                <button disabled={busy} onClick={() => call(url, 'POST', { remove: s.id })} className="text-xs px-1.5 py-0.5 text-[#b0a99e]" title="Remove">✕</button>
+              </span>
+            </li>
+          ))}
+        </ol>
+      )}
+
+      {adding ? (
+        <div className="flex flex-wrap items-center gap-2">
+          <input autoFocus className={`${field} flex-1 min-w-[10rem]`} placeholder="Song title" value={f.title} onChange={(e) => setF({ ...f, title: e.target.value })} />
+          <input className={`${field} w-20`} placeholder="Key" value={f.song_key} onChange={(e) => setF({ ...f, song_key: e.target.value })} />
+          <input className={`${field} flex-1 min-w-[10rem]`} placeholder="Link (optional)" value={f.link} onChange={(e) => setF({ ...f, link: e.target.value })} />
+          <button
+            disabled={busy || !f.title.trim()}
+            onClick={async () => {
+              if (await call(url, 'POST', { occurrence, ...f })) setF({ title: '', song_key: '', link: '' });
+            }}
+            className="px-3 py-1.5 rounded-md text-sm font-semibold text-white disabled:opacity-40"
+            style={{ backgroundColor: 'var(--navy)' }}
+          >
+            Add
+          </button>
+          <button onClick={() => setAdding(false)} className="text-sm text-[#8a8378]">Done</button>
+        </div>
+      ) : (
+        <div className="flex flex-wrap items-center gap-3 text-sm">
+          <button onClick={() => setAdding(true)} className="font-semibold" style={{ color: 'var(--navy)' }}>
+            + Add a song
+          </button>
+          {lastSet && (
+            <button
+              disabled={busy}
+              onClick={() => call(url, 'POST', { occurrence, copyFrom: { occurrence: lastSet } })}
+              className="text-[#8a8378] underline"
+            >
+              Copy from {formatDate(lastSet, { month: 'short', day: 'numeric' })}
+            </button>
+          )}
+          {here.length > 0 && (
+            <select
+              className={field}
+              value={copyTo}
+              onChange={async (e) => {
+                const [eventId, date] = e.target.value.split('|');
+                if (!eventId) return;
+                setCopyTo('');
+                await call(`/api/iowa/admin/events/${eventId}/songs`, 'POST', {
+                  occurrence: date,
+                  copyFrom: { eventId: event.id, occurrence },
+                });
+              }}
+            >
+              <option value="">Copy these to…</option>
+              {events
+                .flatMap((e) =>
+                  eventDatesInRange(e, occurrence, addDays(occurrence, 30))
+                    .filter((d) => !(e.id === event.id && d === occurrence))
+                    .slice(0, 3)
+                    .map((d) => ({ e, d }))
+                )
+                .map(({ e, d }) => (
+                  <option key={`${e.id}|${d}`} value={`${e.id}|${d}`}>
+                    {e.title} · {formatDate(d, { month: 'short', day: 'numeric' })}
+                  </option>
+                ))}
+            </select>
+          )}
+        </div>
+      )}
     </div>
   );
 }

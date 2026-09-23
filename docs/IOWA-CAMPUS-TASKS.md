@@ -378,8 +378,22 @@ the public one (`/manifest.json` → `/courses`); both can sit on the same phone
 carries over, and `BottomTabBar` already hides under `/iowa`. Settings has a card with the
 iPhone/Android steps (static — iOS offers no install prompt to hook).
 
-Next: push notifications, which need a service worker + VAPID keys + a subscriptions table. The
-`iowa_notifications` rows (026) are already the queue to send from.
+## Push notifications (migration 027, 2026-09-23)
+
+Same events as the notification inbox (026), on your phone the moment they happen. Env:
+`VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT`; without them push is a no-op and the
+Settings card says so.
+
+- **Per device, not per person** — each phone/laptop subscribes itself (`iowa_push_subscriptions`,
+  one row per endpoint). Settings → "Notifications on this device" asks permission and subscribes;
+  "Send a test" proves it; "Turn off here" drops just that device.
+- **iPhone: only inside the installed app.** Safari never exposes `PushManager`, so the card tells
+  you to add it to your home screen first rather than failing quietly.
+- **Independent of `notify_mode`:** push always fires; the email setting only controls mail. Someone
+  on `digest` with push on hears instantly and still gets the 6 PM recap as the record.
+- Service worker: `public/iowa-sw.js` — push + notificationclick only, deliberately no caching (the
+  admin is live data). Tapping focuses an open admin window, else opens one at the task.
+- A device that answers 404/410 (uninstalled, reset) is deleted instead of retried.
 
 ## Phase 3 — Student leaders
 

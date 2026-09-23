@@ -19,6 +19,7 @@ export default async function IowaSettingsPage() {
   ]);
   return (
     <TypeSettings
+      vapidPublicKey={process.env.VAPID_PUBLIC_KEY ?? null}
       types={types}
       periods={periods}
       semesters={semesters}

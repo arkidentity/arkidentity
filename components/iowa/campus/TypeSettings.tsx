@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { ErrorBox, PageShell, Section, btnPrimary, btnSmall, input, useCall, type TypeOption } from '@/components/iowa/campus/ui';
+import PushToggle from '@/components/iowa/campus/PushToggle';
 import type { SchoolPeriod, Semester } from '@/lib/campusFormat';
 import SemesterSettings from '@/components/iowa/campus/SemesterSettings';
 import ChecklistSettings from '@/components/iowa/campus/ChecklistSettings';
@@ -31,6 +32,7 @@ function InstallCard() {
 }
 
 export default function TypeSettings({
+  vapidPublicKey = null,
   types,
   periods,
   semesters,
@@ -42,6 +44,7 @@ export default function TypeSettings({
   semesters: Semester[];
   templates: ChecklistTemplate[];
   staff: { id: string; name: string }[];
+  vapidPublicKey?: string | null; // null = push not configured on the server
 }) {
   const { call, busy, error } = useCall();
   return (
@@ -56,6 +59,8 @@ export default function TypeSettings({
         eventTypes={types.filter((t) => t.kind === 'event' && t.active).map((t) => ({ id: t.id, name: t.name }))}
       />
       <InstallCard />
+
+      <PushToggle vapidPublicKey={vapidPublicKey} />
 
       <SemesterSettings semesters={semesters} />
       <SchoolCalendarSettings periods={periods} />

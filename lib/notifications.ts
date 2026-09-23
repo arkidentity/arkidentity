@@ -3,11 +3,17 @@ import { getSupabaseAdmin } from '@/lib/supabaseAdmin';
 import { getStaff, listStaff, type IowaStaff } from '@/lib/iowaStaff';
 import { chicagoToday, dayOfWeek, formatDate } from '@/lib/campusFormat';
 import { sendNotification, sendNotificationDigest, siteUrl } from '@/lib/email';
+import { pushToStaff } from '@/lib/push';
 
 // One inbox for everything that used to email on its own (migration 026).
 // Every event writes a row; how someone hears about it is their setting:
 // 'instant' (an email per event), 'digest' (one 6 PM email, the default), or
 // 'off'. See docs/IOWA-CAMPUS-TASKS.md → "Email rhythm".
+//
+// Push (027) is separate from that setting and always immediate: a phone buzz
+// is the thing you actually want now, and the email setting is about how much
+// mail you get. Someone on 'digest' with push on hears instantly and still
+// gets the 6 PM recap; that recap is the record.
 
 export type NotificationKind = 'task_assigned' | 'helper_added' | 'help_offered' | 'task_comment' | 'signup';
 
@@ -61,6 +67,12 @@ export async function notify(input: NotifyInput): Promise<void> {
 
 async function deliver(rows: { id: string; staff_id: string }[], input: NotifyInput) {
   const db = getSupabaseAdmin();
+  // One push per person, to every device they've subscribed.
+  await pushToStaff(
+    rows.map((r) => r.staff_id),
+    { title: input.title, body: input.body ?? null, url: input.link ?? '/iowa/admin', tag: input.taskId ?? null }
+  ).catch((e) => console.error('[iowa notify] push failed', e));
+
   for (const row of rows) {
     try {
       const person = await getStaff(row.staff_id);

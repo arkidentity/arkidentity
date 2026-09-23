@@ -2,7 +2,7 @@ import { after } from 'next/server';
 import type { Metadata } from 'next';
 import { loadCampusContext } from '@/lib/campusAdminData';
 import { listEvents } from '@/lib/campusTasks';
-import { addDays, chicagoToday, isValidDate, weekStart } from '@/lib/campusFormat';
+import { addDays, chicagoToday, isValidDate } from '@/lib/campusFormat';
 import { listHeld, pullIfStale, syncStatus } from '@/lib/calendarSync';
 import { semesterContext } from '@/lib/semesters';
 import { listTemplates } from '@/lib/eventChecklists';
@@ -28,8 +28,11 @@ export default async function IowaDashboardPage({
   // next load. Blocking here put a Google round trip on every save's refresh.
   after(pullIfStale);
   const sp = await searchParams;
-  const thisWeek = weekStart(chicagoToday());
-  const start = isValidDate(sp.week) ? weekStart(sp.week) : thisWeek;
+  // A rolling seven days from today, not Sunday–Saturday: on a Wednesday the
+  // grid starts Wednesday and runs a week ahead, so the days you still have to
+  // work with are the ones on screen (`weekDays` counts from any date).
+  const thisWeek = chicagoToday();
+  const start = isValidDate(sp.week) ? sp.week : thisWeek;
   const [ctx, events, held, sync, sem, templates] = await Promise.all([
     loadCampusContext(),
     listEvents(start, addDays(start, 6)),

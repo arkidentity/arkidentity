@@ -104,7 +104,7 @@ export default function CampusCalendar({
             ←
           </a>
           <a href="?#week" className="px-1.5 sm:px-2 py-1 rounded border border-gray-300 bg-white whitespace-nowrap">
-            This week
+            Today
           </a>
           <a href={`?week=${addDays(weekStart, 7)}#week`} className="px-1.5 sm:px-2 py-1 rounded border border-gray-300 bg-white" aria-label="Next week">
             →

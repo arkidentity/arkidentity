@@ -26,13 +26,14 @@ export default function Dashboard({
   const [taskPopup, setTaskPopup] = useState<string[] | null>(null);
   const today = chicagoToday();
   const me = staff.find((s) => s.id === meId);
+  // The grid rolls from today, so "this week" means the next seven days.
   const endOfWeek = weekDays(thisWeekStart)[6];
 
   const open = tasks.filter((t) => t.status !== 'done');
   const mine = open.filter((t) => t.owner_id === meId);
   const stats = [
     { label: 'Mine overdue', value: mine.filter((t) => isOverdue(t, today)).length, alert: true },
-    { label: 'Mine this week', value: mine.filter((t) => t.due_date && t.due_date >= today && t.due_date <= endOfWeek).length },
+    { label: 'Mine, 7 days', value: mine.filter((t) => t.due_date && t.due_date >= today && t.due_date <= endOfWeek).length },
     { label: 'Unowned', value: open.filter((t) => !t.owner_id).length, alert: true },
     { label: 'All overdue', value: open.filter((t) => isOverdue(t, today)).length, alert: true },
   ];

@@ -391,8 +391,14 @@ Settings card says so.
   you to add it to your home screen first rather than failing quietly.
 - **Independent of `notify_mode`:** push always fires; the email setting only controls mail. Someone
   on `digest` with push on hears instantly and still gets the 6 PM recap as the record.
-- Service worker: `public/iowa-sw.js` — push + notificationclick only, deliberately no caching (the
-  admin is live data). Tapping focuses an open admin window, else opens one at the task.
+- Service worker: `public/iowa/admin/sw.js`, registered with scope `/iowa/admin/` — push +
+  notificationclick only, deliberately no caching (the admin is live data). Tapping focuses an open
+  admin window, else opens one at the task.
+- **The worker must sit inside the manifest's scope.** At the root (`/iowa-sw.js`, the first cut)
+  push works but Android labels the notification "via Chrome" instead of crediting the installed
+  app — Daily DNA gets this right by accident, with scope `/` and `/sw.js`. The manifest also
+  carries an explicit `id`. `PushToggle` unregisters the old root worker and drops its subscription
+  on load, so anyone who subscribed before the move just turns it on again.
 - A device that answers 404/410 (uninstalled, reset) is deleted instead of retried.
 
 ## Phase 3 — Student leaders

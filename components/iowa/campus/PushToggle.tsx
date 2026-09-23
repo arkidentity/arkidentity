@@ -18,6 +18,28 @@ function urlBase64ToUint8Array(base64: string): Uint8Array {
   return Uint8Array.from([...raw].map((c) => c.charCodeAt(0)));
 }
 
+const SW_URL = '/iowa/admin/sw.js';
+const SW_SCOPE = '/iowa/admin/';
+const OLD_SW_URL = '/iowa-sw.js'; // pre-2026-09-23, at the root — outside scope
+
+// Anyone who subscribed before the move is on the root worker. Drop that
+// subscription and its worker so the next subscribe lands in the app's scope.
+async function clearOldWorker(): Promise<boolean> {
+  const old = await navigator.serviceWorker.getRegistration(OLD_SW_URL).catch(() => null);
+  if (!old || !old.active?.scriptURL.endsWith(OLD_SW_URL)) return false;
+  const sub = await old.pushManager.getSubscription().catch(() => null);
+  if (sub) {
+    await fetch('/api/iowa/admin/push', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ endpoint: sub.endpoint }),
+    }).catch(() => {});
+    await sub.unsubscribe().catch(() => {});
+  }
+  await old.unregister().catch(() => {});
+  return true;
+}
+
 const isIOS = () => /iphone|ipad|ipod/i.test(navigator.userAgent);
 const isStandalone = () =>
   window.matchMedia('(display-mode: standalone)').matches ||
@@ -42,9 +64,12 @@ export default function PushToggle({ vapidPublicKey }: { vapidPublicKey: string 
         return;
       }
       try {
-        const reg = await navigator.serviceWorker.getRegistration('/iowa-sw.js');
+        const hadOld = await clearOldWorker();
+        const reg = await navigator.serviceWorker.getRegistration(SW_URL);
         const sub = reg ? await reg.pushManager.getSubscription() : null;
-        if (!cancelled) setState(sub ? 'on' : 'off');
+        if (cancelled) return;
+        setState(sub ? 'on' : 'off');
+        if (hadOld && !sub) setNote('Notifications moved to the app itself — turn them on again here.');
       } catch {
         if (!cancelled) setState('off');
       }
@@ -65,7 +90,8 @@ export default function PushToggle({ vapidPublicKey }: { vapidPublicKey: string 
         setState(permission === 'denied' ? 'blocked' : 'off');
         return;
       }
-      const reg = await navigator.serviceWorker.register('/iowa-sw.js');
+      await clearOldWorker();
+      const reg = await navigator.serviceWorker.register(SW_URL, { scope: SW_SCOPE });
       await navigator.serviceWorker.ready;
       const sub =
         (await reg.pushManager.getSubscription()) ??
@@ -92,7 +118,7 @@ export default function PushToggle({ vapidPublicKey }: { vapidPublicKey: string 
     setError('');
     setNote('');
     try {
-      const reg = await navigator.serviceWorker.getRegistration('/iowa-sw.js');
+      const reg = await navigator.serviceWorker.getRegistration(SW_URL);
       const sub = reg ? await reg.pushManager.getSubscription() : null;
       if (sub) {
         await fetch('/api/iowa/admin/push', {

@@ -1,5 +1,5 @@
 import { getSupabaseAdmin } from '@/lib/supabaseAdmin';
-import { listCampusStudents } from '@/lib/bibleStudies';
+import { listCampusStudents, type CampusStudent } from '@/lib/bibleStudies';
 import { DAY_NAMES as DAYS, formatTime as fmtTime } from '@/lib/bibleStudyFormat';
 import { DROP_REASONS, chicagoToday, formatDate } from '@/lib/campusFormat';
 import { whenText } from '@/lib/eventInvites';
@@ -44,8 +44,10 @@ const labelOf = (list: { key: string; label: string }[], k: string | null) =>
 
 const joinDetail = (...parts: (string | null | undefined)[]) => parts.filter(Boolean).join(' — ') || null;
 
-export async function checkinReport(): Promise<CheckinRow[]> {
-  const students = (await listCampusStudents()).filter((s) => !GONE.has(s.status));
+// `roster` lets a caller that already loaded the students (the Students page)
+// hand them over instead of paying for the same three queries twice.
+export async function checkinReport(roster?: CampusStudent[]): Promise<CheckinRow[]> {
+  const students = (roster ?? (await listCampusStudents())).filter((s) => !GONE.has(s.status));
   if (students.length === 0) return [];
   const ids = students.map((s) => s.contact_id);
   const db = getSupabaseAdmin();

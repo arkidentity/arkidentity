@@ -1,4 +1,4 @@
-import { listStudies, listCampusStudents, formatSlot } from '@/lib/bibleStudies';
+import { listStudies, listStudentOptions, formatSlot } from '@/lib/bibleStudies';
 import { currentStaff, listStaff } from '@/lib/iowaStaff';
 import { listEventOptions, listTaskActivity, listTasks, listTypes } from '@/lib/campusTasks';
 import { formatDate } from '@/lib/campusFormat';
@@ -15,7 +15,7 @@ export async function loadCampusContext() {
     listTaskActivity(),
     listStudies(),
     listEventOptions(),
-    listCampusStudents(),
+    listStudentOptions(),
   ]);
   return {
     meId: me?.id ?? null,
@@ -32,8 +32,6 @@ export async function loadCampusContext() {
       label: `${e.title} · ${e.repeat_weekly ? `weekly from ${formatDate(e.event_date)}` : formatDate(e.event_date)}`,
     })),
     eventsFull: events,
-    students: students
-      .map((s) => ({ id: s.contact_id, label: s.name }))
-      .sort((a, b) => a.label.localeCompare(b.label)),
+    students,
   };
 }

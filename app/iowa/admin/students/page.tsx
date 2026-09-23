@@ -16,10 +16,16 @@ export default async function CampusStudentsPage({
   searchParams: Promise<Record<string, string | undefined>>;
 }) {
   const sp = await searchParams;
-  const [students, studies, staff, me] = await Promise.all([listCampusStudents(), listStudies(), listStaff(), currentStaff()]);
+  const [students, studies, staff, me, semester] = await Promise.all([
+    listCampusStudents(),
+    listStudies(),
+    listStaff(),
+    currentStaff(),
+    currentSemesterName(),
+  ]);
   // The check-in report is staff + interns only, not student leaders.
   const canReport = !!me && me.role !== 'leader';
-  const [report, events] = canReport ? await Promise.all([checkinReport(), invitableEvents()]) : [null, []];
+  const [report, events] = canReport ? await Promise.all([checkinReport(students), invitableEvents()]) : [null, []];
   return (
     <CampusStudents
       report={report}
@@ -35,7 +41,7 @@ export default async function CampusStudentsPage({
         activeCount: s.activeCount,
         capacity: s.capacity,
       }))}
-      semester={await currentSemesterName()}
+      semester={semester}
     />
   );
 }

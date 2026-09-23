@@ -8,10 +8,25 @@ import { IOWA_ADMIN_COOKIE, verifySession } from '@/lib/iowaAdminAuth';
 //   - the ARK Iowa admin (/iowa/admin): per-staff logins (iowa_staff)
 // Login surfaces are exempt so an unauthenticated user can sign in.
 
-// Is this Iowa staff member still active? Checked on every admin request so
-// turning off an intern's account takes effect immediately, not after their
-// 30-day cookie expires. Plain REST call — works in the Edge runtime.
+// Is this Iowa staff member still active? Every admin request used to pay this
+// round trip — twice per save (the save, then the refresh). Cached for a minute
+// instead: turning off an intern's account takes effect within 60 seconds
+// rather than instantly, which is worth the latency everywhere else.
+const ACTIVE_TTL_MS = 60_000;
+const activeCache = new Map<string, { ok: boolean; at: number }>();
+
 async function iowaStaffActive(staffId: string): Promise<boolean> {
+  const hit = activeCache.get(staffId);
+  if (hit && Date.now() - hit.at < ACTIVE_TTL_MS) return hit.ok;
+  const ok = await checkStaffActive(staffId);
+  // Only a positive answer is cached: a locked-out person retries against the
+  // database, and a transient fetch failure doesn't stick for a minute.
+  if (ok) activeCache.set(staffId, { ok, at: Date.now() });
+  else activeCache.delete(staffId);
+  return ok;
+}
+
+async function checkStaffActive(staffId: string): Promise<boolean> {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
   if (!url || !key || !/^[0-9a-f-]{36}$/i.test(staffId)) return false;

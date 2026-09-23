@@ -1,3 +1,4 @@
+import { after } from 'next/server';
 import type { Metadata } from 'next';
 import { loadCampusContext } from '@/lib/campusAdminData';
 import { listEvents } from '@/lib/campusTasks';
@@ -22,7 +23,10 @@ export default async function IowaDashboardPage({
 }: {
   searchParams: Promise<Record<string, string | undefined>>;
 }) {
-  await pullIfStale(); // fresh Google events, at most every 2 minutes
+  // Fresh Google events, at most every 2 minutes — after the response, never
+  // in front of it: the page renders from the database, the pull lands for the
+  // next load. Blocking here put a Google round trip on every save's refresh.
+  after(pullIfStale);
   const sp = await searchParams;
   const thisWeek = weekStart(chicagoToday());
   const start = isValidDate(sp.week) ? weekStart(sp.week) : thisWeek;

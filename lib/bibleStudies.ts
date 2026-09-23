@@ -734,6 +734,24 @@ export interface CampusStudent {
   studies: { id: string; label: string; member_id: string }[];
 }
 
+// Just id + name for pickers ("link this task to a student"). The full
+// listCampusStudents below is three queries and a join; a dropdown needs none
+// of that, and the dashboard rebuilds it on every save.
+export async function listStudentOptions(): Promise<{ id: string; label: string }[]> {
+  const db = getSupabaseAdmin();
+  const { data: tag } = await db.from('contact_tags').select('id').eq('slug', 'ark-iowa').maybeSingle();
+  if (!tag) return [];
+  const { data, error } = await db
+    .from('contact_tag_links')
+    .select('contact_id, contacts(name)')
+    .eq('tag_id', tag.id);
+  if (error) throw error;
+  return ((data ?? []) as unknown as { contact_id: string; contacts: { name: string } | null }[])
+    .filter((r) => r.contacts)
+    .map((r) => ({ id: r.contact_id, label: r.contacts!.name }))
+    .sort((a, b) => a.label.localeCompare(b.label));
+}
+
 // Everyone tagged ARK Iowa, whether or not they're currently in a study. This
 // is the campus view of the contacts table: same people, campus-specific facts.
 export async function listCampusStudents(): Promise<CampusStudent[]> {

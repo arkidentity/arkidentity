@@ -167,10 +167,14 @@ export async function getTask(id: string): Promise<CampusTask | null> {
   return data ? flattenTask(data as unknown as TaskRow) : null;
 }
 
-export async function listTaskActivity(taskIds?: string[]): Promise<TaskActivity[]> {
+// Windowed like listTasks: the dashboard only shows open tasks plus the last
+// 30 days of finished ones, so older history doesn't need loading — it grew
+// without bound before, and comments (024) fill it faster.
+export async function listTaskActivity(taskIds?: string[], sinceDays = 90): Promise<TaskActivity[]> {
   let q = getSupabaseAdmin()
     .from('iowa_task_activity')
     .select('id, task_id, staff_id, action, kind, created_at')
+    .gte('created_at', new Date(Date.now() - sinceDays * 86_400_000).toISOString())
     .order('created_at', { ascending: true });
   if (taskIds) {
     if (taskIds.length === 0) return [];

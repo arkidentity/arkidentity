@@ -329,6 +329,23 @@ tasks. Any event can have songs; the section is quiet until the first one is add
 - Deliberately NOT a song library: no usage history, CCLI, arrangements or SongSelect. These rows
   are the history if that's ever wanted.
 
+## Speed (2026-09-22)
+
+The admin felt draggy on load and on every save. `useCall` refreshes the route after a save, so a
+save paid for a whole dashboard render. What that render cost got cut:
+
+- **Google pull moved off the critical path** — `after(pullIfStale)` instead of `await`. The page
+  renders from the database; the pull lands for the next load.
+- **Task activity is windowed** to 90 days (`listTaskActivity`) — it loaded every row ever written,
+  and comments (024) fill it faster.
+- **Student pickers use `listStudentOptions`** (one light query) instead of the full
+  `listCampusStudents` (three queries + joins) that the dashboard rebuilt on every save.
+- **Students page builds the roster once** and hands it to `checkinReport(roster)`.
+- **The proxy caches "is this staff member active?" for 60s** — it was a REST round trip on every
+  admin request, twice per save. Deactivating an account now takes up to a minute to bite; only
+  positive answers are cached.
+- Untouched on purpose: login's 100k-round password hashing.
+
 ## Phase 3 — Student leaders
 
 Leader logins; see only their own studies' students; claim/update own tasks, offer help.

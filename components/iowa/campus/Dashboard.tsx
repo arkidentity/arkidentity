@@ -31,10 +31,10 @@ export default function Dashboard({
   const open = tasks.filter((t) => t.status !== 'done');
   const mine = open.filter((t) => t.owner_id === meId);
   const stats = [
-    { label: 'My overdue', value: mine.filter((t) => isOverdue(t, today)).length, alert: true },
-    { label: 'Mine due this week', value: mine.filter((t) => t.due_date && t.due_date >= today && t.due_date <= endOfWeek).length },
+    { label: 'Mine overdue', value: mine.filter((t) => isOverdue(t, today)).length, alert: true },
+    { label: 'Mine this week', value: mine.filter((t) => t.due_date && t.due_date >= today && t.due_date <= endOfWeek).length },
     { label: 'Unowned', value: open.filter((t) => !t.owner_id).length, alert: true },
-    { label: 'Overdue, everyone', value: open.filter((t) => isOverdue(t, today)).length, alert: true },
+    { label: 'All overdue', value: open.filter((t) => isOverdue(t, today)).length, alert: true },
   ];
   const workload = staff
     .filter((s) => s.active)
@@ -54,20 +54,22 @@ export default function Dashboard({
       </h1>
       <p className="text-sm text-[#8a8378] mb-6">{formatDate(today, { weekday: 'long', month: 'long', day: 'numeric' })}</p>
 
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-8">
+      {/* Four across even on a phone: the numbers are short, and two rows of
+          two pushed the calendar below the fold. */}
+      <div className="grid grid-cols-4 gap-2 sm:gap-3 mb-6">
         {stats.map((st) => {
           const hot = st.alert && st.value > 0;
           return (
             <a
               key={st.label}
               href="#tasks"
-              className="rounded-lg border bg-white px-4 py-3 hover:shadow-sm transition"
+              className="rounded-lg border bg-white px-2 py-2 sm:px-4 sm:py-3 hover:shadow-sm transition"
               style={{ borderColor: hot ? '#fca5a5' : '#e5e7eb' }}
             >
-              <span className="block text-2xl font-bold" style={{ color: hot ? '#b91c1c' : 'var(--navy)' }}>
+              <span className="block text-xl sm:text-2xl font-bold" style={{ color: hot ? '#b91c1c' : 'var(--navy)' }}>
                 {st.value}
               </span>
-              <span className="block text-xs text-[#8a8378]">{st.label}</span>
+              <span className="block text-[11px] leading-tight sm:text-xs text-[#8a8378]">{st.label}</span>
             </a>
           );
         })}

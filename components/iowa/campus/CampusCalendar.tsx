@@ -93,24 +93,20 @@ export default function CampusCalendar({
 
   return (
     <section id="week" className="mb-10 scroll-mt-4">
-      <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
-        <h2 className="text-lg font-bold" style={{ color: 'var(--navy)' }}>
+      {/* One line on a phone: week range, the arrows + This week, Mine/Everyone.
+          + New event moves down beside the sync line, right above the grid. */}
+      <div className="flex items-center justify-between gap-2 mb-3">
+        <h2 className="text-base sm:text-lg font-bold shrink-0" style={{ color: 'var(--navy)' }}>
           {weekRange(days[0], days[6])}
         </h2>
-        <button onClick={() => setEditing(editing === 'new' ? null : 'new')} className={btnPrimary} style={{ backgroundColor: 'var(--navy)' }}>
-          {editing === 'new' ? 'Close' : '+ New event'}
-        </button>
-      </div>
-
-      <div className="flex items-center justify-between gap-2 mb-4">
-        <div className="flex items-center gap-1.5 text-sm font-semibold shrink-0" style={{ color: 'var(--navy)' }}>
-          <a href={`?week=${addDays(weekStart, -7)}#week`} className="px-2 py-1 rounded border border-gray-300 bg-white">
+        <div className="flex items-center gap-1 text-xs sm:text-sm font-semibold shrink-0" style={{ color: 'var(--navy)' }}>
+          <a href={`?week=${addDays(weekStart, -7)}#week`} className="px-1.5 sm:px-2 py-1 rounded border border-gray-300 bg-white" aria-label="Previous week">
             ←
           </a>
-          <a href="?#week" className="px-2 py-1 rounded border border-gray-300 bg-white">
+          <a href="?#week" className="px-1.5 sm:px-2 py-1 rounded border border-gray-300 bg-white whitespace-nowrap">
             This week
           </a>
-          <a href={`?week=${addDays(weekStart, 7)}#week`} className="px-2 py-1 rounded border border-gray-300 bg-white">
+          <a href={`?week=${addDays(weekStart, 7)}#week`} className="px-1.5 sm:px-2 py-1 rounded border border-gray-300 bg-white" aria-label="Next week">
             →
           </a>
         </div>
@@ -164,8 +160,15 @@ export default function CampusCalendar({
         </div>
       )}
 
-      <div className="mb-3">
+      <div className="flex items-end justify-between gap-3 mb-3">
         <WeekLegend />
+        <button
+          onClick={() => setEditing(editing === 'new' ? null : 'new')}
+          className={`${btnPrimary} shrink-0`}
+          style={{ backgroundColor: 'var(--navy)' }}
+        >
+          {editing === 'new' ? 'Close' : '+ New event'}
+        </button>
       </div>
       <WeekView
         days={days}

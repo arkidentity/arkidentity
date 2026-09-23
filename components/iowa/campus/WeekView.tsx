@@ -311,7 +311,7 @@ export function WeekLegend() {
 
 export function MineToggle({ mineOnly, onChange }: { mineOnly: boolean; onChange: (v: boolean) => void }) {
   return (
-    <div className="inline-flex rounded-lg border border-gray-300 overflow-hidden text-sm font-semibold">
+    <div className="inline-flex rounded-lg border border-gray-300 overflow-hidden text-xs sm:text-sm font-semibold shrink-0">
       {[
         { v: true, label: 'Mine' },
         { v: false, label: 'Everyone' },
@@ -319,7 +319,7 @@ export function MineToggle({ mineOnly, onChange }: { mineOnly: boolean; onChange
         <button
           key={o.label}
           onClick={() => onChange(o.v)}
-          className="px-3 py-1.5"
+          className="px-2.5 sm:px-3 py-1.5"
           style={
             mineOnly === o.v
               ? { backgroundColor: 'var(--navy)', color: 'white' }

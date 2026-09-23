@@ -134,9 +134,9 @@ export default function IowaAdmin({
     <StudyTasks.Provider value={tasksByStudy}>
     <Planning.Provider value={planning}>
     <div style={{ background: '#FAF8F5', minHeight: '100vh', color: '#1f2937' }}>
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="flex items-baseline justify-between mb-2">
-          <h1 className="text-3xl font-bold" style={{ color: 'var(--navy)' }}>
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
+        <div className="flex items-baseline justify-between mb-3">
+          <h1 className="text-2xl sm:text-3xl font-bold" style={{ color: 'var(--navy)' }}>
             Bible studies
           </h1>
           <span className="flex items-center gap-4">
@@ -163,8 +163,20 @@ export default function IowaAdmin({
               </button>
             ))}
           </div>
+          <button
+            onClick={() => setShowNew((v) => !v)}
+            className="px-4 py-1.5 rounded-lg font-semibold text-sm transition hover:opacity-90"
+            style={{ backgroundColor: 'var(--navy)', color: 'white' }}
+          >
+            {showNew ? 'Close' : '+ New study'}
+          </button>
         </div>
-        <p className="text-sm text-[#8a8378] mb-8">
+        {showNew && (
+          <div className="mb-6">
+            <NewStudyForm staff={staff} meId={meId} busy={busy} onCreate={(b) => call('/api/iowa/admin/studies', 'POST', { ...(b as object), semester })} />
+          </div>
+        )}
+        <p className="text-sm text-[#8a8378] mb-6">
           {initial.length} total · {counts.forming ?? 0} forming · {counts.full ?? 0} full ·{' '}
           {counts.activated ?? 0} activated · {counts.paused ?? 0} paused
         </p>
@@ -174,18 +186,6 @@ export default function IowaAdmin({
             {error}
           </div>
         )}
-
-        {/* New study */}
-        <div className="mb-8">
-          <button
-            onClick={() => setShowNew((v) => !v)}
-            className="px-5 py-2.5 rounded-lg font-semibold text-sm transition hover:opacity-90"
-            style={{ backgroundColor: 'var(--navy)', color: 'white' }}
-          >
-            {showNew ? 'Close' : '+ New study'}
-          </button>
-          {showNew && <NewStudyForm staff={staff} meId={meId} busy={busy} onCreate={(b) => call('/api/iowa/admin/studies', 'POST', { ...(b as object), semester })} />}
-        </div>
 
         {pending.length > 0 && (
           <Section title="Pending setup" hint="Student started it — add a location and set it to forming.">
@@ -551,6 +551,8 @@ function StudyEditor({
         Save study
       </button>
 
+      <DeleteStudy s={s} busy={busy} call={call} />
+
       <NextSemester s={s} staff={staff} />
 
       <LinkedTasks studyId={s.id} />
@@ -568,6 +570,45 @@ function StudyEditor({
         </ul>
         <AddMemberForm studyId={s.id} staff={staff} busy={busy} call={call} />
       </div>
+    </div>
+  );
+}
+
+// Ended and paused studies pile up; this is how they leave. Hidden while
+// anyone is still seated — the server refuses that anyway.
+function DeleteStudy({ s, busy, call }: { s: StudyWithMembers; busy: boolean; call: CallFn }) {
+  const [confirming, setConfirming] = useState(false);
+  if (s.activeCount > 0) return null;
+  const dropped = s.members.length;
+
+  return (
+    <div className="pt-3 border-t border-gray-100">
+      {!confirming ? (
+        <button onClick={() => setConfirming(true)} className="text-xs font-semibold underline" style={{ color: '#b91c1c' }}>
+          Delete this study
+        </button>
+      ) : (
+        <div className="rounded-md border border-red-200 bg-red-50 p-3 space-y-2">
+          <p className="text-sm text-red-900">
+            Delete the {DAY_NAMES[s.day_of_week]} {formatTime(s.start_time)} study for good?{' '}
+            {dropped > 0 && `Its record of ${dropped} past student${dropped === 1 ? '' : 's'} goes with it. `}
+            Their contact records stay, and any task linked to it stays but loses the link. This can&apos;t be undone.
+          </p>
+          <div className="flex gap-2">
+            <button
+              disabled={busy}
+              onClick={() => call(`/api/iowa/admin/studies/${s.id}`, 'DELETE')}
+              className="px-3 py-1.5 rounded-md text-sm font-semibold text-white disabled:opacity-50"
+              style={{ backgroundColor: '#b91c1c' }}
+            >
+              Delete it
+            </button>
+            <button onClick={() => setConfirming(false)} className="text-sm text-[#8a8378]">
+              Keep it
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

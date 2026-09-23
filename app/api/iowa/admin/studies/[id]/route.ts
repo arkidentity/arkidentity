@@ -1,9 +1,9 @@
 import { NextResponse } from 'next/server';
 import { revalidatePath } from 'next/cache';
-import { updateStudy } from '@/lib/bibleStudies';
+import { deleteStudy, updateStudy } from '@/lib/bibleStudies';
 import { currentStaff } from '@/lib/iowaStaff';
 import { notifyAssignment } from '@/lib/studyAssignment';
-import { queueStudySync } from '@/lib/calendarSync';
+import { queueEventDelete, queueStudySync } from '@/lib/calendarSync';
 import { getSupabaseAdmin } from '@/lib/supabaseAdmin';
 
 export const dynamic = 'force-dynamic';
@@ -30,6 +30,20 @@ export async function PATCH(
     queueStudySync(study.id);
     revalidatePath('/iowa'); // the public page is cached (revalidate = 60)
     return NextResponse.json({ study });
+  } catch (e) {
+    return NextResponse.json({ error: (e as Error).message }, { status: 400 });
+  }
+}
+
+// DELETE /api/iowa/admin/studies/:id — remove a study that's ended or been
+// paused. Refused while students are still seated (see deleteStudy).
+export async function DELETE(_req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  try {
+    const { google_event_id } = await deleteStudy(id);
+    queueEventDelete(google_event_id);
+    revalidatePath('/iowa');
+    return NextResponse.json({ ok: true });
   } catch (e) {
     return NextResponse.json({ error: (e as Error).message }, { status: 400 });
   }

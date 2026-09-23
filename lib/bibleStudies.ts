@@ -319,6 +319,29 @@ export async function iowaLandingData(): Promise<{
   };
 }
 
+// Delete a study outright — for the ones that ended or got paused and are just
+// cluttering the list. Guarded: a study with students still seated has to have
+// them moved or dropped first, so a live group can't vanish by mistake.
+//
+// What goes with it (FKs): its roster rows and study-team rows cascade, so the
+// seat history for those students is gone (their contact records aren't).
+// Linked tasks and any "looks like a duplicate" row keep pointing at nothing
+// (set null), and a study that rolled from this one loses its lineage.
+// The caller deletes the Google event.
+export async function deleteStudy(id: string): Promise<{ google_event_id: string | null }> {
+  const db = getSupabaseAdmin();
+  const study = await getStudyWithMembers(id);
+  if (!study) throw new Error('That study is already gone.');
+  if (study.activeCount > 0) {
+    throw new Error(
+      `${study.activeCount} student${study.activeCount === 1 ? ' is' : 's are'} still on the roster — move or drop them first.`
+    );
+  }
+  const { error } = await db.from('bible_studies').delete().eq('id', id);
+  if (error) throw error;
+  return { google_event_id: study.google_event_id };
+}
+
 export async function getStudyWithMembers(id: string): Promise<StudyWithMembers | null> {
   const db = getSupabaseAdmin();
   const { data: study, error } = await db

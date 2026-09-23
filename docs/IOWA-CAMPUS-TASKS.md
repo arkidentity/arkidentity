@@ -342,6 +342,14 @@ tasks. Any event can have songs; the section is quiet until the first one is add
 - Deliberately NOT a song library: no usage history, CCLI, arrangements or SongSelect. These rows
   are the history if that's ever wanted.
 
+## Deleting a study (2026-09-23)
+
+`deleteStudy()` + `DELETE /api/iowa/admin/studies/:id`, shown at the bottom of a study's panel and
+only when nobody is actively seated (the server refuses otherwise — move or drop them first). Its
+roster and study-team rows cascade away, so that seat history is gone; contacts survive, linked
+tasks and any held-duplicate row go to null, a study that rolled from it loses its lineage, and the
+Google event is deleted. Confirm step spells that out. For ended/paused studies cluttering the list.
+
 ## Rolling week (2026-09-23, Travis)
 
 The dashboard grid starts **today** and runs seven days forward, instead of snapping to

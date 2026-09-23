@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { revalidatePath } from 'next/cache';
 import { updateStudy } from '@/lib/bibleStudies';
 import { currentStaff } from '@/lib/iowaStaff';
 import { notifyAssignment } from '@/lib/studyAssignment';
@@ -27,6 +28,7 @@ export async function PATCH(
       notifyAssignment(study.id, study.point_staff_id, await currentStaff());
     }
     queueStudySync(study.id);
+    revalidatePath('/iowa'); // the public page is cached (revalidate = 60)
     return NextResponse.json({ study });
   } catch (e) {
     return NextResponse.json({ error: (e as Error).message }, { status: 400 });

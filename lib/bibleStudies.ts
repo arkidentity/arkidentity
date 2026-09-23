@@ -266,24 +266,57 @@ export async function publicSemesterTabs(): Promise<{ name: string; studies: Pub
   return Promise.all(names.map(async (name) => ({ name, studies: await listListableStudies(name) })));
 }
 
+// No PII — what a student may see.
+function toPublicStudy(s: StudyWithMembers): PublicStudy {
+  return {
+    id: s.id,
+    day_of_week: s.day_of_week,
+    start_time: s.start_time,
+    location: s.location,
+    capacity: s.capacity,
+    status: s.status,
+    spotsLeft: spotsLeft(s.capacity, s.activeCount),
+    leader_name: s.leader_name,
+    online: s.online,
+    semester: s.semester,
+    resumes: null,
+  };
+}
+
 // Student browser: only studies with an open seat, no PII.
 export async function listListableStudies(semester?: string): Promise<PublicStudy[]> {
   const all = await listStudies(semester ?? (await currentSemesterName()));
-  return all
-    .filter((s) => isListable(s, s.activeCount))
-    .map((s) => ({
-      id: s.id,
-      day_of_week: s.day_of_week,
-      start_time: s.start_time,
-      location: s.location,
-      capacity: s.capacity,
-      status: s.status,
-      spotsLeft: spotsLeft(s.capacity, s.activeCount),
-      leader_name: s.leader_name,
-      online: s.online,
-      semester: s.semester,
-      resumes: null,
-    }));
+  return all.filter((s) => isListable(s, s.activeCount)).map(toPublicStudy);
+}
+
+// Everything the public /iowa page shows, from ONE load. It used to call
+// listListableStudies + studyCounts + publicSemesterTabs, each re-running
+// listStudies (studies + their members) and semesterContext — four fan-outs
+// for one page. Same output, one pass.
+export async function iowaLandingData(): Promise<{
+  studies: PublicStudy[];
+  counts: { running: number; open: number };
+  tabs: { name: string; studies: PublicStudy[] }[];
+}> {
+  const ctx = await semesterContext();
+  if (ctx.active.length === 0) return { studies: [], counts: { running: 0, open: 0 }, tabs: [] };
+  const all = await listStudies(ctx.active);
+  const listable = (name?: string) =>
+    all.filter((s) => (!name || s.semester === name) && isListable(s, s.activeCount)).map(toPublicStudy);
+
+  const current = ctx.current?.name;
+  const currentOnes = all.filter((s) => !current || s.semester === current);
+  return {
+    studies: listable(current),
+    counts: {
+      running: currentOnes.filter((s) => ['forming', 'full', 'activated'].includes(s.status)).length,
+      open: currentOnes.filter((s) => isListable(s, s.activeCount)).length,
+    },
+    tabs:
+      ctx.current && ctx.open.length > 0
+        ? [ctx.current.name, ...ctx.open.map((x) => x.name)].map((name) => ({ name, studies: listable(name) }))
+        : [],
+  };
 }
 
 export async function getStudyWithMembers(id: string): Promise<StudyWithMembers | null> {

@@ -1,5 +1,3 @@
-'use client';
-
 import Image from 'next/image';
 import StudiesBrowser from '@/components/iowa/StudiesBrowser';
 
@@ -27,15 +25,17 @@ interface Props {
   tabs?: { name: string; studies: PublicStudy[] }[];
 }
 
+// A plain anchor, not a scroll handler: this page ships no JavaScript of its
+// own that way (the schedule browser below is its own client component).
 function PrimaryButton({ className = '' }: { className?: string }) {
   return (
-    <button
-      onClick={() => document.getElementById('pick')?.scrollIntoView({ behavior: 'smooth' })}
-      className={`px-8 py-4 rounded-lg font-semibold text-lg transition hover:opacity-90 ${className}`}
+    <a
+      href="#pick"
+      className={`inline-block px-8 py-4 rounded-lg font-semibold text-lg transition hover:opacity-90 ${className}`}
       style={{ backgroundColor: 'var(--gold)', color: 'var(--navy)' }}
     >
       Pick your day and time
-    </button>
+    </a>
   );
 }
 

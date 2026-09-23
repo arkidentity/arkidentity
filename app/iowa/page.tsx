@@ -1,8 +1,11 @@
 import type { Metadata } from 'next';
-import { currentBreak, listListableStudies, publicSemesterTabs, studyCounts } from '@/lib/bibleStudies';
+import { currentBreak, iowaLandingData } from '@/lib/bibleStudies';
 import IowaPageContent from './page-content';
 
-export const dynamic = 'force-dynamic';
+// A marketing page doesn't need a database round trip per visitor: rebuild at
+// most once a minute and serve the cached HTML. Seat counts can be up to a
+// minute stale, which is safe — joinStudy re-checks capacity on submit.
+export const revalidate = 60;
 
 export const metadata: Metadata = {
   title: 'ARK Iowa | A college ministry built on tables of four',
@@ -24,14 +27,13 @@ export default async function IowaPage() {
   // Live data drives the schedule module and the headline counts. If Supabase
   // is briefly unreachable, degrade to an empty schedule rather than 500 the
   // whole marketing page.
-  let studies: Awaited<ReturnType<typeof listListableStudies>> = [];
-  let counts = { running: 0, open: 0 };
+  let data: Awaited<ReturnType<typeof iowaLandingData>> = { studies: [], counts: { running: 0, open: 0 }, tabs: [] };
   let pause: Awaited<ReturnType<typeof currentBreak>> = null;
-  let tabs: Awaited<ReturnType<typeof publicSemesterTabs>> = [];
   try {
-    [studies, counts, pause, tabs] = await Promise.all([listListableStudies(), studyCounts(), currentBreak(), publicSemesterTabs()]);
+    [data, pause] = await Promise.all([iowaLandingData(), currentBreak()]);
   } catch (e) {
     console.error('[iowa page] study data unavailable', e);
   }
+  const { studies, counts, tabs } = data;
   return <IowaPageContent studies={studies} counts={counts} pause={pause} tabs={tabs} />;
 }

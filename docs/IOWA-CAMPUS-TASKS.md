@@ -346,6 +346,16 @@ save paid for a whole dashboard render. What that render cost got cut:
   positive answers are cached.
 - Untouched on purpose: login's 100k-round password hashing.
 
+**Public /iowa page:**
+- `revalidate = 60` instead of `force-dynamic` — cached HTML, not a database round trip per visitor.
+  `revalidatePath('/iowa')` on signup and on admin study edits keeps seat counts honest; `joinStudy`
+  re-checks capacity anyway, so a stale count can't oversell a study.
+- `iowaLandingData()` does ONE studies+members load; the page used to call `listListableStudies`,
+  `studyCounts` and `publicSemesterTabs`, each re-running `listStudies` and `semesterContext`.
+- `page-content.tsx` is a server component again (its only interactivity was a smooth-scroll
+  handler → plain `#pick` anchor + `scroll-behavior: smooth`), so the page ships no JS of its own;
+  `StudiesBrowser` stays a client component.
+
 ## Phase 3 — Student leaders
 
 Leader logins; see only their own studies' students; claim/update own tasks, offer help.

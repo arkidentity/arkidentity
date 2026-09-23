@@ -1,4 +1,5 @@
 import { NextResponse, after } from 'next/server';
+import { revalidatePath } from 'next/cache';
 import { joinStudy, formatSlot } from '@/lib/bibleStudies';
 import { sendStudyConfirmation, sendStudyRosterAlerts, sendStudyAdminAlert } from '@/lib/email';
 import { googleCalendarUrl } from '@/lib/ics';
@@ -47,6 +48,7 @@ export async function POST(req: Request) {
       metBy: body.metBy,
     });
 
+    revalidatePath('/iowa'); // a seat changed; /iowa is cached (revalidate = 60)
     queueStudySync(study.id); // roster changed → refresh the Google description
     queueSeated(member.id); // first-ever seat → welcome-text task
     const slot = formatSlot(study);

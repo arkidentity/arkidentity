@@ -106,6 +106,7 @@ body {
 /* Prevent overscroll bounce on iOS */
 html, body {
   overscroll-behavior: none;
+  scroll-behavior: smooth;
 }
 
 /* Hide scrollbar but keep functionality */

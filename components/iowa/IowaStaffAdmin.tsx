@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import type { IowaStaff } from '@/lib/iowaStaff';
+import { NOTIFY_MODES } from '@/lib/campusFormat';
 
 const input = 'w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-gray-900 bg-white';
 
@@ -116,7 +117,12 @@ function StaffRow({
   const [resetting, setResetting] = useState(false);
   const [pw, setPw] = useState('');
   const [editing, setEditing] = useState(false);
-  const [details, setDetails] = useState({ name: p.name, phone: p.phone ?? '', role: p.role as string });
+  const [details, setDetails] = useState({
+    name: p.name,
+    phone: p.phone ?? '',
+    role: p.role as string,
+    notify_mode: p.notify_mode as string,
+  });
 
   return (
     <li className="rounded-lg border border-gray-200 bg-white px-4 py-3 text-sm">
@@ -129,11 +135,14 @@ function StaffRow({
           <span className="ml-1 text-xs font-semibold px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 capitalize">{p.role}</span>
           <span className="text-[#8a8378]"> · {[p.email, p.phone].filter(Boolean).join(' · ')}</span>
           {!p.active && ' · login off'}
+          {p.notify_mode !== 'digest' && (
+            <span className="text-[#8a8378]"> · emails {p.notify_mode === 'off' ? 'off' : 'instant'}</span>
+          )}
         </span>
         <span className="flex gap-1 shrink-0">
           <button
             onClick={() => {
-              setDetails({ name: p.name, phone: p.phone ?? '', role: p.role });
+              setDetails({ name: p.name, phone: p.phone ?? '', role: p.role, notify_mode: p.notify_mode });
               setEditing((v) => !v);
             }}
             disabled={busy}
@@ -177,6 +186,19 @@ function StaffRow({
             onChange={(e) => setDetails({ ...details, phone: e.target.value })}
           />
           <RoleSelect value={details.role} onChange={(role) => setDetails({ ...details, role })} />
+          {/* How task activity reaches them: one 6 PM email (default), each
+              thing as it happens, or nothing but the 8 AM checklist. */}
+          <select
+            className={`${input} sm:col-span-3`}
+            value={details.notify_mode}
+            onChange={(e) => setDetails({ ...details, notify_mode: e.target.value })}
+          >
+            {NOTIFY_MODES.map((m) => (
+              <option key={m.key} value={m.key}>
+                Emails: {m.label} — {m.hint}
+              </option>
+            ))}
+          </select>
           <button
             disabled={busy || !details.name.trim()}
             onClick={async () => {

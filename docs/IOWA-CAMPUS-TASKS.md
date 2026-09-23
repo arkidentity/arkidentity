@@ -255,6 +255,19 @@ Sunday email.** (`/api/cron/iowa-morning` → `runMorning()`.) It holds:
 - **Coming up**: campus events in the next two days (weekdays; studies are left out since the
   confirm section covers them) / **the whole week**, studies + events (Monday = the old weekly digest).
 
+**Plus one email at ~6 PM, Monday–Saturday** (`/api/cron/iowa-evening` → `runEveningDigest()`),
+skipped when empty: everything from today that involves you — tasks you were given, notes on your
+tasks, offers to help.
+
+**Nothing emails on its own any more (migration 026).** Every such event writes a row in
+`iowa_notifications` (`lib/notifications.ts` → `notify()`), and `iowa_staff.notify_mode` decides how
+it lands: `digest` (default, waits for 6 PM), `instant` (an email per event), `off` (only the 8 AM
+checklist). Set per person on the Staff page. The same rows are what push notifications will send.
+
+**Signups no longer double up:** the join route's admin alert is gone — `queueSeated` already makes
+the "Welcome text to ___" task, and that task's notification carries the student's name, phone and
+study. (`sendStudyAdminAlert` still fires for a *new study to set up*.)
+
 Retired: the separate Monday digest cron and the 6 PM "due tomorrow" email. Unchanged: the 6 PM
 reminder to *students* about tomorrow's study. Event confirms ("text who you invited to Taco
 Night") deferred, since they need per-event invite tracking.

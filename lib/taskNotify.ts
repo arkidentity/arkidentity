@@ -1,13 +1,16 @@
-import { after } from 'next/server';
 import { getSupabaseAdmin } from '@/lib/supabaseAdmin';
 import { getTask, type CampusTask } from '@/lib/campusTasks';
 import { getStaff, type IowaStaff } from '@/lib/iowaStaff';
 import { formatSlot } from '@/lib/bibleStudyFormat';
 import { PRIORITY, formatDate } from '@/lib/campusFormat';
-import { sendTaskAssigned, sendTaskComment, sendTaskHelpOffered, type TaskEmailInfo } from '@/lib/email';
+import { sendTaskAssigned, type TaskEmailInfo } from '@/lib/email';
+import { notify, taskAudience } from '@/lib/notifications';
 
-// Task emails, sent after the response via `after()` (a bare promise gets
-// frozen on Vercel). Failures are logged, never surfaced — the save succeeded.
+// Task notifications. Since migration 026 these write to the notification
+// inbox (`notify`), which emails instantly or holds for the 6 PM digest
+// depending on each person's setting — instead of one email per event.
+// `sendTaskAssignedNow` stays direct: the automation uses it for tasks it
+// creates itself, where the owner needs the full task in front of them.
 
 // "Wed 8 PM study" / event title / student name — whichever the task links to.
 export async function taskLinkLabel(t: Pick<CampusTask, 'study_id' | 'event_id' | 'contact_name'>): Promise<string | null> {
@@ -34,72 +37,72 @@ export async function taskEmailInfo(t: CampusTask): Promise<TaskEmailInfo> {
   };
 }
 
-// Email a task's owner now (already inside after() or a cron).
+// Email a task's owner now (already inside after() or a cron). Used by the
+// automation for the tasks it creates, where the whole task is the message.
 export async function sendTaskAssignedNow(taskId: string, by: IowaStaff | null = null): Promise<void> {
   try {
     const task = await getTask(taskId);
     const owner = task?.owner_id ? await getStaff(task.owner_id) : null;
-    if (!task || !owner?.active) return;
+    if (!task || !owner?.active || owner.notify_mode === 'off') return;
     await sendTaskAssigned({ to: owner.email, name: owner.name, by: by?.name ?? null, task: await taskEmailInfo(task) });
   } catch (e) {
     console.error('[iowa tasks] assignment email failed', e);
   }
 }
 
-export function notifyTaskAssigned(taskId: string, by: IowaStaff | null) {
-  after(() => sendTaskAssignedNow(taskId, by));
+const taskLink = (id: string) => `/iowa/admin?task=${id}#tasks`;
+
+export async function notifyTaskAssigned(taskId: string, by: IowaStaff | null) {
+  const task = await getTask(taskId).catch(() => null);
+  if (!task?.owner_id || task.owner_id === by?.id) return;
+  await notify({
+    to: [task.owner_id],
+    kind: 'task_assigned',
+    title: `${by?.name?.split(' ')[0] ?? 'Someone'} gave you: ${task.title}`,
+    body: task.due_date ? `Due ${task.due_date}` : null,
+    link: taskLink(task.id),
+    taskId: task.id,
+  });
 }
 
 // Someone was put "also on" a task — tell them (skip the person who did it).
-export function notifyAddedToTask(taskId: string, staffIds: string[], by: IowaStaff | null) {
+export async function notifyAddedToTask(taskId: string, staffIds: string[], by: IowaStaff | null) {
   const ids = staffIds.filter((id) => id !== by?.id);
   if (ids.length === 0) return;
-  after(async () => {
-    const task = await getTask(taskId).catch(() => null);
-    if (!task) return;
-    const info = await taskEmailInfo(task);
-    for (const id of ids) {
-      try {
-        const p = await getStaff(id);
-        if (p?.active) await sendTaskAssigned({ to: p.email, name: p.name, by: by?.name ?? null, task: info });
-      } catch (e) {
-        console.error('[iowa tasks] added-to-task email failed', e);
-      }
-    }
+  const task = await getTask(taskId).catch(() => null);
+  if (!task) return;
+  await notify({
+    to: ids,
+    kind: 'helper_added',
+    title: `You're helping with: ${task.title}`,
+    body: task.due_date ? `Due ${task.due_date}` : null,
+    link: taskLink(task.id),
+    taskId: task.id,
   });
 }
 
-export function notifyHelpOffered(taskId: string, helper: IowaStaff) {
-  after(async () => {
-    try {
-      const task = await getTask(taskId);
-      const owner = task?.owner_id ? await getStaff(task.owner_id) : null;
-      if (!task || !owner?.active) return;
-      await sendTaskHelpOffered({ to: owner.email, name: owner.name, helper: helper.name, task: await taskEmailInfo(task) });
-    } catch (e) {
-      console.error('[iowa tasks] help email failed', e);
-    }
+export async function notifyHelpOffered(taskId: string, helper: IowaStaff) {
+  const task = await getTask(taskId).catch(() => null);
+  if (!task?.owner_id || task.owner_id === helper.id) return;
+  await notify({
+    to: [task.owner_id],
+    kind: 'help_offered',
+    title: `${helper.name.split(' ')[0]} can help with: ${task.title}`,
+    link: taskLink(task.id),
+    taskId: task.id,
   });
 }
 
-// A comment goes to the owner and everyone helping, minus whoever wrote it —
-// otherwise it sits unread until someone happens to open the task.
-export function notifyTaskComment(taskId: string, comment: string, by: IowaStaff | null) {
-  after(async () => {
-    try {
-      const task = await getTask(taskId);
-      if (!task) return;
-      const ids = [...new Set([task.owner_id, ...task.helper_ids].filter((id): id is string => !!id && id !== by?.id))];
-      if (ids.length === 0) return;
-      const info = await taskEmailInfo(task);
-      for (const id of ids) {
-        const p = await getStaff(id);
-        if (p?.active) {
-          await sendTaskComment({ to: p.email, name: p.name, from: by?.name ?? 'Someone', comment, task: info });
-        }
-      }
-    } catch (e) {
-      console.error('[iowa tasks] comment email failed', e);
-    }
+// A comment goes to the owner and everyone helping, minus whoever wrote it.
+export async function notifyTaskComment(taskId: string, comment: string, by: IowaStaff | null) {
+  const task = await getTask(taskId).catch(() => null);
+  if (!task) return;
+  await notify({
+    to: taskAudience(task, by),
+    kind: 'task_comment',
+    title: `${by?.name?.split(' ')[0] ?? 'Someone'} on: ${task.title}`,
+    body: comment,
+    link: taskLink(task.id),
+    taskId: task.id,
   });
 }

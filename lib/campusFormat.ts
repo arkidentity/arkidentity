@@ -33,6 +33,15 @@ export const DROP_REASONS: { key: DropReason; label: string }[] = [
   { key: 'other', label: 'Other' },
 ];
 
+// How a staff member hears about task activity (migration 026): an email per
+// event, one 6 PM digest (the default), or nothing but the 8 AM checklist.
+export type NotifyMode = 'instant' | 'digest' | 'off';
+export const NOTIFY_MODES: { key: NotifyMode; label: string; hint: string }[] = [
+  { key: 'digest', label: 'One email at 6 PM', hint: 'Everything from today in one email' },
+  { key: 'instant', label: 'Email me right away', hint: 'One email per thing, as it happens' },
+  { key: 'off', label: 'No emails', hint: 'Only the 8 AM checklist' },
+];
+
 // ---------------------------------------------------------------------------
 // Dates
 // ---------------------------------------------------------------------------

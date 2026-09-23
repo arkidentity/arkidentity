@@ -19,25 +19,25 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     if (typeof body.help === 'boolean') {
       if (!me) return NextResponse.json({ error: 'Sign in again.' }, { status: 401 });
       const task = await setHelper(id, me.id, body.help);
-      if (body.help && task.owner_id && task.owner_id !== me.id) notifyHelpOffered(task.id, me);
+      if (body.help && task.owner_id && task.owner_id !== me.id) await notifyHelpOffered(task.id, me);
       return NextResponse.json({ task });
     }
     // A comment on its own: no task fields to write.
     const { comment, ...fields } = body as typeof body & { comment?: string };
     if (comment !== undefined && Object.keys(fields).length === 0) {
       const activity = await addTaskComment(id, comment, me);
-      notifyTaskComment(id, comment.trim(), me);
+      await notifyTaskComment(id, comment.trim(), me);
       return NextResponse.json({ activity });
     }
     const { task, before } = await updateTask(id, fields, me);
     if (comment !== undefined && comment.trim()) {
       await addTaskComment(id, comment, me);
-      notifyTaskComment(id, comment.trim(), me);
+      await notifyTaskComment(id, comment.trim(), me);
     }
     if (task.owner_id && task.owner_id !== before.owner_id && task.owner_id !== me?.id) {
-      notifyTaskAssigned(task.id, me);
+      await notifyTaskAssigned(task.id, me);
     }
-    if (Array.isArray(body.helper_ids)) notifyAddedToTask(task.id, await setHelpers(id, body.helper_ids, me), me);
+    if (Array.isArray(body.helper_ids)) await notifyAddedToTask(task.id, await setHelpers(id, body.helper_ids, me), me);
     return NextResponse.json({ task });
   } catch (e) {
     return NextResponse.json({ error: (e as Error).message }, { status: 400 });

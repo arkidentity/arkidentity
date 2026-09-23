@@ -1,4 +1,6 @@
 import { cookies } from 'next/headers';
+import type { NotifyMode } from '@/lib/campusFormat';
+import { NOTIFY_MODES } from '@/lib/campusFormat';
 import { getSupabaseAdmin } from '@/lib/supabaseAdmin';
 import { IOWA_ADMIN_COOKIE, hashPassword, verifySession } from '@/lib/iowaAdminAuth';
 
@@ -7,6 +9,9 @@ import { IOWA_ADMIN_COOKIE, hashPassword, verifySession } from '@/lib/iowaAdminA
 // staff / intern / student leader for when permissions arrive (migration 013).
 
 export type StaffRole = 'staff' | 'intern' | 'leader';
+// NOTIFY_MODES lives in campusFormat (client-safe); this module can't be
+// imported from a client component — it reads cookies.
+export type { NotifyMode } from '@/lib/campusFormat';
 export const STAFF_ROLES: StaffRole[] = ['staff', 'intern', 'leader'];
 
 export interface IowaStaff {
@@ -15,11 +20,12 @@ export interface IowaStaff {
   email: string;
   phone: string | null;
   role: StaffRole; // migration 013 — all roles have full access in Phase 1
+  notify_mode: NotifyMode; // migration 026 — how they hear about task activity
   active: boolean;
   created_at: string;
 }
 
-const PUBLIC_COLS = 'id, name, email, phone, role, active, created_at';
+const PUBLIC_COLS = 'id, name, email, phone, role, active, notify_mode, created_at';
 export const MIN_PASSWORD = 8;
 
 export async function listStaff(): Promise<IowaStaff[]> {
@@ -96,7 +102,7 @@ export async function createStaff(input: {
 
 export async function updateStaff(
   id: string,
-  patch: { name?: string; phone?: string; role?: string; active?: boolean; password?: string }
+  patch: { name?: string; phone?: string; role?: string; active?: boolean; password?: string; notify_mode?: string }
 ): Promise<IowaStaff> {
   const update: Record<string, unknown> = {};
   if (typeof patch.name === 'string' && patch.name.trim()) update.name = patch.name.trim();
@@ -105,6 +111,10 @@ export async function updateStaff(
   if (patch.role !== undefined) {
     if (!STAFF_ROLES.includes(patch.role as StaffRole)) throw new Error('Unknown role.');
     update.role = patch.role;
+  }
+  if (patch.notify_mode !== undefined) {
+    if (!NOTIFY_MODES.some((m) => m.key === patch.notify_mode)) throw new Error('Unknown email setting.');
+    update.notify_mode = patch.notify_mode;
   }
   if (typeof patch.password === 'string') {
     if (patch.password.length < MIN_PASSWORD) {

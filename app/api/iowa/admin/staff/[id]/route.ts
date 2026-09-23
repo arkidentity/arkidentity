@@ -3,7 +3,7 @@ import { currentStaff, updateStaff } from '@/lib/iowaStaff';
 
 export const dynamic = 'force-dynamic';
 
-// PATCH /api/iowa/admin/staff/:id — { name?, phone?, role?, active?, password? }
+// PATCH /api/iowa/admin/staff/:id — { name?, phone?, role?, active?, password?, notify_mode? }
 // Anyone signed in can manage staff (full access), but nobody can switch off
 // their own account and lock themselves out.
 export async function PATCH(
@@ -17,6 +17,7 @@ export async function PATCH(
     role?: string;
     active?: boolean;
     password?: string;
+    notify_mode?: string;
   };
   const me = await currentStaff();
   if (me?.id === id && patch.active === false) {

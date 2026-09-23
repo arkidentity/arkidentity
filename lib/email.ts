@@ -517,6 +517,63 @@ export async function sendTaskComment(opts: { to: string; name: string; from: st
   });
 }
 
+// Instant mode: one thing happened, here it is.
+export async function sendNotification(opts: { to: string; name: string; title: string; body: string | null; url: string }) {
+  const { to, name, title, body, url } = opts;
+  return getResend().emails.send({
+    from: fromAddress(),
+    to,
+    subject: title,
+    html: wrap(`
+      <p>${escapeHtml(name.split(' ')[0])},</p>
+      <p style="font-weight:600; color:#143348;">${escapeHtml(title)}</p>
+      ${body ? `<p style="margin:10px 0; padding:12px 14px; border-left:3px solid #143348; color:#4a4540; white-space:pre-wrap;">${escapeHtml(body)}</p>` : ''}
+      <p><a href="${url}" style="color:#143348; font-weight:600;">Open the admin →</a></p>
+    `),
+  });
+}
+
+// 6 PM: everything from today, in sections.
+export async function sendNotificationDigest(opts: {
+  to: string;
+  name: string;
+  date: string;
+  sections: { heading: string; items: { title: string; body: string | null; link: string | null }[] }[];
+  url: string;
+}) {
+  const { to, date, sections, url } = opts;
+  const count = sections.reduce((n, s) => n + s.items.length, 0);
+  const blocks = sections
+    .map(
+      (s) => `
+      <h2 style="color:#143348; font-size:16px; margin:22px 0 8px;">${escapeHtml(s.heading)}</h2>
+      ${s.items
+        .map(
+          (i) => `
+        <div style="border-left:3px solid #e5e1da; padding:2px 0 2px 12px; margin:0 0 10px;">
+          <p style="margin:0; color:#143348; font-weight:600;">${
+            i.link ? `<a href="${siteUrl()}${escapeHtml(i.link)}" style="color:#143348;">${escapeHtml(i.title)}</a>` : escapeHtml(i.title)
+          }</p>
+          ${i.body ? `<p style="margin:4px 0 0; color:#4a4540; white-space:pre-wrap;">${escapeHtml(i.body)}</p>` : ''}
+        </div>`
+        )
+        .join('')}`
+    )
+    .join('');
+
+  return getResend().emails.send({
+    from: fromAddress(),
+    to,
+    subject: `Today at ARK Iowa — ${count} thing${count === 1 ? '' : 's'}`,
+    html: wrap(`
+      <h1 style="color:#143348; font-size:22px; margin:0 0 4px;">Today</h1>
+      <p style="margin:0; color:#8a8378;">${escapeHtml(date)}</p>
+      ${blocks}
+      <p style="margin-top:22px;"><a href="${url}" style="color:#143348; font-weight:600;">Open the admin →</a></p>
+    `),
+  });
+}
+
 // One email per person, sent in a Resend batch.
 export async function sendEmailBatch(
   items: { to: string; subject: string; html: string }[]

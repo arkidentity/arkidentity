@@ -1,7 +1,7 @@
 import { NextResponse, after } from 'next/server';
 import { revalidatePath } from 'next/cache';
 import { joinStudy, formatSlot } from '@/lib/bibleStudies';
-import { sendStudyConfirmation, sendStudyRosterAlerts, sendStudyAdminAlert } from '@/lib/email';
+import { sendStudyConfirmation, sendStudyRosterAlerts } from '@/lib/email';
 import { googleCalendarUrl } from '@/lib/ics';
 import { studyCalendarDates } from '@/lib/semesters';
 import { queueStudySync } from '@/lib/calendarSync';
@@ -39,7 +39,7 @@ export async function POST(req: Request) {
   if (!email || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return bad('Please enter an email we can reach you at.');
 
   try {
-    const { study, member, roster, alsoInOtherStudies } = await joinStudy({
+    const { study, member, roster } = await joinStudy({
       studyId,
       name,
       phone,
@@ -50,7 +50,9 @@ export async function POST(req: Request) {
 
     revalidatePath('/iowa'); // a seat changed; /iowa is cached (revalidate = 60)
     queueStudySync(study.id); // roster changed → refresh the Google description
-    queueSeated(member.id); // first-ever seat → welcome-text task
+    // No separate "someone signed up" email: queueSeated makes the welcome-text
+    // task, and that task's own notification carries the student's details.
+    queueSeated(member.id);
     const slot = formatSlot(study);
     const info = { id: study.id, slot, location: study.location };
     const icsUrl = `${siteUrl()}/api/iowa/studies/${study.id}/ics`;
@@ -77,13 +79,6 @@ export async function POST(req: Request) {
           newMemberPhone: phone,
           existing,
           leaderEmail: study.leader_email,
-        }),
-        sendStudyAdminAlert({
-          kind: 'join',
-          study: info,
-          member: { name, phone, email, year: body.year || null },
-          spotsLeft: Math.max(0, study.capacity - study.activeCount),
-          alsoInStudies: alsoInOtherStudies.map((s) => formatSlot(s)),
         }),
       ]);
       for (const r of results) {

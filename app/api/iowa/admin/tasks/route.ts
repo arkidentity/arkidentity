@@ -21,8 +21,8 @@ export async function POST(req: Request) {
   try {
     const me = await currentStaff();
     const task = await createTask(body, me);
-    if (task.owner_id && task.owner_id !== me?.id) notifyTaskAssigned(task.id, me);
-    if (body.helper_ids?.length) notifyAddedToTask(task.id, await setHelpers(task.id, body.helper_ids, me), me);
+    if (task.owner_id && task.owner_id !== me?.id) await notifyTaskAssigned(task.id, me);
+    if (body.helper_ids?.length) await notifyAddedToTask(task.id, await setHelpers(task.id, body.helper_ids, me), me);
     return NextResponse.json({ task }, { status: 201 });
   } catch (e) {
     return NextResponse.json({ error: (e as Error).message }, { status: 400 });

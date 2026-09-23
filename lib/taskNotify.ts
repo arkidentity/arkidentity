@@ -59,7 +59,7 @@ export async function notifyTaskAssigned(taskId: string, by: IowaStaff | null) {
     to: [task.owner_id],
     kind: 'task_assigned',
     title: `${by?.name?.split(' ')[0] ?? 'Someone'} gave you: ${task.title}`,
-    body: task.due_date ? `Due ${task.due_date}` : null,
+    body: task.due_date ? `Due ${formatDate(task.due_date)}` : null,
     link: taskLink(task.id),
     taskId: task.id,
   });
@@ -75,7 +75,7 @@ export async function notifyAddedToTask(taskId: string, staffIds: string[], by: 
     to: ids,
     kind: 'helper_added',
     title: `You're helping with: ${task.title}`,
-    body: task.due_date ? `Due ${task.due_date}` : null,
+    body: task.due_date ? `Due ${formatDate(task.due_date)}` : null,
     link: taskLink(task.id),
     taskId: task.id,
   });

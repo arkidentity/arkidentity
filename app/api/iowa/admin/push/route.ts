@@ -21,8 +21,8 @@ export async function POST(req: Request) {
   try {
     if (body.test) {
       const sent = await pushToStaff([me.id], {
-        title: 'ARK Iowa',
-        body: 'Notifications are on. This is what they look like.',
+        title: 'Notifications are on',
+        body: 'This is how a task or a note will reach you.',
         url: '/iowa/admin',
         tag: 'test',
       });

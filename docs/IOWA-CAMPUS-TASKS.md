@@ -403,6 +403,13 @@ Settings card says so.
   admin gate redirected it to /login and registration hung. Anything else served from inside
   `/iowa/admin` needs the same exemption.
 - A device that answers 404/410 (uninstalled, reset) is deleted instead of retried.
+- **The title is the message, never "ARK Iowa".** Android already prints the app name and origin
+  above it, so the title says what happened ("Keilor gave you: Pick songs") and the body carries the
+  detail (the comment, the due date). Same fix as Daily DNA.
+- **One logo, not two.** `icon` is a transparent 96×96 (`/iowa/icons/notification-blank.png`) so the
+  OS's own app logo is the only one; Chrome on Android draws a generated letter tile when the icon
+  is missing entirely, which is why it's a blank image rather than nothing. `badge` stays the app
+  icon.
 
 ## Phase 3 — Student leaders
 

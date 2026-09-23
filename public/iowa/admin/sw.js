@@ -17,7 +17,10 @@ self.addEventListener('push', (event) => {
   event.waitUntil(
     self.registration.showNotification(title, {
       body: data.body || '',
-      icon: '/iowa/icons/admin-192.png',
+      // The OS already shows the installed app's logo on the left, so a second
+      // one on the right is just noise. Chrome on Android fills a MISSING icon
+      // with a generated letter tile, so send a transparent image, not nothing.
+      icon: data.icon || '/iowa/icons/notification-blank.png',
       badge: '/iowa/icons/admin-192.png',
       tag: data.tag || undefined,
       data: { url: data.url || '/iowa/admin' },

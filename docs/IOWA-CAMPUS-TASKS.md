@@ -369,6 +369,18 @@ save paid for a whole dashboard render. What that render cost got cut:
   handler → plain `#pick` anchor + `scroll-behavior: smooth`), so the page ships no JS of its own;
   `StudiesBrowser` stays a client component.
 
+## Admin as its own app (2026-09-23)
+
+`/iowa/admin` carries its own manifest (`public/iowa/admin.webmanifest`, wired in the admin layout's
+metadata): name "ARK Iowa", `start_url` + `scope` = `/iowa/admin`, standalone, navy/gold table icon
+(`public/iowa/icons/admin-{192,512,180}.png`). Installing from any admin screen adds THIS app, not
+the public one (`/manifest.json` → `/courses`); both can sit on the same phone. The session cookie
+carries over, and `BottomTabBar` already hides under `/iowa`. Settings has a card with the
+iPhone/Android steps (static — iOS offers no install prompt to hook).
+
+Next: push notifications, which need a service worker + VAPID keys + a subscriptions table. The
+`iowa_notifications` rows (026) are already the queue to send from.
+
 ## Phase 3 — Student leaders
 
 Leader logins; see only their own studies' students; claim/update own tasks, offer help.

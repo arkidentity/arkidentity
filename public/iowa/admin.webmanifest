@@ -1,0 +1,25 @@
+{
+  "name": "ARK Iowa Admin",
+  "short_name": "ARK Iowa",
+  "description": "Studies, students and tasks for ARK Iowa campus ministry.",
+  "start_url": "/iowa/admin",
+  "scope": "/iowa/admin",
+  "display": "standalone",
+  "background_color": "#143348",
+  "theme_color": "#143348",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/iowa/icons/admin-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/iowa/icons/admin-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

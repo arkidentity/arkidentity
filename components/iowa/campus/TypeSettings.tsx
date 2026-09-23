@@ -10,6 +10,26 @@ import SchoolCalendarSettings from '@/components/iowa/campus/SchoolCalendarSetti
 
 // Editable task + event type lists. Types are hidden rather than deleted so
 // anything already using one keeps its label.
+// The admin has its own manifest (/iowa/admin.webmanifest), so adding it to a
+// home screen installs THIS, not the public ARK app. Static instructions —
+// iOS gives no install prompt to trigger.
+function InstallCard() {
+  return (
+    <Section title="Put this on your home screen">
+      <div className="rounded-lg border border-gray-200 bg-white p-4 text-sm text-[#4a4540] space-y-2">
+        <p>It opens straight to the dashboard, full screen, with its own icon — separate from the ARK Identity app.</p>
+        <p>
+          <strong style={{ color: 'var(--navy)' }}>iPhone:</strong> in Safari, tap Share → Add to Home Screen.
+        </p>
+        <p>
+          <strong style={{ color: 'var(--navy)' }}>Android:</strong> in Chrome, tap ⋮ → Add to home screen / Install app.
+        </p>
+        <p className="text-xs text-[#8a8378]">Do it from any ARK Iowa admin screen. You stay signed in.</p>
+      </div>
+    </Section>
+  );
+}
+
 export default function TypeSettings({
   types,
   periods,
@@ -35,6 +55,8 @@ export default function TypeSettings({
         staff={staff}
         eventTypes={types.filter((t) => t.kind === 'event' && t.active).map((t) => ({ id: t.id, name: t.name }))}
       />
+      <InstallCard />
+
       <SemesterSettings semesters={semesters} />
       <SchoolCalendarSettings periods={periods} />
       <ErrorBox error={error} />

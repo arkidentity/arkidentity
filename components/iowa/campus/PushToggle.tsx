@@ -40,6 +40,12 @@ async function clearOldWorker(): Promise<boolean> {
   return true;
 }
 
+// Nothing here should be able to hang the card: a worker that never activates
+// (offline, a proxy swallowing the script) would otherwise spin forever.
+function withTimeout<T>(p: Promise<T>, ms = 8000): Promise<T | null> {
+  return Promise.race([p.catch(() => null), new Promise<null>((r) => setTimeout(() => r(null), ms))]);
+}
+
 const isIOS = () => /iphone|ipad|ipod/i.test(navigator.userAgent);
 const isStandalone = () =>
   window.matchMedia('(display-mode: standalone)').matches ||
@@ -65,7 +71,7 @@ export default function PushToggle({ vapidPublicKey }: { vapidPublicKey: string 
       }
       try {
         const hadOld = await clearOldWorker();
-        const reg = await navigator.serviceWorker.getRegistration(SW_URL);
+        const reg = await withTimeout(navigator.serviceWorker.getRegistration(SW_URL));
         const sub = reg ? await reg.pushManager.getSubscription() : null;
         if (cancelled) return;
         setState(sub ? 'on' : 'off');
@@ -92,7 +98,10 @@ export default function PushToggle({ vapidPublicKey }: { vapidPublicKey: string 
       }
       await clearOldWorker();
       const reg = await navigator.serviceWorker.register(SW_URL, { scope: SW_SCOPE });
-      await navigator.serviceWorker.ready;
+      await withTimeout(navigator.serviceWorker.ready);
+      if (!reg.active && !reg.installing && !reg.waiting) {
+        throw new Error('The notification worker didn’t start. Reload and try again.');
+      }
       const sub =
         (await reg.pushManager.getSubscription()) ??
         (await reg.pushManager.subscribe({
@@ -118,7 +127,7 @@ export default function PushToggle({ vapidPublicKey }: { vapidPublicKey: string 
     setError('');
     setNote('');
     try {
-      const reg = await navigator.serviceWorker.getRegistration(SW_URL);
+      const reg = await withTimeout(navigator.serviceWorker.getRegistration(SW_URL));
       const sub = reg ? await reg.pushManager.getSubscription() : null;
       if (sub) {
         await fetch('/api/iowa/admin/push', {

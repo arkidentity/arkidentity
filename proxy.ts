@@ -51,6 +51,13 @@ export async function proxy(req: NextRequest) {
     return NextResponse.next();
   }
 
+  // The service worker lives inside the admin's scope so notifications are
+  // credited to the installed app — but the browser fetches it with no session,
+  // and a redirect to /login here means it never registers at all.
+  if (pathname === '/iowa/admin/sw.js') {
+    return NextResponse.next();
+  }
+
   let authed: boolean;
   if (iowa) {
     const staffId = await verifySession(req.cookies.get(IOWA_ADMIN_COOKIE)?.value);

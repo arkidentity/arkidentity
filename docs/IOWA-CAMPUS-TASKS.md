@@ -399,6 +399,9 @@ Settings card says so.
   app — Daily DNA gets this right by accident, with scope `/` and `/sw.js`. The manifest also
   carries an explicit `id`. `PushToggle` unregisters the old root worker and drops its subscription
   on load, so anyone who subscribed before the move just turns it on again.
+- **`proxy.ts` exempts `/iowa/admin/sw.js`.** The browser fetches the worker with no session, so the
+  admin gate redirected it to /login and registration hung. Anything else served from inside
+  `/iowa/admin` needs the same exemption.
 - A device that answers 404/410 (uninstalled, reset) is deleted instead of retried.
 
 ## Phase 3 — Student leaders

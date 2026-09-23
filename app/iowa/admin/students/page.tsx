@@ -4,6 +4,7 @@ import { listCampusStudents, listStudies } from '@/lib/bibleStudies';
 import { currentSemesterName } from '@/lib/semesters';
 import { currentStaff, listStaff } from '@/lib/iowaStaff';
 import { checkinReport, invitableEvents } from '@/lib/campusCheckins';
+import { findStudentDupes } from '@/lib/studentDupes';
 import { CampusStudents } from '@/components/iowa/CampusStudents';
 
 export const dynamic = 'force-dynamic';
@@ -33,6 +34,7 @@ export default async function CampusStudentsPage({
   return (
     <CampusStudents
       report={report}
+      dupes={findStudentDupes(students)}
       openReport={sp.report === '1'}
       events={events}
       staff={staff.filter((p) => p.active).map((p) => ({ id: p.id, name: p.name }))}

@@ -753,6 +753,11 @@ export async function unsubscribeByToken(token: string): Promise<boolean> {
 // Used by the Iowa join flow: find this student's contact row or make one.
 // Campus signups default subscribed = false — they signed up for a Bible study,
 // not the newsletter.
+// The same person, however they signed up. Email first, then the last ten
+// digits of their phone — students change email addresses (uiowa.edu in the
+// fall, Gmail in the spring) far more often than phone numbers, and a phone
+// match is what keeps that from becoming two people. Event RSVPs already
+// worked this way; now every door does.
 export async function findOrCreateContact(input: {
   name: string;
   email: string;
@@ -764,13 +769,26 @@ export async function findOrCreateContact(input: {
   const db = getSupabaseAdmin();
   const email = normEmail(input.email)!;
 
-  const { data: existing } = await db.from('contacts').select('*').ilike('email', email).maybeSingle();
+  const { data: byEmail } = await db.from('contacts').select('*').ilike('email', email).maybeSingle();
+  let existing = (byEmail as Contact | null) ?? null;
+
+  if (!existing) {
+    const digits = digitsOf(input.phone ?? '').slice(-10);
+    if (digits.length === 10) {
+      // Stored formatting varies, so compare tails rather than raw strings.
+      const { data } = await db.from('contacts').select('*').not('phone', 'is', null);
+      existing = ((data ?? []) as Contact[]).find((c) => digitsOf(c.phone ?? '').slice(-10) === digits) ?? null;
+    }
+  }
+
   if (existing) {
-    const contact = existing as Contact;
+    const contact = existing;
     // Fill in blanks (an old email-only partner who's now a student), but never
-    // overwrite something already there.
+    // overwrite something already there — including an email that differs from
+    // the one they just typed. The one on file is the one we've been using.
     const patch: Record<string, unknown> = {};
     if (!contact.phone && input.phone) patch.phone = normPhone(input.phone);
+    if (!contact.email && email) patch.email = email;
     if (!contact.name && input.name) patch.name = input.name.trim();
     if (Object.keys(patch).length) {
       patch.updated_at = new Date().toISOString();

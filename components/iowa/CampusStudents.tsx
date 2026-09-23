@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import type { CampusStudent, StudentStatus } from '@/lib/bibleStudies';
 import { DAY_NAMES, formatTime } from '@/lib/bibleStudyFormat';
 import { DORMANT_REASONS, type CheckinRow, type SocialEventOption } from '@/lib/checkinFormat';
+import type { DupeGroup } from '@/lib/studentDupes';
 import { CheckinReport } from '@/components/iowa/CheckinReport';
 
 // Managing students as people rather than as roster lines. Every student here
@@ -86,6 +87,7 @@ export function CampusStudents({
   report = null,
   events = [],
   openReport = false,
+  dupes = [],
 }: {
   initial: CampusStudent[];
   studies: StudyOption[];
@@ -94,6 +96,7 @@ export function CampusStudents({
   report?: CheckinRow[] | null; // null = not staff/intern, no report
   events?: SocialEventOption[];
   openReport?: boolean; // ?report=1 — from the dashboard's follow-up cards
+  dupes?: DupeGroup[];
 }) {
   const router = useRouter();
   const [students, setStudents] = useState(initial);
@@ -238,6 +241,8 @@ export function CampusStudents({
           </select>
         </div>
 
+        <Dupes groups={dupes} />
+
         {error && <p className="mb-4 text-sm" style={{ color: '#b91c1c' }}>{error}</p>}
 
         <p className="text-sm mb-3" style={{ color: '#8a8378' }}>{visible.length} shown</p>
@@ -379,6 +384,50 @@ export function CampusStudents({
           )}
         </div>
       </div>
+    </div>
+  );
+}
+
+// Quiet by design: a line at the top of the list, not a modal. There's no merge
+// yet, so it tells you what it sees and leaves the call to you.
+function Dupes({ groups }: { groups: DupeGroup[] }) {
+  const [open, setOpen] = useState(false);
+  if (groups.length === 0) return null;
+
+  return (
+    <div className="rounded-xl p-4 mb-4" style={{ backgroundColor: '#fffbeb', border: '1px solid #fcd34d' }}>
+      <button onClick={() => setOpen((v) => !v)} className="w-full flex items-center justify-between gap-3 text-left">
+        <span className="text-sm font-semibold" style={{ color: '#92400e' }}>
+          {groups.length} possible duplicate{groups.length === 1 ? '' : 's'}
+        </span>
+        <span className="text-xs font-semibold" style={{ color: '#92400e' }}>{open ? 'Hide' : 'Show'}</span>
+      </button>
+      {open && (
+        <div className="mt-3 space-y-3">
+          {groups.map((g) => (
+            <div key={g.students.map((s) => s.contact_id).join('-')} className="rounded-lg bg-white border border-amber-200 p-3">
+              <p className="text-xs mb-2" style={{ color: '#92400e' }}>
+                {g.reason === 'phone' ? 'Same phone number' : 'Same name, different contact details'}
+              </p>
+              <ul className="text-sm space-y-1">
+                {g.students.map((s) => (
+                  <li key={s.contact_id} className="text-[#4a4540]">
+                    <span className="font-semibold" style={{ color: 'var(--navy)' }}>{s.name}</span>
+                    {' · '}
+                    {[s.email, s.phone, s.year].filter(Boolean).join(' · ') || 'no contact details'}
+                    {s.studies.length > 0 && <span className="text-[#8a8378]"> · {s.studies.map((x) => x.label).join(', ')}</span>}
+                    {s.studies.length === 0 && <span className="text-[#8a8378]"> · not in a study</span>}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+          <p className="text-xs" style={{ color: '#92400e' }}>
+            Same person? Move them into one study, drop the spare, and edit whichever record you&apos;re keeping.
+            Merging isn&apos;t automatic yet — their history would need to move too.
+          </p>
+        </div>
+      )}
     </div>
   );
 }

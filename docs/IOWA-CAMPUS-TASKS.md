@@ -342,6 +342,21 @@ tasks. Any event can have songs; the section is quiet until the first one is add
 - Deliberately NOT a song library: no usage history, CCLI, arrangements or SongSelect. These rows
   are the history if that's ever wanted.
 
+## One person, one contact (2026-09-23)
+
+**Matching on the way in:** `findOrCreateContact` tries email, then the last ten digits of the phone
+— students change email addresses (uiowa.edu in the fall, Gmail in the spring) far more often than
+numbers, and that fallback is what stops the same student becoming two. Event RSVPs already worked
+this way; now every door does (study signup, start a study, "have us reach out", Baja). A matched
+record is never overwritten, including its email: the one on file is the one we've been using.
+
+**Flagging what's already there:** the Students page shows "N possible duplicates" — same phone
+(strong), or same name with different contact details (weaker, and only when the phone check hasn't
+already caught them). `lib/studentDupes.ts`, pure, over the list the page already loaded.
+
+**No merge yet.** Merging has to move rosters, tasks, check-ins, RSVPs and notifications onto one
+contact — a decision, not a guess. Today: move them into one study, drop the spare, edit the keeper.
+
 ## "Have us reach out" (2026-09-23, Travis)
 
 The public page offered two doors, join a study or start one, and both make a student pick a time.

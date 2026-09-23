@@ -86,14 +86,50 @@ export function Field({ label, children, className }: { label: string; children:
 
 export function Section({ title, action, children }: { title: string; action?: React.ReactNode; children: React.ReactNode }) {
   return (
-    <section className="mb-10">
-      <div className="flex items-baseline justify-between gap-3 mb-3">
-        <h2 className="text-lg font-bold" style={{ color: 'var(--navy)' }}>
-          {title}
-        </h2>
-        {action}
-      </div>
+    <section className={title ? 'mb-10' : ''}>
+      {(title || action) && (
+        <div className="flex items-baseline justify-between gap-3 mb-3">
+          {title && (
+            <h2 className="text-lg font-bold" style={{ color: 'var(--navy)' }}>
+              {title}
+            </h2>
+          )}
+          {action}
+        </div>
+      )}
       {children}
+    </section>
+  );
+}
+
+// A settings group that stays shut until you need it. The hint is what the
+// group is for, so you can tell from the closed state whether to open it.
+export function Disclosure({
+  title,
+  hint,
+  defaultOpen = false,
+  children,
+}: {
+  title: string;
+  hint: string;
+  defaultOpen?: boolean;
+  children: React.ReactNode;
+}) {
+  const [open, setOpen] = useState(defaultOpen);
+  return (
+    <section className="mb-3 rounded-lg border border-gray-200 bg-white overflow-hidden">
+      <button
+        onClick={() => setOpen((v) => !v)}
+        aria-expanded={open}
+        className="w-full flex items-center justify-between gap-3 px-4 py-3 text-left hover:bg-[#FAF8F5]"
+      >
+        <span>
+          <span className="block font-bold" style={{ color: 'var(--navy)' }}>{title}</span>
+          <span className="block text-xs text-[#8a8378] mt-0.5">{hint}</span>
+        </span>
+        <span className="text-sm shrink-0" style={{ color: '#8a8378' }}>{open ? '▴' : '▾'}</span>
+      </button>
+      {open && <div className="px-4 pb-4 pt-1 border-t border-gray-100">{children}</div>}
     </section>
   );
 }

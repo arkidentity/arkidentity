@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { ErrorBox, PageShell, Section, btnPrimary, btnSmall, input, useCall, type TypeOption } from '@/components/iowa/campus/ui';
+import { Disclosure, ErrorBox, PageShell, Section, btnPrimary, btnSmall, input, useCall, type TypeOption } from '@/components/iowa/campus/ui';
 import PushToggle from '@/components/iowa/campus/PushToggle';
 import type { SchoolPeriod, Semester } from '@/lib/campusFormat';
 import SemesterSettings from '@/components/iowa/campus/SemesterSettings';
@@ -9,8 +9,10 @@ import ChecklistSettings from '@/components/iowa/campus/ChecklistSettings';
 import type { ChecklistTemplate } from '@/lib/eventChecklists';
 import SchoolCalendarSettings from '@/components/iowa/campus/SchoolCalendarSettings';
 
-// Editable task + event type lists. Types are hidden rather than deleted so
-// anything already using one keeps its label.
+// The settings screen. Ordered by how often you touch it: this device first
+// (notifications, install), then the lists the rest of the admin picks from —
+// named and closed, because you set them once a semester at most. Types are
+// hidden rather than deleted so anything already using one keeps its label.
 // The admin has its own manifest (/iowa/admin.webmanifest), so adding it to a
 // home screen installs THIS, not the public ARK app. Static instructions —
 // iOS gives no install prompt to trigger.
@@ -52,33 +54,63 @@ export default function TypeSettings({
       <h1 className="text-3xl font-bold mb-1" style={{ color: 'var(--navy)' }}>
         Settings
       </h1>
-      <p className="text-sm text-[#8a8378] mb-8">The school calendar, and the types you can pick for tasks and events.</p>
-      <ChecklistSettings
-        templates={templates}
-        staff={staff}
-        eventTypes={types.filter((t) => t.kind === 'event' && t.active).map((t) => ({ id: t.id, name: t.name }))}
-      />
+      <p className="text-sm text-[#8a8378] mb-8">
+        Notifications on this phone or laptop, then the lists the rest of the admin picks from.
+      </p>
+
+      {/* What you came here to change on a new device, open and first. */}
+      <PushToggle vapidPublicKey={vapidPublicKey} />
       <InstallCard />
 
-      <PushToggle vapidPublicKey={vapidPublicKey} />
-
-      <SemesterSettings semesters={semesters} />
-      <SchoolCalendarSettings periods={periods} />
+      {/* Everything else is set-and-forget: named, closed, in the order you'd
+          reach for them across a year. */}
+      <h2 className="text-lg font-bold mb-3" style={{ color: 'var(--navy)' }}>
+        Lists the admin uses
+      </h2>
       <ErrorBox error={error} />
-      <div className="grid md:grid-cols-2 gap-8">
-        {(['event', 'task'] as const).map((kind) => (
-          <Section key={kind} title={kind === 'event' ? 'Event types' : 'Task types'}>
-            <ul className="space-y-2 mb-3">
-              {types
-                .filter((t) => t.kind === kind)
-                .map((t) => (
-                  <TypeRow key={t.id} t={t} busy={busy} call={call} />
-                ))}
-            </ul>
-            <NewType kind={kind} busy={busy} call={call} />
-          </Section>
-        ))}
-      </div>
+
+      <Disclosure title="Semesters" hint="Term dates, and when signup opens for the next one">
+        <SemesterSettings semesters={semesters} embedded />
+      </Disclosure>
+
+      <Disclosure title="School calendar" hint="Breaks and finals — the weeks in-person studies pause">
+        <SchoolCalendarSettings periods={periods} embedded />
+      </Disclosure>
+
+      <Disclosure
+        title="Event checklists"
+        hint={`Reusable prep lists for events${templates.length ? ` · ${templates.length} saved` : ''}`}
+      >
+        <ChecklistSettings
+          templates={templates}
+          staff={staff}
+          eventTypes={types.filter((t) => t.kind === 'event' && t.active).map((t) => ({ id: t.id, name: t.name }))}
+          embedded
+        />
+      </Disclosure>
+
+      <Disclosure
+        title="Task and event types"
+        hint={`The labels you pick from when making one · ${types.filter((t) => t.active).length} in use`}
+      >
+        <div className="grid md:grid-cols-2 gap-8">
+          {(['event', 'task'] as const).map((kind) => (
+            <div key={kind}>
+              <p className="text-sm font-bold mb-2" style={{ color: 'var(--navy)' }}>
+                {kind === 'event' ? 'Event types' : 'Task types'}
+              </p>
+              <ul className="space-y-2 mb-3">
+                {types
+                  .filter((t) => t.kind === kind)
+                  .map((t) => (
+                    <TypeRow key={t.id} t={t} busy={busy} call={call} />
+                  ))}
+              </ul>
+              <NewType kind={kind} busy={busy} call={call} />
+            </div>
+          ))}
+        </div>
+      </Disclosure>
     </PageShell>
   );
 }

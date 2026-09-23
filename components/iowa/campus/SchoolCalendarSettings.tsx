@@ -16,7 +16,7 @@ const KINDS: { key: SchoolPeriod['kind']; label: string }[] = [
 // studies" = no reminders, confirms or first-study checks those dates, and the
 // weeks come off Google. Online studies ignore it. Every period drives the
 // scheduling heads-up on the Calendar.
-export default function SchoolCalendarSettings({ periods }: { periods: SchoolPeriod[] }) {
+export default function SchoolCalendarSettings({ periods, embedded = false }: { periods: SchoolPeriod[]; embedded?: boolean }) {
   const { call, busy, error } = useCall();
   const [showPast, setShowPast] = useState(false);
   const today = chicagoToday();
@@ -24,7 +24,7 @@ export default function SchoolCalendarSettings({ periods }: { periods: SchoolPer
 
   return (
     <Section
-      title="School calendar"
+      title={embedded ? '' : "School calendar"}
       action={
         <button onClick={() => setShowPast((v) => !v)} className="text-sm text-[#8a8378] underline">
           {showPast ? 'Hide past' : 'Show past'}

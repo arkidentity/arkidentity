@@ -11,15 +11,17 @@ export default function ChecklistSettings({
   templates,
   staff,
   eventTypes,
+  embedded = false,
 }: {
   templates: ChecklistTemplate[];
   staff: { id: string; name: string }[];
   eventTypes: { id: string; name: string }[];
+  embedded?: boolean; // inside a Disclosure that already shows the heading
 }) {
   const { call, busy, error } = useCall();
   const [name, setName] = useState('');
   return (
-    <Section title="Event checklists">
+    <Section title={embedded ? '' : "Event checklists"}>
       <p className="text-sm text-[#8a8378] mb-3">
         Apply one to any event on the Calendar, and its tasks land in the task list, due on the right dates.
         If the event moves, the dates move too.

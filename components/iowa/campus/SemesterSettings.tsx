@@ -6,12 +6,12 @@ import { ErrorBox, Section, btnPrimary, btnSmall, input, useCall } from '@/compo
 
 // Semesters drive everything about turnover: which studies meet when, when a
 // group can plan the next one, and when next semester's signup goes public.
-export default function SemesterSettings({ semesters }: { semesters: Semester[] }) {
+export default function SemesterSettings({ semesters, embedded = false }: { semesters: Semester[]; embedded?: boolean }) {
   const { call, busy, error } = useCall();
   const today = chicagoToday();
   const [adding, setAdding] = useState(false);
   return (
-    <Section title="Semesters">
+    <Section title={embedded ? '' : "Semesters"}>
       <p className="text-sm text-[#8a8378] mb-3">
         Classes start → last day of finals. “Signup opens” is when groups get their plan-next-semester link and
         students can sign up for that semester (spring: the Monday after Thanksgiving, once registration’s done).

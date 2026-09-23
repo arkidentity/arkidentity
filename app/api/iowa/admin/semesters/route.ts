@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { requirePermission } from '@/lib/iowaPerms';
 import { createSemester, updateSemester } from '@/lib/semesters';
 import { isValidDate } from '@/lib/campusFormat';
 import { queueAllStudiesSync } from '@/lib/calendarSync';
@@ -23,6 +24,8 @@ function dates(b: Body, all: boolean): string | null {
 
 // POST /api/iowa/admin/semesters — add a semester (e.g. Spring 2028).
 export async function POST(req: Request) {
+  const me = await requirePermission('manageSettings');
+  if (me instanceof NextResponse) return me;
   const b = (await req.json().catch(() => ({}))) as Body;
   if (!b.name?.trim()) return NextResponse.json({ error: 'Name it, like “Spring 2028”.' }, { status: 400 });
   const bad = dates(b, true);
@@ -38,6 +41,8 @@ export async function POST(req: Request) {
 // PATCH /api/iowa/admin/semesters — { name, starts_on?, ends_on?, signup_opens?, note? }
 // Dates move which weeks studies meet, so Google is re-synced.
 export async function PATCH(req: Request) {
+  const me = await requirePermission('manageSettings');
+  if (me instanceof NextResponse) return me;
   const b = (await req.json().catch(() => ({}))) as Body;
   if (!b.name) return NextResponse.json({ error: 'Which semester?' }, { status: 400 });
   const bad = dates(b, false);

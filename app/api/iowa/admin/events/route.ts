@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { requirePermission } from '@/lib/iowaPerms';
 import { createEvent, type EventInput } from '@/lib/campusTasks';
 import { currentStaff } from '@/lib/iowaStaff';
 import { queueEventSync } from '@/lib/calendarSync';
@@ -10,6 +11,8 @@ export const dynamic = 'force-dynamic';
 // POST /api/iowa/admin/events — create a campus event. Who's going defaults to
 // the creator when staff_ids isn't sent; anyone else is invited (accept/decline).
 export async function POST(req: Request) {
+  const me = await requirePermission('manageEvents');
+  if (me instanceof NextResponse) return me;
   const body = (await req.json().catch(() => ({}))) as EventInput;
   try {
     const me = await currentStaff();

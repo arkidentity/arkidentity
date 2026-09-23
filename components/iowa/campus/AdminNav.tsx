@@ -3,16 +3,19 @@
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 
-const TABS = [
+import type { Permission } from '@/lib/iowaPerms';
+
+// `needs` is the permission a tab requires; no `needs` means everyone signed in.
+const TABS: { href: string; label: string; needs?: Permission }[] = [
   { href: '/iowa/admin', label: 'Dashboard' },
-  { href: '/iowa/admin/studies', label: 'Studies' },
-  { href: '/iowa/admin/students', label: 'Students' },
-  { href: '/iowa/admin/staff', label: 'Staff' },
-  { href: '/iowa/admin/settings', label: 'Settings' },
+  { href: '/iowa/admin/studies', label: 'Studies', needs: 'viewAllStudies' },
+  { href: '/iowa/admin/students', label: 'Students', needs: 'viewStudents' },
+  { href: '/iowa/admin/staff', label: 'Staff', needs: 'manageStaff' },
+  { href: '/iowa/admin/settings', label: 'Settings', needs: 'manageSettings' },
 ];
 
 // Top nav for every /iowa/admin screen except the login page.
-export default function AdminNav({ name }: { name: string | null }) {
+export default function AdminNav({ name, allowed = [] }: { name: string | null; allowed?: Permission[] }) {
   const pathname = usePathname();
   const router = useRouter();
   if (pathname === '/iowa/admin/login') return null;
@@ -24,7 +27,7 @@ export default function AdminNav({ name }: { name: string | null }) {
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between gap-4">
         <div className="flex items-center gap-1 overflow-x-auto py-2 -mx-1">
           <span className="font-bold mr-3 shrink-0">ARK Iowa</span>
-          {TABS.map((t) => (
+          {TABS.filter((t) => !t.needs || allowed.includes(t.needs)).map((t) => (
             <Link
               key={t.href}
               href={t.href}

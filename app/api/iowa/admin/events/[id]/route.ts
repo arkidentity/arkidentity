@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { requirePermission } from '@/lib/iowaPerms';
 import { deleteEvent, updateEvent, type EventInput } from '@/lib/campusTasks';
 import { queueEventDelete, queueEventSync } from '@/lib/calendarSync';
 import { realignEvent } from '@/lib/eventChecklists';
@@ -10,6 +11,8 @@ export const dynamic = 'force-dynamic';
 // PATCH /api/iowa/admin/events/:id — edit; staff_ids replaces who's invited
 // (existing answers kept; new people get an invite email).
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const me = await requirePermission('manageEvents');
+  if (me instanceof NextResponse) return me;
   const { id } = await params;
   const body = (await req.json().catch(() => ({}))) as EventInput;
   try {
@@ -26,6 +29,8 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
 
 // DELETE — removes the whole event (every repeat). Linked tasks stay, unlinked.
 export async function DELETE(_req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const me = await requirePermission('manageEvents');
+  if (me instanceof NextResponse) return me;
   const { id } = await params;
   try {
     queueEventDelete(await deleteEvent(id));

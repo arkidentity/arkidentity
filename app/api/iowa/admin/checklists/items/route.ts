@@ -1,10 +1,13 @@
 import { NextResponse } from 'next/server';
+import { requirePermission } from '@/lib/iowaPerms';
 import { deleteItem, saveItem, type ChecklistItem } from '@/lib/eventChecklists';
 
 export const dynamic = 'force-dynamic';
 
 // POST /api/iowa/admin/checklists/items — create (with template_id) or update (with id).
 export async function POST(req: Request) {
+  const me = await requirePermission('manageSettings');
+  if (me instanceof NextResponse) return me;
   const body = (await req.json().catch(() => ({}))) as Partial<ChecklistItem>;
   try {
     await saveItem(body);
@@ -15,6 +18,8 @@ export async function POST(req: Request) {
 }
 
 export async function DELETE(req: Request) {
+  const me = await requirePermission('manageSettings');
+  if (me instanceof NextResponse) return me;
   const id = new URL(req.url).searchParams.get('id');
   if (!id) return NextResponse.json({ error: 'Which item?' }, { status: 400 });
   try {

@@ -1,10 +1,13 @@
 import { NextResponse } from 'next/server';
+import { requirePermission } from '@/lib/iowaPerms';
 import { createStaff, listStaff } from '@/lib/iowaStaff';
 
 export const dynamic = 'force-dynamic';
 
 // GET /api/iowa/admin/staff — every staff login (no password hashes).
 export async function GET() {
+  const me = await requirePermission('manageStaff');
+  if (me instanceof NextResponse) return me;
   try {
     return NextResponse.json({ staff: await listStaff() });
   } catch (e) {
@@ -14,6 +17,8 @@ export async function GET() {
 
 // POST /api/iowa/admin/staff — { name, email, phone?, password }
 export async function POST(req: Request) {
+  const me = await requirePermission('manageStaff');
+  if (me instanceof NextResponse) return me;
   const body = (await req.json().catch(() => ({}))) as {
     name?: string;
     email?: string;

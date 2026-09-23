@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { requirePermission } from '@/lib/iowaPerms';
 import { addMember } from '@/lib/bibleStudies';
 import { queueStudySync } from '@/lib/calendarSync';
 import { queueSeated } from '@/lib/campusAutomation';
@@ -7,6 +8,8 @@ export const dynamic = 'force-dynamic';
 
 // POST /api/iowa/admin/members — Travis adds a student to a study by hand.
 export async function POST(req: Request) {
+  const me = await requirePermission('viewAllStudies');
+  if (me instanceof NextResponse) return me;
   const body = (await req.json().catch(() => ({}))) as {
     studyId?: string;
     name?: string;

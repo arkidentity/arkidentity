@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { requirePermission } from '@/lib/iowaPerms';
 import { revalidatePath } from 'next/cache';
 import { deleteStudy, updateStudy } from '@/lib/bibleStudies';
 import { currentStaff } from '@/lib/iowaStaff';
@@ -15,6 +16,8 @@ export async function PATCH(
   req: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const guard = await requirePermission('viewAllStudies');
+  if (guard instanceof NextResponse) return guard;
   const { id } = await params;
   const patch = (await req.json().catch(() => ({}))) as Record<string, unknown>;
   try {
@@ -38,6 +41,8 @@ export async function PATCH(
 // DELETE /api/iowa/admin/studies/:id — remove a study that's ended or been
 // paused. Refused while students are still seated (see deleteStudy).
 export async function DELETE(_req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const guard = await requirePermission('deleteStudy');
+  if (guard instanceof NextResponse) return guard;
   const { id } = await params;
   try {
     const { google_event_id } = await deleteStudy(id);

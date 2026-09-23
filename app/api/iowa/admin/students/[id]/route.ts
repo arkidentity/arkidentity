@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { requirePermission } from '@/lib/iowaPerms';
 import { updateCampusStudent, type StudentStatus } from '@/lib/bibleStudies';
 import { updateContact } from '@/lib/contacts';
 import { DORMANT_REASONS } from '@/lib/checkinFormat';
@@ -18,6 +19,8 @@ const STATUSES: StudentStatus[] = ['active', 'dormant', 'graduated', 'transferre
 // details, but not touch newsletter subscription, tags, or archive someone.
 // Those belong to the main contacts admin, behind its own password.
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const me = await requirePermission('viewStudents');
+  if (me instanceof NextResponse) return me;
   const { id } = await params;
   const body = (await req.json().catch(() => ({}))) as {
     year?: string | null;

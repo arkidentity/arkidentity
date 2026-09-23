@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
-import { currentStaff, updateStaff } from '@/lib/iowaStaff';
+import { requirePermission } from '@/lib/iowaPerms';
+import { updateStaff } from '@/lib/iowaStaff';
 
 export const dynamic = 'force-dynamic';
 
@@ -10,6 +11,8 @@ export async function PATCH(
   req: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const me = await requirePermission('manageStaff');
+  if (me instanceof NextResponse) return me;
   const { id } = await params;
   const patch = (await req.json().catch(() => ({}))) as {
     name?: string;
@@ -19,8 +22,7 @@ export async function PATCH(
     password?: string;
     notify_mode?: string;
   };
-  const me = await currentStaff();
-  if (me?.id === id && patch.active === false) {
+  if (me.id === id && patch.active === false) {
     return NextResponse.json({ error: 'You can’t turn off your own login.' }, { status: 400 });
   }
   try {

@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { requirePermission } from '@/lib/iowaPerms';
 import { listStudies, createStudy } from '@/lib/bibleStudies';
 import { currentStaff } from '@/lib/iowaStaff';
 import { notifyAssignment } from '@/lib/studyAssignment';
@@ -9,6 +10,8 @@ export const dynamic = 'force-dynamic';
 
 // GET /api/iowa/admin/studies — every study in the semester, rosters attached.
 export async function GET() {
+  const me = await requirePermission('viewAllStudies');
+  if (me instanceof NextResponse) return me;
   try {
     const studies = await listStudies();
     return NextResponse.json({ studies });
@@ -19,6 +22,8 @@ export async function GET() {
 
 // POST /api/iowa/admin/studies — create a study (starts `forming`).
 export async function POST(req: Request) {
+  const me = await requirePermission('viewAllStudies');
+  if (me instanceof NextResponse) return me;
   const body = (await req.json().catch(() => ({}))) as {
     dayOfWeek?: number;
     startTime?: string;

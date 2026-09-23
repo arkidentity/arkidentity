@@ -1,3 +1,5 @@
+import { redirect } from 'next/navigation';
+import { can } from '@/lib/iowaPerms';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { listStudies } from '@/lib/bibleStudies';
@@ -12,6 +14,8 @@ export const metadata: Metadata = { title: 'ARK Iowa — Bible studies' };
 // ?semester=Spring 2027 — tabs for the current semester and any upcoming one
 // open for planning (from ~Nov 30 for spring). Default: current.
 export default async function IowaStudiesPage({ searchParams }: { searchParams: Promise<{ semester?: string }> }) {
+  // The nav hides this tab, but a bookmark shouldn't get past it either.
+  if (!can(await currentStaff(), 'viewAllStudies')) redirect('/iowa/admin');
   const [{ semester: asked }, ctx] = await Promise.all([searchParams, semesterContext()]);
   const tabs = ctx.active;
   const semester = asked && tabs.includes(asked) ? asked : ctx.current?.name ?? tabs[0] ?? '';

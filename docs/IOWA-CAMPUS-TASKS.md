@@ -342,6 +342,28 @@ tasks. Any event can have songs; the section is quiet until the first one is add
 - Deliberately NOT a song library: no usage history, CCLI, arrangements or SongSelect. These rows
   are the history if that's ever wanted.
 
+## Roles that mean something (2026-09-23)
+
+Migration 013 said "all roles have full access in Phase 1". That was fine with two logins and a
+privacy problem waiting for the first student leader. `lib/iowaPerms.ts` is now the single source:
+
+| | staff | intern | leader |
+|---|---|---|---|
+| Studies, students, tasks, events, check-ins | ✅ | ✅ | own study + own tasks |
+| Staff logins + passwords | ✅ | — | — |
+| Settings (types, checklists, semesters, school calendar) | ✅ | — | — |
+| Delete a study | ✅ | — | — |
+
+- **The API enforces it** (`requirePermission`) — hiding a tab is a courtesy, not a rule. Pages
+  redirect too, so a bookmark doesn't get past a hidden tab, and `AdminNav` only renders tabs the
+  person can use.
+- **A leader's dashboard** is filtered to studies they lead and tasks they own or help with; study
+  cards carry phone numbers, so this is the part that actually matters. They can take, finish and
+  comment on their own tasks but not touch anyone else's.
+- **Leader → study is matched by email** (`bible_studies.leader_email`, plus any `iowa_study_team`
+  row), because study leaders are contact details on the study, not staff rows. If leaders ever get
+  logins in numbers, that join deserves a real foreign key.
+
 ## Deleting a study (2026-09-23)
 
 `deleteStudy()` + `DELETE /api/iowa/admin/studies/:id`, shown at the bottom of a study's panel and

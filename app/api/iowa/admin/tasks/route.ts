@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { requirePermission } from '@/lib/iowaPerms';
 import { createTask, listTasks, setHelpers, type TaskInput } from '@/lib/campusTasks';
 import { currentStaff } from '@/lib/iowaStaff';
 import { notifyAddedToTask, notifyTaskAssigned } from '@/lib/taskNotify';
@@ -17,6 +18,8 @@ export async function GET() {
 // POST /api/iowa/admin/tasks — create. Owner defaults to the creator; send
 // owner_id: null for an unowned task. Emails the owner if it isn't the creator.
 export async function POST(req: Request) {
+  const guard = await requirePermission('manageTasks');
+  if (guard instanceof NextResponse) return guard;
   const body = (await req.json().catch(() => ({}))) as TaskInput & { helper_ids?: string[] };
   try {
     const me = await currentStaff();

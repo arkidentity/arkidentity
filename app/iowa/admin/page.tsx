@@ -1,6 +1,8 @@
 import { after } from 'next/server';
 import type { Metadata } from 'next';
 import { loadCampusContext } from '@/lib/campusAdminData';
+import { currentStaff } from '@/lib/iowaStaff';
+import { can, filterStudies } from '@/lib/iowaPerms';
 import { listEvents } from '@/lib/campusTasks';
 import { addDays, chicagoToday, isValidDate } from '@/lib/campusFormat';
 import { listHeld, pullIfStale, syncStatus } from '@/lib/calendarSync';
@@ -51,6 +53,18 @@ export default async function IowaDashboardPage({
   ]);
   const pending = [...pendingStudies, ...pendingEvents];
 
+  // A student leader sees their own table and their own tasks — not every
+  // group's roster (study cards carry phone numbers) or everyone's work.
+  const me = await currentStaff();
+  const mineOnly = !can(me, 'viewAllStudies');
+  const studies = mineOnly
+    ? filterStudies(me, ctx.studiesFull, team.filter((t) => t.staff_id === ctx.meId).map((t) => t.study_id))
+    : ctx.studiesFull;
+  const tasks = mineOnly
+    ? ctx.tasks.filter((t) => t.owner_id === ctx.meId || t.helper_ids.includes(ctx.meId ?? ''))
+    : ctx.tasks;
+  const students = can(me, 'viewStudents') ? ctx.students : [];
+
   return (
     <Dashboard
       pending={pending}
@@ -58,9 +72,9 @@ export default async function IowaDashboardPage({
       thisWeekStart={thisWeek}
       calendar={{
         weekStart: start,
-        studies: ctx.studiesFull,
+        studies,
         events,
-        tasks: ctx.tasks,
+        tasks,
         staff: ctx.staff,
         types: ctx.types,
         meId: ctx.meId,
@@ -71,17 +85,17 @@ export default async function IowaDashboardPage({
         templates: templates.map((t) => ({ id: t.id, name: t.name, itemCount: t.items.length })),
         rsvps,
         songs,
-        students: ctx.students,
+        students,
         team,
       }}
       tasks={{
-        tasks: ctx.tasks,
+        tasks,
         activity: ctx.activity,
         staff: ctx.staff,
         types: ctx.types,
-        studies: ctx.studies,
+        studies: mineOnly ? ctx.studies.filter((o) => studies.some((x) => x.id === o.id)) : ctx.studies,
         events: ctx.events,
-        students: ctx.students,
+        students,
         meId: ctx.meId,
         openTaskId: sp.task ?? null,
         prefill: sp.new ? { study: sp.study, event: sp.event, student: sp.student } : null,

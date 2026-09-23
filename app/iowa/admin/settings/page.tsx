@@ -1,3 +1,6 @@
+import { redirect } from 'next/navigation';
+import { can } from '@/lib/iowaPerms';
+import { currentStaff } from '@/lib/iowaStaff';
 import type { Metadata } from 'next';
 import { listTypes } from '@/lib/campusTasks';
 import TypeSettings from '@/components/iowa/campus/TypeSettings';
@@ -10,6 +13,8 @@ export const dynamic = 'force-dynamic';
 export const metadata: Metadata = { title: 'ARK Iowa — settings' };
 
 export default async function IowaSettingsPage() {
+  // The nav hides this tab, but a bookmark shouldn't get past it either.
+  if (!can(await currentStaff(), 'manageSettings')) redirect('/iowa/admin');
   const [types, periods, semesters, templates, staff] = await Promise.all([
     listTypes(),
     listPeriods(),

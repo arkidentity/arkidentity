@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { addTaskComment, deleteTask, setHelper, setHelpers, updateTask, type TaskInput } from '@/lib/campusTasks';
 import { currentStaff } from '@/lib/iowaStaff';
+import { can } from '@/lib/iowaPerms';
+import { getTask } from '@/lib/campusTasks';
 import { notifyAddedToTask, notifyHelpOffered, notifyTaskAssigned, notifyTaskComment } from '@/lib/taskNotify';
 
 export const dynamic = 'force-dynamic';
@@ -16,8 +18,17 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   const body = (await req.json().catch(() => ({}))) as TaskInput & { help?: boolean; helper_ids?: string[] };
   try {
     const me = await currentStaff();
+    if (!me) return NextResponse.json({ error: 'Sign in again.' }, { status: 401 });
+    // A student leader can work the tasks they're on — take one, finish it,
+    // leave a note — but not reach into everyone else's.
+    if (!can(me, 'manageTasks')) {
+      const task = await getTask(id);
+      const mine = !!task && (task.owner_id === me.id || task.helper_ids.includes(me.id));
+      if (!mine && body.help !== true) {
+        return NextResponse.json({ error: 'That task isn’t yours.' }, { status: 403 });
+      }
+    }
     if (typeof body.help === 'boolean') {
-      if (!me) return NextResponse.json({ error: 'Sign in again.' }, { status: 401 });
       const task = await setHelper(id, me.id, body.help);
       if (body.help && task.owner_id && task.owner_id !== me.id) await notifyHelpOffered(task.id, me);
       return NextResponse.json({ task });

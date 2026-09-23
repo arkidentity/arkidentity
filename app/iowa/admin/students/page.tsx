@@ -1,3 +1,5 @@
+import { redirect } from 'next/navigation';
+import { can } from '@/lib/iowaPerms';
 import { listCampusStudents, listStudies } from '@/lib/bibleStudies';
 import { currentSemesterName } from '@/lib/semesters';
 import { currentStaff, listStaff } from '@/lib/iowaStaff';
@@ -15,6 +17,8 @@ export default async function CampusStudentsPage({
 }: {
   searchParams: Promise<Record<string, string | undefined>>;
 }) {
+  // The nav hides this tab, but a bookmark shouldn't get past it either.
+  if (!can(await currentStaff(), 'viewStudents')) redirect('/iowa/admin');
   const sp = await searchParams;
   const [students, studies, staff, me, semester] = await Promise.all([
     listCampusStudents(),
@@ -23,8 +27,8 @@ export default async function CampusStudentsPage({
     currentStaff(),
     currentSemesterName(),
   ]);
-  // The check-in report is staff + interns only, not student leaders.
-  const canReport = !!me && me.role !== 'leader';
+  // Reaching the page at all means the report is allowed (same permission).
+  const canReport = can(me, 'viewStudents');
   const [report, events] = canReport ? await Promise.all([checkinReport(students), invitableEvents()]) : [null, []];
   return (
     <CampusStudents

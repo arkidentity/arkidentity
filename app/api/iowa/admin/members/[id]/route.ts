@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { requirePermission } from '@/lib/iowaPerms';
 import { setMemberStatus, moveMember } from '@/lib/bibleStudies';
 import { getSupabaseAdmin } from '@/lib/supabaseAdmin';
 import { queueStudySync } from '@/lib/calendarSync';
@@ -14,6 +15,8 @@ export async function PATCH(
   req: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const me = await requirePermission('viewAllStudies');
+  if (me instanceof NextResponse) return me;
   const { id } = await params;
   const body = (await req.json().catch(() => ({}))) as {
     status?: string;

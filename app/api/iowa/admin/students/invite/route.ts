@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { invitePerson } from '@/lib/eventInvites';
-import { currentStaff } from '@/lib/iowaStaff';
+import { requirePermission } from '@/lib/iowaPerms';
 
 export const dynamic = 'force-dynamic';
 
@@ -9,10 +9,8 @@ export const dynamic = 'force-dynamic';
 // Each gets the same invite as the event screen sends one at a time (emailed if
 // they have an email); the links come back so they can be texted too.
 export async function POST(req: Request) {
-  const me = await currentStaff();
-  if (!me || me.role === 'leader') {
-    return NextResponse.json({ error: 'Only staff and interns can send these invites.' }, { status: 403 });
-  }
+  const me = await requirePermission('viewStudents');
+  if (me instanceof NextResponse) return me;
   const body = (await req.json().catch(() => ({}))) as { eventId?: string; contactIds?: string[] };
   const ids = [...new Set(body.contactIds ?? [])];
   if (!body.eventId || ids.length === 0) {

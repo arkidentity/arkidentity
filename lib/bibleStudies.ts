@@ -475,6 +475,19 @@ export async function joinStudy(input: JoinInput): Promise<JoinResult> {
 // A student signing up for a Bible study becomes a contact, tagged ARK Iowa so
 // they show up in campus segments. Subscribed is left OFF: they signed up for a
 // study, not the newsletter — the one intake that doesn't default on.
+// Same as joining a study, minus the study: the person becomes an ARK Iowa
+// contact with a campus_students row, so they show up on the Students page and
+// in the check-in report like anyone else.
+export async function ensureStudentContact(input: {
+  name: string;
+  phone: string;
+  email: string;
+  year?: string | null;
+  metBy?: string | null;
+}) {
+  return contactForStudent(input);
+}
+
 async function contactForStudent(input: {
   name: string;
   phone: string;

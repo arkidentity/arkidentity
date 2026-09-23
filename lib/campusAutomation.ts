@@ -1,7 +1,8 @@
 import { after } from 'next/server';
 import { getSupabaseAdmin } from '@/lib/supabaseAdmin';
 import { sendTaskAssignedNow as notifyTaskAssignedNow } from '@/lib/taskNotify';
-import { getStudyWithMembers, listStudies, type StudyMember, type StudyWithMembers } from '@/lib/bibleStudies';
+import { notify } from '@/lib/notifications';
+import { ensureStudentContact, getStudyWithMembers, listStudies, type StudyMember, type StudyWithMembers } from '@/lib/bibleStudies';
 import { semesterContext } from '@/lib/semesters';
 import { endPastSemesterStudies, sendDuePlanLinks, unplannedStudies } from '@/lib/semesterPlan';
 import { generateAllChecklists } from '@/lib/eventChecklists';
@@ -101,7 +102,7 @@ async function typeId(name: string): Promise<string | null> {
 
 interface AutoTask {
   key: string;
-  kind: 'welcome' | 'confirm' | 'missed' | 'reconnect' | 'place' | 'reinvite';
+  kind: 'welcome' | 'confirm' | 'missed' | 'reconnect' | 'place' | 'reinvite' | 'interest';
   title: string;
   description: string;
   owner_id: string | null;
@@ -648,4 +649,59 @@ export function queueDropped(contactId: string) {
       console.error('[iowa automation] drop cleanup failed', e);
     }
   });
+}
+
+// "I'm interested, I just don't know my schedule yet." Not every student at a
+// table is ready to pick a time — before this the public page offered only join
+// or start, so those conversations ended with a phone number on someone's hand.
+// They become a student like any other, plus one task to actually call them.
+export async function recordInterest(input: {
+  name: string;
+  phone: string;
+  email: string;
+  year?: string | null;
+  metBy?: string | null;
+  note?: string | null;
+}): Promise<{ contactId: string; taskId: string | null }> {
+  const contact = await ensureStudentContact(input);
+  const staff = await listStaff();
+  const metStaff = input.metBy && staff.some((s) => s.id === input.metBy && s.active) ? input.metBy : null;
+  const today = chicagoToday();
+
+  const taskId = await createAutoTask({
+    // One open follow-up per person: signing the form twice at an org fair
+    // shouldn't make two tasks.
+    key: `interest:${contact.id}`,
+    kind: 'interest',
+    title: `Follow up with ${input.name}`,
+    description: [
+      `${input.name} · ${input.phone}${input.email ? ` · ${input.email}` : ''}${input.year ? ` · ${input.year}` : ''}`,
+      metLabel({ met_by_staff_id: metStaff, met_by_other: null }, staff)
+        ? `How they came: ${metLabel({ met_by_staff_id: metStaff, met_by_other: null }, staff)}`
+        : null,
+      input.note ? `They said: ${input.note}` : null,
+      '',
+      'They asked us to follow up — they’re interested but didn’t pick a study time. Text or call, find a time that fits their schedule, then place them from the Students page.',
+    ]
+      .filter((x) => x !== null)
+      .join('\n'),
+    owner_id: metStaff,
+    due_date: today,
+    contact_id: contact.id,
+    typeName: 'Follow-up',
+    priority: 'high',
+  });
+
+  // Unowned tasks belong to nobody, so tell everyone who could pick it up.
+  if (taskId) {
+    await notify({
+      to: staff.filter((s) => s.active && s.role !== 'leader').map((s) => s.id),
+      kind: 'signup',
+      title: `${input.name} wants a follow-up`,
+      body: `${input.phone}${input.year ? ` · ${input.year}` : ''}${input.note ? `\n${input.note}` : ''}`,
+      link: `/iowa/admin?task=${taskId}#tasks`,
+      taskId,
+    });
+  }
+  return { contactId: contact.id, taskId };
 }

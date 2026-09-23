@@ -40,6 +40,7 @@ export default function StudiesBrowser({
   const [cells, setCells] = useState<Set<string>>(new Set());
   const [openJoin, setOpenJoin] = useState<string | null>(null);
   const [showStart, setShowStart] = useState(false);
+  const [showInterest, setShowInterest] = useState(false);
 
   async function refresh() {
     try {
@@ -281,7 +282,158 @@ export default function StudiesBrowser({
           </div>
         )}
       </div>
+
+      {/* The third door: plenty of students want in before they know their
+          schedule, and the other two options both make them pick a time. */}
+      <div className="rounded-xl border border-gray-200 bg-[#FAF8F5] px-6 py-6 mt-4">
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <p className="font-bold" style={{ color: 'var(--navy)' }}>
+              Not sure about your schedule yet?
+            </p>
+            <p className="text-sm text-[#4a4540]">
+              Leave your info and we’ll reach out this week to find a time that works.
+            </p>
+          </div>
+          <button
+            onClick={() => setShowInterest((v) => !v)}
+            className="px-5 py-2.5 rounded-lg font-semibold text-sm transition hover:opacity-80 shrink-0"
+            style={{ border: '1px solid var(--navy)', color: 'var(--navy)' }}
+          >
+            {showInterest ? 'Close' : 'Have us reach out'}
+          </button>
+        </div>
+        {showInterest && (
+          <div className="mt-5">
+            <InterestForm />
+          </div>
+        )}
+      </div>
     </div>
+  );
+}
+
+// Name, number, and anything they want us to know — no day, no time, no study.
+function InterestForm() {
+  const [form, setForm] = useState({ name: '', phone: '', email: '', year: '', metBy: '', note: '', hpField: '' });
+  const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
+  const [message, setMessage] = useState('');
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setStatus('loading');
+    setMessage('');
+    try {
+      const res = await fetch('/api/iowa/studies/interest', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(form),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok) setStatus('success');
+      else {
+        setStatus('error');
+        setMessage(data.error || 'Something went wrong. Text (319) 359-7117.');
+      }
+    } catch {
+      setStatus('error');
+      setMessage('Something went wrong. Text (319) 359-7117.');
+    }
+  }
+
+  if (status === 'success') {
+    return (
+      <div className="bg-white rounded-xl border border-gray-200 p-6">
+        <p className="font-bold" style={{ color: 'var(--navy)' }}>
+          We’ve got you.
+        </p>
+        <p className="text-[#4a4540] mt-1">
+          Someone from ARK Iowa will text you this week to find a time that fits your schedule.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="bg-white rounded-xl border border-gray-200 p-6 space-y-4">
+      <input
+        type="text"
+        required
+        placeholder="Your name"
+        value={form.name}
+        onChange={(e) => setForm({ ...form, name: e.target.value })}
+        className={inputClass}
+      />
+      <input
+        type="tel"
+        required
+        placeholder="A number we can text"
+        value={form.phone}
+        onChange={(e) => setForm({ ...form, phone: e.target.value })}
+        className={inputClass}
+      />
+      <input
+        type="email"
+        required
+        placeholder="you@uiowa.edu"
+        value={form.email}
+        onChange={(e) => setForm({ ...form, email: e.target.value })}
+        className={inputClass}
+      />
+
+      <div className="flex flex-wrap gap-2">
+        {YEARS.map((y) => (
+          <button
+            key={y}
+            type="button"
+            onClick={() => setForm({ ...form, year: form.year === y ? '' : y })}
+            className="px-3 py-1.5 rounded-md text-sm font-semibold transition"
+            style={{
+              backgroundColor: form.year === y ? 'var(--gold)' : '#f1ede7',
+              color: form.year === y ? 'var(--navy)' : '#8a8378',
+              border: form.year === y ? '1px solid var(--gold)' : '1px solid #e2ddd5',
+            }}
+          >
+            {y}
+          </button>
+        ))}
+      </div>
+
+      <input
+        type="text"
+        placeholder="Anything we should know? (optional)"
+        value={form.note}
+        onChange={(e) => setForm({ ...form, note: e.target.value })}
+        className={inputClass}
+      />
+
+      <MetByPicker value={form.metBy} onChange={(metBy) => setForm({ ...form, metBy })} />
+
+      {/* honeypot — see JoinForm for why it's named this way */}
+      <div aria-hidden="true" style={{ position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0 0 0 0)', whiteSpace: 'nowrap' }}>
+        <label htmlFor="hp-interest">Leave this field empty</label>
+        <input
+          id="hp-interest"
+          type="text"
+          name="hp_field"
+          tabIndex={-1}
+          autoComplete="off"
+          value={form.hpField}
+          onChange={(e) => setForm({ ...form, hpField: e.target.value })}
+        />
+      </div>
+
+      <button
+        type="submit"
+        disabled={status === 'loading'}
+        className="w-full px-6 py-3 rounded-lg font-semibold transition hover:opacity-90 disabled:opacity-50"
+        style={{ backgroundColor: 'var(--gold)', color: 'var(--navy)' }}
+      >
+        {status === 'loading' ? 'Sending…' : 'Have someone reach out'}
+      </button>
+
+      {status === 'error' && <p className="text-red-800 text-sm text-center">{message}</p>}
+    </form>
   );
 }
 

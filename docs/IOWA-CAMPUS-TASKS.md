@@ -342,6 +342,22 @@ tasks. Any event can have songs; the section is quiet until the first one is add
 - Deliberately NOT a song library: no usage history, CCLI, arrangements or SongSelect. These rows
   are the history if that's ever wanted.
 
+## Free vs busy (migration 028, 2026-09-23, Travis)
+
+Everything pushed to the shared calendar defaulted to BUSY (Google's default when `transparency` is
+unset), so every Bible study blocked Travis's booking slots — including student-led ones he never
+attends. Google's flag is per EVENT, not per viewer, and the calendar is shared, so it can only
+answer for one person: `iowa_calendar_sync.busy_staff_id`, set on Settings → Google Calendar.
+
+- **Study:** `opaque` when `point_staff_id` is that person, else `transparent`. Handing a study to
+  Keilor frees the slot as soon as the point person changes.
+- **Admin event:** `opaque` only when they're on it with `response = 'accepted'`. Declining frees it.
+- **Google-created events:** untouched — Google owns them.
+- Changing the setting rewrites every event the app owns (`queueAllStudiesSync` + `syncAllAppEvents`).
+- **Known gap:** study-team rows are per week, but transparency is per series, so a week Travis is
+  shadowing someone else's study doesn't block. Fix if it bites: push a one-off busy event for those
+  occurrences.
+
 ## One person, one contact (2026-09-23)
 
 **Matching on the way in:** `findOrCreateContact` tries email, then the last ten digits of the phone

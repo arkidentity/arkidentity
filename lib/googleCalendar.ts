@@ -92,6 +92,9 @@ export interface GEvent {
   start?: { date?: string; dateTime?: string; timeZone?: string };
   end?: { date?: string; dateTime?: string; timeZone?: string };
   recurrence?: string[];
+  // 'opaque' = blocks the viewer's time (Google's default when unset),
+  // 'transparent' = shows on the calendar without making them busy.
+  transparency?: 'opaque' | 'transparent';
   recurringEventId?: string;
   originalStartTime?: { date?: string; dateTime?: string; timeZone?: string };
   extendedProperties?: { private?: Record<string, string> };

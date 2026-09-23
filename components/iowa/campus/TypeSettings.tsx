@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { Disclosure, ErrorBox, PageShell, Section, btnPrimary, btnSmall, input, useCall, type TypeOption } from '@/components/iowa/campus/ui';
 import PushToggle from '@/components/iowa/campus/PushToggle';
+import CalendarBusy from '@/components/iowa/campus/CalendarBusy';
 import type { SchoolPeriod, Semester } from '@/lib/campusFormat';
 import SemesterSettings from '@/components/iowa/campus/SemesterSettings';
 import ChecklistSettings from '@/components/iowa/campus/ChecklistSettings';
@@ -35,6 +36,8 @@ function InstallCard() {
 
 export default function TypeSettings({
   vapidPublicKey = null,
+  busyStaff = null,
+  allStaff = [],
   types,
   periods,
   semesters,
@@ -47,6 +50,8 @@ export default function TypeSettings({
   templates: ChecklistTemplate[];
   staff: { id: string; name: string }[];
   vapidPublicKey?: string | null; // null = push not configured on the server
+  busyStaff?: string | null; // whose booking slots synced events block
+  allStaff?: { id: string; name: string; active: boolean }[];
 }) {
   const { call, busy, error } = useCall();
   return (
@@ -68,6 +73,10 @@ export default function TypeSettings({
         Lists the admin uses
       </h2>
       <ErrorBox error={error} />
+
+      <Disclosure title="Google Calendar" hint="Whether a synced study blocks your booking slots">
+        <CalendarBusy staff={allStaff} current={busyStaff} />
+      </Disclosure>
 
       <Disclosure title="Semesters" hint="Term dates, and when signup opens for the next one">
         <SemesterSettings semesters={semesters} embedded />

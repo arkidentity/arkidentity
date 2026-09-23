@@ -70,12 +70,31 @@ function studyEligible(s: StudyWithMembers): boolean {
   return LIVE.includes(s.status) && s.activeCount > 0 && !!s.location;
 }
 
+// The one person whose booking slots these events should block (migration
+// 028). Null = nobody, so everything shows as free.
+export async function busyStaffId(): Promise<string | null> {
+  const { data } = await getSupabaseAdmin().from('iowa_calendar_sync').select('busy_staff_id').eq('id', 1).maybeSingle();
+  return (data?.busy_staff_id as string | null) ?? null;
+}
+
+export async function setBusyStaff(staffId: string | null): Promise<void> {
+  const { error } = await getSupabaseAdmin()
+    .from('iowa_calendar_sync')
+    .update({ busy_staff_id: staffId })
+    .eq('id', 1);
+  if (error) throw error;
+  // Every pushed event carries the flag, so changing this rewrites them all.
+  queueAllStudiesSync();
+  after(syncAllAppEvents);
+}
+
 export function studyEvent(
   s: StudyWithMembers,
   onPoint: string | null,
   staffNames: Map<string, string> = new Map(),
   periods: SchoolPeriod[] = [],
-  semesters: Semester[] = []
+  semesters: Semester[] = [],
+  busyFor: string | null = null
 ): GEvent {
   const metBy = (m: StudyWithMembers['members'][number]) =>
     m.met_by_staff_id && staffNames.get(m.met_by_staff_id)
@@ -112,6 +131,9 @@ export function studyEvent(
     start: { dateTime: `${first}T${start}`, timeZone: TZ },
     end: { dateTime: `${first}T${plusHour(start)}`, timeZone: TZ },
     recurrence: [`RRULE:FREQ=WEEKLY${until}`, ...breakExdates(s, first, start, periods)],
+    // Busy only when he's the one who has to be there; a student-led study is
+    // on the calendar for context, not as a commitment.
+    transparency: busyFor && s.point_staff_id === busyFor ? 'opaque' : 'transparent',
     extendedProperties: { private: { arkSource: 'study', arkId: s.id } },
   };
 }
@@ -145,7 +167,14 @@ async function pushStudy(
     }
     return;
   }
-  const event = studyEvent(s, s.point_staff_id ? staffNames.get(s.point_staff_id) ?? null : null, staffNames, periods, semesters);
+  const event = studyEvent(
+    s,
+    s.point_staff_id ? staffNames.get(s.point_staff_id) ?? null : null,
+    staffNames,
+    periods,
+    semesters,
+    await busyStaffId()
+  );
   // Deleted by hand in Google? patch returns null — put it back.
   const saved = (s.google_event_id && (await patchCalendarEvent(s.google_event_id, event))) || (await insertCalendarEvent(event));
   if (saved.id !== s.google_event_id) {
@@ -213,10 +242,16 @@ interface EventRow {
   skip_dates: string[] | null;
   google_event_id: string | null;
   type: { name: string } | null;
-  staff: { staff_id: string }[] | null;
+  staff: { staff_id: string; response: string }[] | null;
 }
 
-function appEvent(e: EventRow, names: Map<string, string>, songs: string[] = [], songsDate: string | null = null): GEvent {
+function appEvent(
+  e: EventRow,
+  names: Map<string, string>,
+  songs: string[] = [],
+  songsDate: string | null = null,
+  busyFor: string | null = null
+): GEvent {
   const going = (e.staff ?? []).map((x) => names.get(x.staff_id)).filter(Boolean);
   const lines = [
     e.type?.name ? `Type: ${e.type.name}` : null,
@@ -252,6 +287,11 @@ function appEvent(e: EventRow, names: Map<string, string>, songs: string[] = [],
           ),
         ]
       : [],
+    // Busy once he's said yes; declining or never answering leaves it free.
+    transparency:
+      busyFor && (e.staff ?? []).some((x) => x.staff_id === busyFor && x.response === 'accepted')
+        ? 'opaque'
+        : 'transparent',
     extendedProperties: { private: { arkSource: 'event', arkId: e.id } },
   };
 }
@@ -262,7 +302,7 @@ export async function syncAppEvent(eventId: string): Promise<void> {
     const db = getSupabaseAdmin();
     const { data, error } = await db
       .from('iowa_events')
-      .select('*, type:iowa_item_types(name), staff:iowa_event_staff(staff_id)')
+      .select('*, type:iowa_item_types(name), staff:iowa_event_staff(staff_id, response)')
       .eq('id', eventId)
       .maybeSingle();
     if (error) throw error;
@@ -273,7 +313,13 @@ export async function syncAppEvent(eventId: string): Promise<void> {
     const today = chicagoToday();
     const next = eventDatesInRange(e, today, addDays(today, 120))[0] ?? e.event_date;
     const songs = await songsFor(e.id, next).catch(() => []);
-    const event = appEvent(e, await staffNameMap(), songLines(songs), e.repeat_weekly && songs.length ? next : null);
+    const event = appEvent(
+      e,
+      await staffNameMap(),
+      songLines(songs),
+      e.repeat_weekly && songs.length ? next : null,
+      await busyStaffId()
+    );
     const saved = (e.google_event_id && (await patchCalendarEvent(e.google_event_id, event))) || (await insertCalendarEvent(event));
     if (saved.id !== e.google_event_id) {
       await db.from('iowa_events').update({ google_event_id: saved.id }).eq('id', e.id);
@@ -305,11 +351,14 @@ export async function takeOverGoogleEvent(eventId: string): Promise<void> {
   try {
     const { data, error: loadErr } = await db
       .from('iowa_events')
-      .select('*, type:iowa_item_types(name), staff:iowa_event_staff(staff_id)')
+      .select('*, type:iowa_item_types(name), staff:iowa_event_staff(staff_id, response)')
       .eq('id', eventId)
       .single();
     if (loadErr) throw loadErr;
-    const saved = await patchCalendarEvent(row.google_event_id, appEvent(data as EventRow, await staffNameMap()));
+    const saved = await patchCalendarEvent(
+      row.google_event_id,
+      appEvent(data as EventRow, await staffNameMap(), [], null, await busyStaffId())
+    );
     if (!saved) throw new Error('That event is gone from Google Calendar.');
   } catch (e) {
     await db.from('iowa_events').update({ source: 'google' }).eq('id', eventId);

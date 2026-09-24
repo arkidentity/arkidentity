@@ -34,12 +34,17 @@ export async function listTaskFiles(taskIds?: string[]): Promise<TaskFile[]> {
 }
 
 // Step one: a place to put it. Keeps only a safe extension from the name.
-export async function signUpload(taskId: string, filename: string): Promise<{ path: string; token: string }> {
+export async function signUpload(
+  taskId: string,
+  filename: string
+): Promise<{ path: string; token: string; bucket: string }> {
   const ext = (filename.split('.').pop() || '').toLowerCase().replace(/[^a-z0-9]/g, '');
   const objectPath = `${taskId}/${randomUUID()}${ext ? '.' + ext : ''}`;
   const { data, error } = await getSupabaseAdmin().storage.from(TASK_BUCKET).createSignedUploadUrl(objectPath);
   if (error) throw new Error(bucketHint(error.message));
-  return { path: data.path, token: data.token };
+  // The bucket name travels with the signature so the browser never has to
+  // guess it (and an env override can't silently break uploads).
+  return { path: data.path, token: data.token, bucket: TASK_BUCKET };
 }
 
 // Step two: the upload landed, so record it.

@@ -905,7 +905,7 @@ function Files({ t, files }: { t: CampusTask; files: TaskFile[] }) {
       if (!signRes.ok) throw new Error(signed.error || 'Could not start the upload.');
 
       const { error: upErr } = await supabase.storage
-        .from('iowa-task-files')
+        .from(signed.bucket)
         .uploadToSignedUrl(signed.path, signed.token, file, { contentType: file.type || undefined });
       if (upErr) throw new Error(upErr.message);
 

@@ -2,6 +2,8 @@
 
 import { useMemo, useState } from 'react';
 import type { CampusTask, TaskActivity } from '@/lib/campusTasks';
+import type { TaskFile } from '@/lib/taskFiles';
+import { supabase } from '@/lib/supabase';
 import {
   PRIORITIES,
   TASK_STATUSES,
@@ -45,6 +47,7 @@ export interface TaskListProps {
   // Tasks page: open this task / start a new one pre-linked.
   openTaskId?: string | null;
   prefill?: { study?: string; event?: string; student?: string } | null;
+  files?: TaskFile[];
   // Dashboard: just my open tasks, no filters.
   compact?: boolean;
   // Render a heading with + New task on the same line (saves a row on phones).
@@ -520,6 +523,8 @@ function TaskDetail(props: TaskListProps & { t: CampusTask; busy: boolean; call:
         />
       )}
 
+      <Files t={t} files={(props.files ?? []).filter((f) => f.task_id === t.id)} />
+
       <Comments t={t} comments={comments} nameOf={nameOf} />
 
       {history && (
@@ -865,6 +870,103 @@ function Comments({
           + Add a note
         </button>
       )}
+    </div>
+  );
+}
+
+const MAX_FILE_MB = 25;
+
+const fileSize = (bytes: number | null) =>
+  bytes === null ? '' : bytes < 1024 * 1024 ? `${Math.max(1, Math.round(bytes / 1024))} KB` : `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+
+// A chord chart on the worship task, a permission form on the retreat task.
+// The browser uploads straight to Supabase with a signed URL, so a big PDF
+// never has to squeeze through the serverless request limit.
+function Files({ t, files }: { t: CampusTask; files: TaskFile[] }) {
+  const { call, busy } = useCall();
+  const [uploading, setUploading] = useState(false);
+  const [error, setError] = useState('');
+  const url = `/api/iowa/admin/tasks/${t.id}/files`;
+
+  async function upload(file: File) {
+    setError('');
+    if (file.size > MAX_FILE_MB * 1024 * 1024) {
+      setError(`${file.name} is over ${MAX_FILE_MB}MB.`);
+      return;
+    }
+    setUploading(true);
+    try {
+      const signRes = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sign: { filename: file.name } }),
+      });
+      const signed = await signRes.json().catch(() => ({}));
+      if (!signRes.ok) throw new Error(signed.error || 'Could not start the upload.');
+
+      const { error: upErr } = await supabase.storage
+        .from('iowa-task-files')
+        .uploadToSignedUrl(signed.path, signed.token, file, { contentType: file.type || undefined });
+      if (upErr) throw new Error(upErr.message);
+
+      const ok = await call(url, 'POST', {
+        name: file.name,
+        path: signed.path,
+        contentType: file.type || null,
+        size: file.size,
+      });
+      if (!ok) throw new Error('Uploaded, but could not attach it.');
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  return (
+    <div className="rounded-md border border-gray-200 bg-white p-3">
+      <p className="text-xs font-semibold text-[#8a8378] mb-2">Files{files.length > 0 ? ` (${files.length})` : ''}</p>
+      {files.length > 0 && (
+        <ul className="space-y-1 mb-2 text-sm">
+          {files.map((f) => (
+            <li key={f.id} className="flex flex-wrap items-center gap-2">
+              <a
+                href={`${url}/${f.id}`}
+                target="_blank"
+                rel="noreferrer"
+                className="font-semibold hover:underline break-all"
+                style={{ color: 'var(--navy)' }}
+              >
+                {f.name}
+              </a>
+              <span className="text-xs text-[#8a8378]">{fileSize(f.size_bytes)}</span>
+              <button
+                disabled={busy}
+                onClick={() => call(`${url}/${f.id}`, 'DELETE')}
+                className="text-xs text-[#b0a99e] ml-auto"
+                title="Remove"
+              >
+                ✕
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+      <label className="text-sm font-semibold cursor-pointer" style={{ color: 'var(--navy)' }}>
+        {uploading ? 'Uploading…' : '+ Attach a file'}
+        <input
+          type="file"
+          className="hidden"
+          disabled={uploading}
+          onChange={(e) => {
+            const file = e.target.files?.[0];
+            e.target.value = '';
+            if (file) upload(file);
+          }}
+        />
+      </label>
+      <p className="text-xs text-[#8a8378] mt-1">PDFs, photos, anything up to {MAX_FILE_MB}MB.</p>
+      {error && <p className="text-xs text-red-700 mt-1">{error}</p>}
     </div>
   );
 }

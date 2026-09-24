@@ -106,3 +106,17 @@ export async function notifyTaskComment(taskId: string, comment: string, by: Iow
     taskId: task.id,
   });
 }
+
+// A file landing on someone's task is worth the same nudge a note is.
+export async function notifyTaskFile(taskId: string, filename: string, by: IowaStaff | null) {
+  const task = await getTask(taskId).catch(() => null);
+  if (!task) return;
+  await notify({
+    to: taskAudience(task, by),
+    kind: 'task_comment',
+    title: `${by?.name?.split(' ')[0] ?? 'Someone'} attached a file to: ${task.title}`,
+    body: filename,
+    link: taskLink(task.id),
+    taskId: task.id,
+  });
+}

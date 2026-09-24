@@ -10,6 +10,7 @@ import { semesterContext } from '@/lib/semesters';
 import { listTemplates } from '@/lib/eventChecklists';
 import { listRsvps, pendingInvitesFor } from '@/lib/eventInvites';
 import { listSongs } from '@/lib/eventSongs';
+import { listTaskFiles } from '@/lib/taskFiles';
 import { listStudyTeam, pendingStudyInvitesFor } from '@/lib/studyTeam';
 import Dashboard from '@/components/iowa/campus/Dashboard';
 
@@ -44,9 +45,10 @@ export default async function IowaDashboardPage({
     listTemplates(),
   ]);
 
-  const [rsvps, songs, pendingEvents, pendingStudies, team] = await Promise.all([
+  const [rsvps, songs, taskFiles, pendingEvents, pendingStudies, team] = await Promise.all([
     listRsvps(events.map((e) => e.id)),
     listSongs(events.map((e) => e.id)),
+    listTaskFiles(),
     ctx.meId ? pendingInvitesFor(ctx.meId) : Promise.resolve([]),
     ctx.meId ? pendingStudyInvitesFor(ctx.meId) : Promise.resolve([]),
     listStudyTeam(ctx.studiesFull.map((s) => s.id)),
@@ -90,6 +92,7 @@ export default async function IowaDashboardPage({
       }}
       tasks={{
         tasks,
+        files: taskFiles,
         activity: ctx.activity,
         staff: ctx.staff,
         types: ctx.types,

@@ -342,6 +342,19 @@ tasks. Any event can have songs; the section is quiet until the first one is add
 - Deliberately NOT a song library: no usage history, CCLI, arrangements or SongSelect. These rows
   are the history if that's ever wanted.
 
+## Task files (migration 029, 2026-09-24, Travis)
+
+A chord chart on the worship task, a permission form on the retreat task. `iowa_task_files` indexes
+them; the files live in the **private `iowa-task-files` storage bucket — create it in the Supabase
+dashboard**, or every upload fails with a message saying exactly that.
+
+- The browser uploads straight to Supabase with a signed URL (`signUpload` → `recordFile`), so a
+  25MB PDF never squeezes through the serverless body limit — same trick as the feed's media.
+- Downloads go through `GET …/files/:fileId`, which mints a 60-second signed URL and redirects.
+  Private because a forwarded link should go stale, not because the contents are secret — Travis
+  ruled that nothing here is sensitive, and anyone on a task (leaders included) can open its files.
+- Attaching one notifies the task's owner and helpers, like a note does.
+
 ## Free vs busy (migration 028, 2026-09-23, Travis)
 
 Everything pushed to the shared calendar defaulted to BUSY (Google's default when `transparency` is

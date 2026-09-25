@@ -342,6 +342,25 @@ tasks. Any event can have songs; the section is quiet until the first one is add
 - Deliberately NOT a song library: no usage history, CCLI, arrangements or SongSelect. These rows
   are the history if that's ever wanted.
 
+## Who's free? (migration 030, 2026-09-24, Travis)
+
+A weekly pattern of BUSY blocks per person per semester (`iowa_availability`) — class, gym, work,
+practice, church. Not a calendar, and semester-scoped on purpose: a stale schedule is worse than
+none, because it would hand someone a study they can't make. Null start/end = all day.
+
+- **Each person fills in their own**, from a private link (`iowa_availability_links`, one per person
+  per semester, same shape as the 018 plan links): `/iowa/schedule/<token>`, no login, editable any
+  time. Phrased as "when are you tied up?" — people can list their classes from memory but can't
+  list their free hours.
+- **Staff page → Schedules**: who's answered, who was asked, copy the link or email it
+  (`sendScheduleLink`). The token is the authorisation, so every write re-checks it and can only
+  touch that person's own blocks.
+- **Where it pays off:** the "Staff on point" picker sorts whoever's free first and labels the rest
+  ("Keilor — busy: Class"), with a warning under the field if the person already chosen has a
+  clash. `clashAt()` treats a study as an hour.
+- Renewal is the point of the per-semester link: nobody's Fall schedule silently becomes their
+  Spring one.
+
 ## Four fixes (2026-09-24, Travis)
 
 - **Refresh button** in the nav (↻). The installed app never reloads itself, so the only way to see

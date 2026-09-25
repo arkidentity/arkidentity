@@ -6,6 +6,7 @@ import type { StudyWithMembers, StudyMember, StudyStatus } from '@/lib/bibleStud
 import { DAY_NAMES, PICKER_DAYS, formatTime } from '@/lib/bibleStudyFormat';
 import { DROP_REASONS, formatDate, isOverdue, type TaskPriority, type TaskStatus } from '@/lib/campusFormat';
 import { OverdueTag, PriorityBadge, StatusPill } from '@/components/iowa/campus/ui';
+import { clashAt, type BusyBlock } from '@/lib/availability';
 import PlanForm from '@/components/iowa/PlanForm';
 
 // Open campus tasks linked to a study, shown inside that study's editor.
@@ -22,6 +23,9 @@ const StudyTasks = createContext<Record<string, StudyTask[]>>({});
 const Planning = createContext<{ name: string; starts_on: string }[]>([]);
 // Everyone already tagged ARK Iowa, for "add a student who's already here".
 const Students = createContext<{ id: string; label: string }[]>([]);
+// This semester's busy blocks, so picking someone for a study can say "Keilor
+// has class then" instead of letting you find out from him later.
+const Busy = createContext<BusyBlock[]>([]);
 
 const STATUSES: StudyStatus[] = ['pending_setup', 'forming', 'full', 'activated', 'paused', 'ended'];
 
@@ -67,7 +71,9 @@ export default function IowaAdmin({
   tasksByStudy = {},
   planning = [],
   students = [],
+  busyBlocks = [],
 }: {
+  busyBlocks?: BusyBlock[];
   students?: { id: string; label: string }[];
   planning?: { name: string; starts_on: string }[];
   initial: StudyWithMembers[];
@@ -135,6 +141,7 @@ export default function IowaAdmin({
   }, [initial]);
 
   return (
+    <Busy.Provider value={busyBlocks}>
     <Students.Provider value={students}>
     <StudyTasks.Provider value={tasksByStudy}>
     <Planning.Provider value={planning}>
@@ -266,6 +273,7 @@ export default function IowaAdmin({
     </Planning.Provider>
     </StudyTasks.Provider>
     </Students.Provider>
+    </Busy.Provider>
   );
 }
 
@@ -488,6 +496,8 @@ function StudyEditor({
             staff={[...staff.values()]}
             value={draft.point_staff_id}
             onChange={(v) => setDraft({ ...draft, point_staff_id: v })}
+            day={draft.day_of_week}
+            time={draft.start_time}
           />
         </Field>
         <Field label="Leader name">
@@ -978,6 +988,8 @@ function NewStudyForm({
           staff={staff}
           value={f.pointStaffId}
           onChange={(v) => setF({ ...f, pointStaffId: v })}
+          day={Number(f.dayOfWeek)}
+          time={f.startTime}
         />
       </Field>
       <Field label="Leader name">
@@ -1069,23 +1081,46 @@ function StaffSelect({
   staff,
   value,
   onChange,
+  day,
+  time,
 }: {
   staff: StaffOption[];
   value: string;
   onChange: (v: string) => void;
+  // When the study meets, so the list can say who's tied up then.
+  day?: number;
+  time?: string;
 }) {
+  const busy = useContext(Busy);
+  const clash = (id: string) =>
+    day === undefined || !time ? null : clashAt(busy, id, day, time);
+  const options = staff.filter((p) => p.active || p.id === value);
+  const chosenClash = value ? clash(value) : null;
+
   return (
-    <select className={input} value={value} onChange={(e) => onChange(e.target.value)}>
-      <option value="">Nobody — a student leader has it</option>
-      {staff
-        .filter((p) => p.active || p.id === value)
-        .map((p) => (
-          <option key={p.id} value={p.id}>
-            {p.name}
-            {p.active ? '' : ' (inactive)'}
-          </option>
-        ))}
-    </select>
+    <div>
+      <select className={input} value={value} onChange={(e) => onChange(e.target.value)}>
+        <option value="">Nobody — a student leader has it</option>
+        {/* Whoever's free first: the point of asking for schedules. */}
+        {[...options]
+          .sort((a, b) => Number(!!clash(a.id)) - Number(!!clash(b.id)))
+          .map((p) => {
+            const c = clash(p.id);
+            return (
+              <option key={p.id} value={p.id}>
+                {p.name}
+                {p.active ? '' : ' (inactive)'}
+                {c ? ` — busy${c.label ? `: ${c.label}` : ''}` : ''}
+              </option>
+            );
+          })}
+      </select>
+      {chosenClash && (
+        <p className="text-xs mt-1" style={{ color: '#b45309' }}>
+          Heads up — they have {chosenClash.label ?? 'something'} then.
+        </p>
+      )}
+    </div>
   );
 }
 

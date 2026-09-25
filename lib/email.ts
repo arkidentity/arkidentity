@@ -574,6 +574,21 @@ export async function sendNotificationDigest(opts: {
   });
 }
 
+export async function sendScheduleLink(opts: { to: string; name: string; semester: string; url: string }) {
+  const { to, name, semester, url } = opts;
+  return getResend().emails.send({
+    from: fromAddress(),
+    to,
+    subject: `Your ${semester} schedule`,
+    html: wrap(`
+      <p>${escapeHtml(name.split(' ')[0])}, before ${escapeHtml(semester)} gets going — block out when you're tied up
+         (class, work, practice, anything standing) so we don't hand you a Bible study you can't make.</p>
+      <p>Takes about two minutes, and you can change it any time on the same link.</p>
+      <p><a href="${url}" style="color:#143348; font-weight:600;">Fill in your schedule →</a></p>
+    `),
+  });
+}
+
 // One email per person, sent in a Resend batch.
 export async function sendEmailBatch(
   items: { to: string; subject: string; html: string }[]

@@ -3,6 +3,7 @@ import { can } from '@/lib/iowaPerms';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { listStudentOptions, listStudies } from '@/lib/bibleStudies';
+import { listBusy } from '@/lib/availability';
 import { semesterContext } from '@/lib/semesters';
 import { currentStaff, listStaff } from '@/lib/iowaStaff';
 import { listTasks } from '@/lib/campusTasks';
@@ -26,6 +27,8 @@ export default async function IowaStudiesPage({ searchParams }: { searchParams: 
     listTasks(),
     listStudentOptions(),
   ]);
+  // This semester's busy blocks, so the point-person picker can flag a clash.
+  const busyBlocks = await listBusy(semester);
   const nameOf = new Map(staff.map((s) => [s.id, s.name]));
   const tasksByStudy: Record<string, StudyTask[]> = {};
   for (const t of tasks) {
@@ -74,6 +77,7 @@ export default async function IowaStudiesPage({ searchParams }: { searchParams: 
       meId={me?.id ?? null}
       tasksByStudy={tasksByStudy}
       students={students}
+      busyBlocks={busyBlocks}
     />
     </>
   );

@@ -79,9 +79,15 @@ export function weekStart(date: string): string {
   return addDays(date, -((dayOfWeek(date) + 6) % 7));
 }
 
-export function weekDays(start: string): string[] {
-  return Array.from({ length: 7 }, (_, i) => addDays(start, i));
+export function weekDays(start: string, count = 7): string[] {
+  return Array.from({ length: count }, (_, i) => addDays(start, i));
 }
+
+// How many days the dashboard grid shows. Five keeps the columns wide enough
+// to read and cuts the scroll on a phone; the toggle is there because nobody
+// knows yet which one people actually live in.
+export const SPAN_DAYS = { short: 5, week: 7 } as const;
+export type CalendarSpan = keyof typeof SPAN_DAYS;
 
 export function isValidDate(s: unknown): s is string {
   return typeof s === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(s) && !Number.isNaN(toUtc(s).getTime());

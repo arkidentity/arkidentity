@@ -1,19 +1,18 @@
 'use client';
 
+import { useState } from 'react';
+
 import type { StudyWithMembers } from '@/lib/bibleStudies';
 import type { CampusEvent, CampusTask } from '@/lib/campusTasks';
 import { formatSlot, formatTime } from '@/lib/bibleStudyFormat';
 import {
   chicagoToday,
-  compareTasks,
   dayOfWeek,
   eventDatesInRange,
   formatDate,
   isOverdue,
   periodsOn,
   studyPausedBy,
-  taskGroupKey,
-  taskGroupTitle,
   roleVerb,
   teamOn,
   type SchoolPeriod,
@@ -37,6 +36,8 @@ export interface WeekItem {
   overdue?: boolean;
   paused?: boolean; // in-person study on a break week
   taskIds?: string[]; // a task (or a grouped line) — opens in a popup, no reload
+  mine?: boolean; // my study / my task — these stay visible when a day collapses
+  flag?: string | null; // what's wrong with it ('no location'), shown in a summary
 }
 
 const KIND_STYLE: Record<WeekItem['kind'], { bar: string; bg: string }> = {
@@ -95,6 +96,9 @@ export function buildWeekItems(opts: {
       href: '/iowa/admin/studies',
       studyId: s.id,
       paused: !!pause,
+      mine: mineHere,
+      // Worth surfacing even when the day is summarised.
+      flag: !s.location && !s.online ? 'no location' : !s.point_staff_id && !s.leader_name ? 'nobody on point' : null,
     });
   }
 
@@ -121,69 +125,36 @@ export function buildWeekItems(opts: {
     }
   }
 
-  // Same-kind automation tasks (six "Reconnect with…" on one Friday) collapse
-  // into one line per day per owner, names listed. Unowned ones stay separate.
+  // Tasks have a due date, not a time, so listing them here just made each day
+  // taller — and the task list below already groups them properly. One line
+  // per day instead: how many are due, how many are mine, tap to work them.
   const today = chicagoToday();
-  const grouped = new Map<string, { date: string; key: string; owner: string | null; tasks: CampusTask[]; overdue: boolean }>();
+  const dueByDay = new Map<string, { ids: string[]; mine: number; overdue: boolean }>();
   for (const t of tasks) {
     if (t.status === 'done' || !t.due_date) continue;
-    if (mineOnly && t.owner_id !== meId && !t.helper_ids.includes(meId ?? '')) continue;
+    const isMine = t.owner_id === meId || t.helper_ids.includes(meId ?? '');
+    if (mineOnly && !isMine) continue;
     // Overdue tasks pile onto today so they can't hide in last week.
     const overdue = isOverdue(t, today);
     const date = overdue && today >= from && today <= to ? today : t.due_date;
     if (date < from || date > to) continue;
-    const gk = taskGroupKey(t);
-    if (gk) {
-      const k = `${date}|${gk}|${t.owner_id ?? ''}`;
-      const g = grouped.get(k) ?? { date, key: gk, owner: t.owner_id, tasks: [], overdue: false };
-      g.tasks.push(t);
-      g.overdue ||= overdue;
-      grouped.set(k, g);
-      continue;
-    }
+    const day = dueByDay.get(date) ?? { ids: [], mine: 0, overdue: false };
+    day.ids.push(t.id);
+    if (isMine) day.mine++;
+    day.overdue ||= overdue;
+    dueByDay.set(date, day);
+  }
+  for (const [date, day] of dueByDay) {
     items.push({
-      key: `t-${t.id}`,
+      key: `tasks-${date}`,
       date,
       time: null,
       kind: 'task',
-      title: t.title,
-      sub: [overdue ? `overdue · was ${formatDate(t.due_date)}` : 'due', t.owner_id ? nameOf(t.owner_id) : 'unowned'].join(' · '),
-      href: `/iowa/admin?task=${t.id}#tasks`,
-      taskIds: [t.id],
-      priority: t.priority,
-      overdue,
-    });
-  }
-  for (const [k, g] of grouped) {
-    const [t] = [...g.tasks].sort((a, b) => compareTasks(a, b, today));
-    if (g.tasks.length === 1) {
-      items.push({
-        key: `t-${t.id}`,
-        date: g.date,
-        time: null,
-        kind: 'task',
-        title: t.title,
-        sub: [g.overdue ? `overdue · was ${formatDate(t.due_date!)}` : 'due', g.owner ? nameOf(g.owner) : 'unowned'].join(' · '),
-        href: `/iowa/admin?task=${t.id}#tasks`,
-        taskIds: [t.id],
-        priority: t.priority,
-        overdue: g.overdue,
-      });
-      continue;
-    }
-    const names = g.tasks.map((x) => x.contact_name ?? '?').join(', ');
-    items.push({
-      key: `g-${k}`,
-      date: g.date,
-      time: null,
-      kind: 'task',
-      title: taskGroupTitle(g.key, g.tasks.length),
-      sub: [g.overdue ? 'overdue' : null, g.owner ? nameOf(g.owner) : 'unowned', names].filter(Boolean).join(' · '),
-      // Opens the dashboard with this group expanded.
-      href: `/iowa/admin?task=${t.id}#tasks`,
-      taskIds: g.tasks.map((x) => x.id),
-      priority: t.priority,
-      overdue: g.overdue,
+      title: `${day.ids.length} task${day.ids.length === 1 ? '' : 's'} due`,
+      sub: day.mine > 0 ? `${day.mine} mine` : 'none of them mine',
+      taskIds: day.ids,
+      mine: day.mine > 0,
+      overdue: day.overdue,
     });
   }
 
@@ -239,9 +210,57 @@ export default function WeekView({
                 {p.name}
               </div>
             ))}
+            <DayCell items={dayItems} onEventClick={onEventClick} onStudyClick={onStudyClick} onTaskClick={onTaskClick} />
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// A day with eight studies on it shouldn't be eight rows tall. Mine stay
+// listed — those are the ones I act on — and everyone else's collapse into a
+// count that says what's wrong rather than what exists. Events are never
+// collapsed: there are few of them and they're what you'd actually miss.
+const COLLAPSE_OVER = 3;
+
+function DayCell({
+  items,
+  onEventClick,
+  onStudyClick,
+  onTaskClick,
+}: {
+  items: WeekItem[];
+  onEventClick?: (eventId: string, date: string) => void;
+  onStudyClick?: (studyId: string, date: string) => void;
+  onTaskClick?: (taskIds: string[]) => void;
+}) {
+  const [expanded, setExpanded] = useState(false);
+  const others = items.filter((i) => i.kind === 'study' && !i.mine);
+  const collapse = !expanded && others.length > COLLAPSE_OVER;
+  const shown = collapse ? items.filter((i) => !others.includes(i)) : items;
+  const flags = others.map((i) => i.flag).filter(Boolean) as string[];
+
+  return (
             <ul className="p-1.5 space-y-1">
-              {dayItems.length === 0 && <li className="text-xs text-[#c4bdb2] px-1 md:hidden">Nothing</li>}
-              {dayItems.map((i) => {
+              {items.length === 0 && <li className="text-xs text-[#c4bdb2] px-1 md:hidden">Nothing</li>}
+              {collapse && (
+                <li>
+                  <button
+                    onClick={() => setExpanded(true)}
+                    className="block w-full text-left rounded px-2 py-1.5 md:px-1.5 md:py-1 text-[15px] md:text-xs hover:brightness-95"
+                    style={{ backgroundColor: '#f0fdf4', borderLeft: '3px solid #15803d' }}
+                  >
+                    <span className="block font-semibold text-[#1f2937] leading-tight">{others.length} more studies</span>
+                    {flags.length > 0 && (
+                      <span className="block text-sm md:text-[11px] leading-snug md:leading-tight mt-0.5" style={{ color: '#b45309' }}>
+                        {flags.length} {flags.length === 1 ? flags[0] : 'need attention'}
+                      </span>
+                    )}
+                  </button>
+                </li>
+              )}
+              {shown.map((i) => {
                 const style = KIND_STYLE[i.kind];
                 const body = (
                   <>
@@ -285,11 +304,14 @@ export default function WeekView({
                   </li>
                 );
               })}
+              {expanded && others.length > COLLAPSE_OVER && (
+                <li>
+                  <button onClick={() => setExpanded(false)} className="text-xs px-1.5" style={{ color: '#8a8378' }}>
+                    Collapse
+                  </button>
+                </li>
+              )}
             </ul>
-          </div>
-        );
-      })}
-    </div>
   );
 }
 

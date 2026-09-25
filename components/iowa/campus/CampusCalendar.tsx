@@ -16,7 +16,9 @@ import {
   eventDatesInRange,
   formatDate,
   scheduleWarnings,
+  SPAN_DAYS,
   weekDays,
+  type CalendarSpan,
   type SchoolPeriod,
   type Semester,
 } from '@/lib/campusFormat';
@@ -35,6 +37,7 @@ import {
 
 export default function CampusCalendar({
   weekStart,
+  span = 'short',
   studies,
   events,
   tasks,
@@ -65,6 +68,7 @@ export default function CampusCalendar({
   held: HeldEvent[];
   sync: { configured: boolean; lastPulledAt: string | null; lastError: string | null };
   weekStart: string;
+  span?: CalendarSpan;
   studies: StudyWithMembers[];
   events: CampusEvent[];
   tasks: CampusTask[];
@@ -79,7 +83,7 @@ export default function CampusCalendar({
   const [studyOpen, setStudyOpen] = useState<{ id: string; date: string } | null>(null);
   const [editOpen, setEditOpen] = useState(false);
   const { call, busy, error } = useCall();
-  const days = weekDays(weekStart);
+  const days = weekDays(weekStart, SPAN_DAYS[span]);
   const items = useMemo(
     () => {
       const going: Record<string, number> = {};
@@ -100,13 +104,13 @@ export default function CampusCalendar({
           {weekRange(days[0], days[6])}
         </h2>
         <div className="flex items-center gap-1 text-xs sm:text-sm font-semibold shrink-0" style={{ color: 'var(--navy)' }}>
-          <a href={`?week=${addDays(weekStart, -7)}#week`} className="px-1.5 sm:px-2 py-1 rounded border border-gray-300 bg-white" aria-label="Previous week">
+          <a href={`?week=${addDays(weekStart, -SPAN_DAYS[span])}${span === 'week' ? '&span=week' : ''}#week`} className="px-1.5 sm:px-2 py-1 rounded border border-gray-300 bg-white" aria-label="Previous week">
             ←
           </a>
-          <a href="?#week" className="px-1.5 sm:px-2 py-1 rounded border border-gray-300 bg-white whitespace-nowrap">
+          <a href={span === 'week' ? '?span=week#week' : '?#week'} className="px-1.5 sm:px-2 py-1 rounded border border-gray-300 bg-white whitespace-nowrap">
             Today
           </a>
-          <a href={`?week=${addDays(weekStart, 7)}#week`} className="px-1.5 sm:px-2 py-1 rounded border border-gray-300 bg-white" aria-label="Next week">
+          <a href={`?week=${addDays(weekStart, SPAN_DAYS[span])}${span === 'week' ? '&span=week' : ''}#week`} className="px-1.5 sm:px-2 py-1 rounded border border-gray-300 bg-white" aria-label="Next week">
             →
           </a>
         </div>
@@ -161,7 +165,16 @@ export default function CampusCalendar({
       )}
 
       <div className="flex items-end justify-between gap-3 mb-3">
-        <WeekLegend />
+        <div className="flex flex-wrap items-center gap-3">
+          <WeekLegend />
+          <a
+            href={span === 'week' ? `?${weekStart ? `week=${weekStart}` : ''}#week` : `?week=${weekStart}&span=week#week`}
+            className="text-xs font-semibold underline whitespace-nowrap"
+            style={{ color: '#8a8378' }}
+          >
+            {span === 'week' ? 'Show 5 days' : 'Show the week'}
+          </a>
+        </div>
         <button
           onClick={() => setEditing(editing === 'new' ? null : 'new')}
           className={`${btnPrimary} shrink-0`}

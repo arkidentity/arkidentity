@@ -4,7 +4,7 @@ import { loadCampusContext } from '@/lib/campusAdminData';
 import { currentStaff } from '@/lib/iowaStaff';
 import { can, filterStudies } from '@/lib/iowaPerms';
 import { listEvents } from '@/lib/campusTasks';
-import { addDays, chicagoToday, isValidDate } from '@/lib/campusFormat';
+import { SPAN_DAYS, addDays, chicagoToday, isValidDate, type CalendarSpan } from '@/lib/campusFormat';
 import { listHeld, pullIfStale, syncStatus } from '@/lib/calendarSync';
 import { semesterContext } from '@/lib/semesters';
 import { listTemplates } from '@/lib/eventChecklists';
@@ -36,9 +36,12 @@ export default async function IowaDashboardPage({
   // work with are the ones on screen (`weekDays` counts from any date).
   const thisWeek = chicagoToday();
   const start = isValidDate(sp.week) ? sp.week : thisWeek;
+  // 5 days by default; ?span=week opens it out.
+  const span: CalendarSpan = sp.span === 'week' ? 'week' : 'short';
+  const days = SPAN_DAYS[span];
   const [ctx, events, held, sync, sem, templates] = await Promise.all([
     loadCampusContext(),
-    listEvents(start, addDays(start, 6)),
+    listEvents(start, addDays(start, days - 1)),
     listHeld(),
     syncStatus(),
     semesterContext(),
@@ -74,6 +77,7 @@ export default async function IowaDashboardPage({
       thisWeekStart={thisWeek}
       calendar={{
         weekStart: start,
+        span,
         studies,
         events,
         tasks,

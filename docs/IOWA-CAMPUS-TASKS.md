@@ -342,6 +342,23 @@ tasks. Any event can have songs; the section is quiet until the first one is add
 - Deliberately NOT a song library: no usage history, CCLI, arrangements or SongSelect. These rows
   are the history if that's ever wanted.
 
+## Calendar density (2026-09-24, Travis)
+
+The week grid was drawing one row per item, which stops working somewhere around 40 studies. The
+principle now: **the calendar answers "where do I need to be"; the task list answers "what do I
+owe"** — it was showing a worse copy of a list that sits two screens below.
+
+- **Tasks are one line per day**: "4 tasks due · 2 mine", tap to open them in the task popup.
+  Overdue still piles onto today. The list below is unchanged and remains where tasks get worked.
+- **Other people's studies collapse** past 3 in a day into "6 more studies", with what's wrong
+  ("no location", "nobody on point") rather than an inventory. **Studies I'm on stay listed** —
+  those are the ones I act on. Events are never collapsed: few of them, and they're what you'd miss.
+- **5 days by default** (`?span=week` for seven, toggle by the legend); arrows step by the span.
+  Travis's idea, and it widens the columns on desktop — though on a phone the days stack, so most
+  of the height came from what's *inside* a day, not the number of days.
+- Deliberately NOT decided yet: a phone-only agenda view, and defaulting the phone to "Mine". Too
+  little usage to know; revisit once the semester is running.
+
 ## Who's free? (migration 030, 2026-09-24, Travis)
 
 A weekly pattern of BUSY blocks per person per semester (`iowa_availability`) — class, gym, work,

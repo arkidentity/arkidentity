@@ -243,6 +243,8 @@ interface ConfirmItem {
   study: StudyWithMembers;
   meetDate: string;
   members: (StudyMember & { isNew: boolean })[];
+  // Set when a student leads this one: text them, not their group.
+  leader: { name: string; phone: string | null } | null;
 }
 interface ShowItem {
   study: StudyWithMembers;
@@ -283,7 +285,12 @@ export async function runMorning(): Promise<Record<string, number | string>> {
       if (!LIVE.includes(s.status)) continue;
       // Meets that day? (right weekday, inside its semester, not a break week)
       if (!studyMeetsOn(s, target, periods, semesters)) continue;
-      if (!s.point_staff_id || s.leader_name?.trim() || !s.location) continue; // student leader has it
+      // Student-led studies used to be skipped outright ("their leader has
+      // it"), which meant the groups Travis had handed off were exactly the
+      // ones he stopped hearing about. He still gets a task — to check in with
+      // the leader, not to text the students himself.
+      if (!s.point_staff_id || !s.location) continue;
+      const studentLed = !!s.leader_name?.trim();
       if (!activeStaff.some((p) => p.id === s.point_staff_id)) continue;
       const members = s.members
         .filter((m) => m.status === 'active')
@@ -297,9 +304,13 @@ export async function runMorning(): Promise<Record<string, number | string>> {
         await createAutoTask({
           key: `confirm:${s.id}:${target}`,
           kind: 'confirm',
-          title: `Confirm ${formatSlot(s)} study (${formatDate(target)})`,
+          title: studentLed
+            ? `Check in with ${s.leader_name!.split(' ')[0]} — ${formatSlot(s)} study (${formatDate(target)})`
+            : `Confirm ${formatSlot(s)} study (${formatDate(target)})`,
           description: [
-            `Reach out before ${formatDate(target)} to confirm time and place (${s.location}).`,
+            studentLed
+              ? `${s.leader_name} leads this one${s.leader_phone ? ` · ${s.leader_phone}` : ''}. Check they're set for ${formatDate(target)} at ${s.location} — they confirm their own group.`
+              : `Reach out before ${formatDate(target)} to confirm time and place (${s.location}).`,
             '',
             ...members.map((m) => `• ${m.name}${m.isNew ? ' (NEW, first study)' : ''} · ${m.phone}`),
           ].join('\n'),
@@ -317,7 +328,12 @@ export async function runMorning(): Promise<Record<string, number | string>> {
         .map((t) => t.staff_id);
       for (const who of [...new Set([s.point_staff_id, ...leaders])]) {
         const list = confirmByStaff.get(who) ?? [];
-        list.push({ study: s, meetDate: target, members });
+        list.push({
+          study: s,
+          meetDate: target,
+          members,
+          leader: studentLed ? { name: s.leader_name!, phone: s.leader_phone } : null,
+        });
         confirmByStaff.set(who, list);
       }
     }
@@ -528,6 +544,24 @@ function morningEmail(o: {
     for (const c of confirms) {
       const s = c.study;
       const day = DAY_NAMES[s.day_of_week];
+
+      // Student-led: one text to the leader, and the roster below it for
+      // context. Texting their group yourself would undercut them.
+      if (c.leader) {
+        const body = `Hey ${first(c.leader.name)}, it's ${me} from ARK Iowa! You set for ${day} at ${formatTime(s.start_time)}${s.location ? ` at ${s.location}` : ''}? Anything you need?`;
+        const who = c.leader.phone
+          ? `<a href="${smsHref(c.leader.phone, body)}" style="color:#143348; font-weight:600;">${esc(c.leader.name)}</a> <span style="color:#8a8378;">· ${esc(c.leader.phone)}</span>`
+          : `<span style="font-weight:600;">${esc(c.leader.name)}</span>`;
+        parts.push(
+          `<p style="margin:14px 0 4px; font-weight:600;">${esc(formatSlot(s))} · ${esc(s.location ?? '')} <span style="color:#8a8378; font-weight:400;">(${formatDate(c.meetDate)})</span></p>` +
+            `<p style="margin:0 0 4px;">Check in with ${who}</p>` +
+            `<p style="margin:0; color:#8a8378; font-size:14px;">Their group: ${c.members
+              .map((m) => `${esc(m.name)}${m.isNew ? ' (NEW)' : ''}`)
+              .join(', ')}</p>`
+        );
+        continue;
+      }
+
       const rows = c.members
         .map((m) => {
           const body = `Hey ${first(m.name)}, it's ${me} from ARK Iowa! ${m.isNew ? 'Excited for your first Bible study' : 'See you'} ${day} at ${formatTime(s.start_time)} at ${s.location}. Still good?`;

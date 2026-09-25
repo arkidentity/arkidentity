@@ -704,6 +704,9 @@ function TypeSelect({ types, value, onChange }: { types: TypeOption[]; value: st
   );
 }
 
+// Type-to-find, because "pick the student" stops working as a dropdown around
+// the time the roster passes thirty names — and the same goes for studies once
+// there are forty of them. Under ten options it just renders the list.
 function OptionSelect({
   options,
   value,
@@ -715,15 +718,84 @@ function OptionSelect({
   onChange: (v: string) => void;
   none: string;
 }) {
+  const [query, setQuery] = useState('');
+  const [open, setOpen] = useState(false);
+  const chosen = options.find((o) => o.id === value);
+
+  if (options.length <= 10) {
+    return (
+      <select className={input} value={value} onChange={(e) => onChange(e.target.value)}>
+        <option value="">{none}</option>
+        {options.map((o) => (
+          <option key={o.id} value={o.id}>
+            {o.label}
+          </option>
+        ))}
+      </select>
+    );
+  }
+
+  if (chosen && !open) {
+    return (
+      <div className="flex items-center gap-2">
+        <span className="flex-1 min-w-0 truncate text-sm font-semibold" style={{ color: 'var(--navy)' }}>
+          {chosen.label}
+        </span>
+        <button
+          onClick={() => {
+            setQuery('');
+            setOpen(true);
+          }}
+          className="text-xs font-semibold underline shrink-0"
+          style={{ color: 'var(--navy)' }}
+        >
+          Change
+        </button>
+        <button onClick={() => onChange('')} className="text-xs shrink-0" style={{ color: '#b0a99e' }} title="Clear">
+          ✕
+        </button>
+      </div>
+    );
+  }
+
+  const q = query.trim().toLowerCase();
+  const matches = q ? options.filter((o) => o.label.toLowerCase().includes(q)).slice(0, 8) : [];
+
   return (
-    <select className={input} value={value} onChange={(e) => onChange(e.target.value)}>
-      <option value="">{none}</option>
-      {options.map((o) => (
-        <option key={o.id} value={o.id}>
-          {o.label}
-        </option>
-      ))}
-    </select>
+    <div>
+      <input
+        className={input}
+        placeholder={`${none} — type to search`}
+        value={query}
+        autoFocus={open}
+        onChange={(e) => {
+          setQuery(e.target.value);
+          setOpen(true);
+        }}
+        onBlur={() => setTimeout(() => setOpen(false), 150)}
+      />
+      {q && (
+        <ul className="mt-1 rounded-md border border-gray-200 bg-white divide-y divide-gray-100 max-h-48 overflow-y-auto">
+          {matches.map((o) => (
+            <li key={o.id}>
+              <button
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => {
+                  onChange(o.id);
+                  setQuery('');
+                  setOpen(false);
+                }}
+                className="w-full text-left px-3 py-2 text-sm hover:bg-[#FAF8F5]"
+                style={{ color: 'var(--navy)' }}
+              >
+                {o.label}
+              </button>
+            </li>
+          ))}
+          {matches.length === 0 && <li className="px-3 py-2 text-sm text-[#8a8378]">No match.</li>}
+        </ul>
+      )}
+    </div>
   );
 }
 

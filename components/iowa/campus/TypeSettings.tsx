@@ -38,6 +38,7 @@ export default function TypeSettings({
   vapidPublicKey = null,
   busyStaff = null,
   allStaff = [],
+  showLists = true,
   types,
   periods,
   semesters,
@@ -52,6 +53,7 @@ export default function TypeSettings({
   vapidPublicKey?: string | null; // null = push not configured on the server
   busyStaff?: string | null; // whose booking slots synced events block
   allStaff?: { id: string; name: string; active: boolean }[];
+  showLists?: boolean; // the shared lists are staff-only; the device bits aren't
 }) {
   const { call, busy, error } = useCall();
   return (
@@ -60,7 +62,9 @@ export default function TypeSettings({
         Settings
       </h1>
       <p className="text-sm text-[#8a8378] mb-8">
-        Notifications on this phone or laptop, then the lists the rest of the admin picks from.
+        {showLists
+          ? 'Notifications on this phone or laptop, then the lists the rest of the admin picks from.'
+          : 'Notifications and the app on this phone or laptop.'}
       </p>
 
       {/* What you came here to change on a new device, open and first. */}
@@ -68,7 +72,10 @@ export default function TypeSettings({
       <InstallCard />
 
       {/* Everything else is set-and-forget: named, closed, in the order you'd
-          reach for them across a year. */}
+          reach for them across a year. Staff only — an intern or a student
+          leader has no business renaming everyone's task types. */}
+      {!showLists ? null : (
+      <>
       <h2 className="text-lg font-bold mb-3" style={{ color: 'var(--navy)' }}>
         Lists the admin uses
       </h2>
@@ -120,6 +127,8 @@ export default function TypeSettings({
           ))}
         </div>
       </Disclosure>
+      </>
+      )}
     </PageShell>
   );
 }

@@ -342,6 +342,21 @@ tasks. Any event can have songs; the section is quiet until the first one is add
 - Deliberately NOT a song library: no usage history, CCLI, arrangements or SongSelect. These rows
   are the history if that's ever wanted.
 
+## Four fixes (2026-09-24, Travis)
+
+- **Refresh button** in the nav (↻). The installed app never reloads itself, so the only way to see
+  new data was to close and reopen it.
+- **Settings is open to everyone.** Notifications and "add to home screen" are per person, and roles
+  had locked interns and leaders out of their own push toggle. The shared lists (types, checklists,
+  semesters, school calendar, Google Calendar) render only with `manageSettings`.
+- **Student and study pickers search** once there are more than ten options — type a few letters,
+  pick a match. Under ten it stays a plain dropdown.
+- **Student-led studies get a confirm task again.** The morning run skipped any study with a
+  `leader_name` ("student leader has it"), so the groups Travis had handed off were exactly the ones
+  he stopped hearing about. Now he gets "Check in with Maya — Fri 8 PM study" with the roster, and
+  the morning email offers one text to the LEADER (texting their group yourself undercuts them).
+  Still skipped: no point person, or no location set.
+
 ## Task files (migration 029, 2026-09-24, Travis)
 
 A chord chart on the worship task, a permission form on the retreat task. `iowa_task_files` indexes

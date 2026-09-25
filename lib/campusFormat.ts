@@ -79,6 +79,8 @@ export function weekStart(date: string): string {
   return addDays(date, -((dayOfWeek(date) + 6) % 7));
 }
 
+// Callers must use the LAST element, never days[6] — the dashboard grid can be
+// five days wide, and days[6] was undefined there (it crashed the admin once).
 export function weekDays(start: string, count = 7): string[] {
   return Array.from({ length: count }, (_, i) => addDays(start, i));
 }

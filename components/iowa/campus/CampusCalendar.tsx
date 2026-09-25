@@ -101,7 +101,7 @@ export default function CampusCalendar({
           + New event moves down beside the sync line, right above the grid. */}
       <div className="flex items-center justify-between gap-2 mb-3">
         <h2 className="text-base sm:text-lg font-bold shrink-0" style={{ color: 'var(--navy)' }}>
-          {weekRange(days[0], days[6])}
+          {weekRange(days[0], days[days.length - 1])}
         </h2>
         <div className="flex items-center gap-1 text-xs sm:text-sm font-semibold shrink-0" style={{ color: 'var(--navy)' }}>
           <a href={`?week=${addDays(weekStart, -SPAN_DAYS[span])}${span === 'week' ? '&span=week' : ''}#week`} className="px-1.5 sm:px-2 py-1 rounded border border-gray-300 bg-white" aria-label="Previous week">
@@ -461,6 +461,7 @@ function SyncBar({
 
 // "Sep 21 – 27" in one month, "Sep 28 – Oct 4" across two.
 function weekRange(from: string, to: string): string {
+  if (!from || !to) return '';
   const a = formatDate(from, { month: 'short', day: 'numeric' });
   return from.slice(0, 7) === to.slice(0, 7) ? `${a} – ${Number(to.slice(8))}` : `${a} – ${formatDate(to, { month: 'short', day: 'numeric' })}`;
 }

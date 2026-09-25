@@ -66,7 +66,8 @@ export function buildWeekItems(opts: {
 }): WeekItem[] {
   const { days, studies, events, tasks, staff, types, meId, mineOnly, periods = [], semesters = [], going = {}, team = [] } = opts;
   const from = days[0];
-  const to = days[6];
+  // The last day SHOWN, not the seventh: the grid can be five days wide.
+  const to = days[days.length - 1];
   const nameOf = (id: string | null) => staff.find((s) => s.id === id)?.name.split(' ')[0] ?? null;
   const items: WeekItem[] = [];
 

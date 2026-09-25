@@ -695,6 +695,9 @@ export async function updateStudy(
 }
 
 export interface AddMemberInput {
+  // An existing student: seat them without retyping anything they already gave
+  // us. Everything below is only needed when the person is new.
+  contactId?: string;
   name: string;
   phone: string;
   email: string;
@@ -706,7 +709,9 @@ export interface AddMemberInput {
 
 export async function addMember(studyId: string, input: AddMemberInput): Promise<StudyMember> {
   const db = getSupabaseAdmin();
-  const contact = await contactForStudent(input);
+  const contact = input.contactId
+    ? { id: await existingStudent(input.contactId) }
+    : await contactForStudent(input);
   const { data, error } = await db
     .from('bible_study_members')
     .insert({
@@ -722,6 +727,15 @@ export async function addMember(studyId: string, input: AddMemberInput): Promise
     throw error;
   }
   return flattenMember(data as unknown as MemberRow);
+}
+
+// Seating someone already in the system: make sure they're really there, and
+// that they carry a campus_students row (a partner or a Baja signup might not).
+async function existingStudent(contactId: string): Promise<string> {
+  const { data } = await getSupabaseAdmin().from('contacts').select('id').eq('id', contactId).maybeSingle();
+  if (!data) throw new Error('That student isn’t in the system.');
+  await ensureCampusStudent(contactId);
+  return data.id as string;
 }
 
 // Move a student from one study to another. A move, not a delete-and-re-add:

@@ -50,7 +50,7 @@ export default function AdminNav({ name, allowed = [] }: { name: string | null; 
             aria-label="Refresh"
             title="Refresh"
             disabled={refreshing}
-            className="font-semibold disabled:opacity-50"
+            className="text-2xl leading-none px-2 py-1 -my-1 font-semibold disabled:opacity-50"
             onClick={() => {
               setRefreshing(true);
               router.refresh();

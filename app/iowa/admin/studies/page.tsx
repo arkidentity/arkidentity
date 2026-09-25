@@ -2,7 +2,7 @@ import { redirect } from 'next/navigation';
 import { can } from '@/lib/iowaPerms';
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { listStudies } from '@/lib/bibleStudies';
+import { listStudentOptions, listStudies } from '@/lib/bibleStudies';
 import { semesterContext } from '@/lib/semesters';
 import { currentStaff, listStaff } from '@/lib/iowaStaff';
 import { listTasks } from '@/lib/campusTasks';
@@ -19,7 +19,13 @@ export default async function IowaStudiesPage({ searchParams }: { searchParams: 
   const [{ semester: asked }, ctx] = await Promise.all([searchParams, semesterContext()]);
   const tabs = ctx.active;
   const semester = asked && tabs.includes(asked) ? asked : ctx.current?.name ?? tabs[0] ?? '';
-  const [studies, staff, me, tasks] = await Promise.all([listStudies(semester), listStaff(), currentStaff(), listTasks()]);
+  const [studies, staff, me, tasks, students] = await Promise.all([
+    listStudies(semester),
+    listStaff(),
+    currentStaff(),
+    listTasks(),
+    listStudentOptions(),
+  ]);
   const nameOf = new Map(staff.map((s) => [s.id, s.name]));
   const tasksByStudy: Record<string, StudyTask[]> = {};
   for (const t of tasks) {
@@ -67,6 +73,7 @@ export default async function IowaStudiesPage({ searchParams }: { searchParams: 
       staff={staff.map((s) => ({ id: s.id, name: s.name, active: s.active }))}
       meId={me?.id ?? null}
       tasksByStudy={tasksByStudy}
+      students={students}
     />
     </>
   );

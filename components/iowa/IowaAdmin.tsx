@@ -20,6 +20,8 @@ export interface StudyTask {
 const StudyTasks = createContext<Record<string, StudyTask[]>>({});
 // Upcoming semesters open for planning (only when viewing the current one).
 const Planning = createContext<{ name: string; starts_on: string }[]>([]);
+// Everyone already tagged ARK Iowa, for "add a student who's already here".
+const Students = createContext<{ id: string; label: string }[]>([]);
 
 const STATUSES: StudyStatus[] = ['pending_setup', 'forming', 'full', 'activated', 'paused', 'ended'];
 
@@ -64,7 +66,9 @@ export default function IowaAdmin({
   meId,
   tasksByStudy = {},
   planning = [],
+  students = [],
 }: {
+  students?: { id: string; label: string }[];
   planning?: { name: string; starts_on: string }[];
   initial: StudyWithMembers[];
   semester: string;
@@ -131,6 +135,7 @@ export default function IowaAdmin({
   }, [initial]);
 
   return (
+    <Students.Provider value={students}>
     <StudyTasks.Provider value={tasksByStudy}>
     <Planning.Provider value={planning}>
     <div style={{ background: '#FAF8F5', minHeight: '100vh', color: '#1f2937' }}>
@@ -260,6 +265,7 @@ export default function IowaAdmin({
     </div>
     </Planning.Provider>
     </StudyTasks.Provider>
+    </Students.Provider>
   );
 }
 
@@ -568,7 +574,7 @@ function StudyEditor({
             <MemberRow key={m.id} m={m} studyId={s.id} others={all} staff={staff} busy={busy} call={call} />
           ))}
         </ul>
-        <AddMemberForm studyId={s.id} staff={staff} busy={busy} call={call} />
+        <AddMemberForm studyId={s.id} staff={staff} students={useContext(Students)} busy={busy} call={call} />
       </div>
     </div>
   );
@@ -752,19 +758,26 @@ function MemberRow({
   );
 }
 
+// Two ways in: find someone already in the system (the common case once a
+// semester is underway), or type in a brand-new student. Retyping details we
+// already hold was the only option before.
 function AddMemberForm({
   studyId,
   staff,
+  students,
   busy,
   call,
 }: {
   studyId: string;
   staff: Map<string, StaffOption>;
+  students: { id: string; label: string }[];
   busy: boolean;
   call: CallFn;
 }) {
   const [f, setF] = useState({ name: '', phone: '', email: '', year: '', source: '', metBy: '' });
   const [open, setOpen] = useState(false);
+  const [mode, setMode] = useState<'existing' | 'new'>('existing');
+  const [query, setQuery] = useState('');
 
   if (!open) {
     return (
@@ -778,49 +791,113 @@ function AddMemberForm({
     );
   }
 
+  const q = query.trim().toLowerCase();
+  const matches = q ? students.filter((s) => s.label.toLowerCase().includes(q)).slice(0, 8) : [];
+
   return (
-    <div className="mt-3 grid sm:grid-cols-2 gap-2">
-      <input className={input} placeholder="Name" value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} />
-      <input className={input} placeholder="Phone" value={f.phone} onChange={(e) => setF({ ...f, phone: e.target.value })} />
-      <input className={input} placeholder="Email" value={f.email} onChange={(e) => setF({ ...f, email: e.target.value })} />
-      <input className={input} placeholder="Year (optional)" value={f.year} onChange={(e) => setF({ ...f, year: e.target.value })} />
-      <select className={input} value={f.metBy} onChange={(e) => setF({ ...f, metBy: e.target.value })}>
-        <option value="">Who met them? (optional)</option>
-        {[...staff.values()]
-          .filter((p) => p.active)
-          .map((p) => (
-            <option key={p.id} value={p.id}>
-              {p.name}
-            </option>
-          ))}
-        <option value="friend">A friend invited them</option>
-        <option value="self">Found it on their own</option>
-      </select>
-      <input
-        className={input}
-        placeholder="Source — org fair / referred by / cold (optional)"
-        value={f.source}
-        onChange={(e) => setF({ ...f, source: e.target.value })}
-      />
-      <div className="sm:col-span-2 flex gap-2">
-        <button
-          disabled={busy}
-          onClick={async () => {
-            const ok = await call('/api/iowa/admin/members', 'POST', { ...f, studyId });
-            if (ok) {
-              setF({ name: '', phone: '', email: '', year: '', source: '', metBy: '' });
-              setOpen(false);
-            }
-          }}
-          className="px-4 py-2 rounded-md text-sm font-semibold text-white transition hover:opacity-90 disabled:opacity-50"
-          style={{ backgroundColor: 'var(--navy)' }}
-        >
-          Add
-        </button>
-        <button onClick={() => setOpen(false)} className="px-4 py-2 rounded-md text-sm text-[#8a8378]">
-          Cancel
-        </button>
+    <div className="mt-3">
+      <div className="inline-flex rounded-lg border border-gray-300 overflow-hidden text-sm font-semibold mb-2">
+        {(
+          [
+            ['existing', 'Already in the system'],
+            ['new', 'New student'],
+          ] as const
+        ).map(([v, label]) => (
+          <button
+            key={v}
+            onClick={() => setMode(v)}
+            className="px-3 py-1.5"
+            style={mode === v ? { backgroundColor: 'var(--navy)', color: 'white' } : { backgroundColor: 'white', color: 'var(--navy)' }}
+          >
+            {label}
+          </button>
+        ))}
       </div>
+
+      {mode === 'existing' ? (
+        <div>
+          <input
+            className={input}
+            autoFocus
+            placeholder="Type a name"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+          />
+          {q && (
+            <ul className="mt-1 rounded-md border border-gray-200 bg-white divide-y divide-gray-100 max-h-48 overflow-y-auto">
+              {matches.map((m) => (
+                <li key={m.id}>
+                  <button
+                    disabled={busy}
+                    onClick={async () => {
+                      if (await call('/api/iowa/admin/members', 'POST', { studyId, contactId: m.id })) {
+                        setQuery('');
+                        setOpen(false);
+                      }
+                    }}
+                    className="w-full text-left px-3 py-2 text-sm hover:bg-[#FAF8F5] disabled:opacity-50"
+                    style={{ color: 'var(--navy)' }}
+                  >
+                    {m.label}
+                  </button>
+                </li>
+              ))}
+              {matches.length === 0 && (
+                <li className="px-3 py-2 text-sm text-[#8a8378]">
+                  Nobody by that name — add them as a new student.
+                </li>
+              )}
+            </ul>
+          )}
+          <button onClick={() => setOpen(false)} className="mt-2 text-sm text-[#8a8378]">
+            Cancel
+          </button>
+        </div>
+      ) : (
+        <div className="grid sm:grid-cols-2 gap-2">
+          <input className={input} placeholder="Name" value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} />
+          <input className={input} placeholder="Phone" value={f.phone} onChange={(e) => setF({ ...f, phone: e.target.value })} />
+          <input className={input} placeholder="Email" value={f.email} onChange={(e) => setF({ ...f, email: e.target.value })} />
+          <input className={input} placeholder="Year (optional)" value={f.year} onChange={(e) => setF({ ...f, year: e.target.value })} />
+          <select className={input} value={f.metBy} onChange={(e) => setF({ ...f, metBy: e.target.value })}>
+            <option value="">Who met them? (optional)</option>
+            {[...staff.values()]
+              .filter((p) => p.active)
+              .map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.name}
+                </option>
+              ))}
+            <option value="friend">A friend invited them</option>
+            <option value="self">Found it on their own</option>
+          </select>
+          <input
+            className={input}
+            placeholder="Source — org fair / referred by / cold (optional)"
+            value={f.source}
+            onChange={(e) => setF({ ...f, source: e.target.value })}
+          />
+          <div className="sm:col-span-2 flex gap-2">
+            <button
+              disabled={busy}
+              onClick={async () => {
+                const ok = await call('/api/iowa/admin/members', 'POST', { ...f, studyId });
+                if (ok) {
+                  setF({ name: '', phone: '', email: '', year: '', source: '', metBy: '' });
+                  setOpen(false);
+                }
+              }}
+              className="px-4 py-2 rounded-md text-sm font-semibold text-white transition hover:opacity-90 disabled:opacity-50"
+              style={{ backgroundColor: 'var(--navy)' }}
+            >
+              Add
+            </button>
+            <button onClick={() => setOpen(false)} className="px-4 py-2 rounded-md text-sm text-[#8a8378]">
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

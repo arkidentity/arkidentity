@@ -12,6 +12,7 @@ export async function POST(req: Request) {
   if (me instanceof NextResponse) return me;
   const body = (await req.json().catch(() => ({}))) as {
     studyId?: string;
+    contactId?: string;
     name?: string;
     phone?: string;
     email?: string;
@@ -22,15 +23,19 @@ export async function POST(req: Request) {
   };
 
   if (!body.studyId?.trim()) return bad('Missing study.');
+  // Someone already in the system needs nothing but their id.
+  if (!body.contactId?.trim()) {
   if (!body.name?.trim()) return bad('Name is required.');
   if (!body.phone?.trim() || body.phone.replace(/\D/g, '').length < 10) return bad('A textable phone is required.');
   if (!body.email?.trim() || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(body.email)) return bad('A valid email is required.');
+  }
 
   try {
     const member = await addMember(body.studyId.trim(), {
-      name: body.name,
-      phone: body.phone,
-      email: body.email,
+      contactId: body.contactId?.trim() || undefined,
+      name: body.name ?? '',
+      phone: body.phone ?? '',
+      email: body.email ?? '',
       year: body.year,
       source: body.source,
       notes: body.notes,

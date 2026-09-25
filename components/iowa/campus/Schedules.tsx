@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { DAY_NAMES, formatTime } from '@/lib/bibleStudyFormat';
-import type { BusyBlock, ScheduleLink } from '@/lib/availability';
+import type { BusyBlock, ScheduleLink } from '@/lib/availabilityFormat';
 import { Section, useCall, type StaffOption } from '@/components/iowa/campus/ui';
 
 // Who's told us their semester, and who still owes it. The link is theirs to

@@ -342,6 +342,17 @@ tasks. Any event can have songs; the section is quiet until the first one is add
 - Deliberately NOT a song library: no usage history, CCLI, arrangements or SongSelect. These rows
   are the history if that's ever wanted.
 
+## Gotcha: server libs in client components (2026-09-24)
+
+`IowaAdmin.tsx` ('use client') imported `clashAt` from `lib/availability` — which reaches
+`supabaseAdmin`, `node:crypto` and Resend. That pulled server-only code into a shared browser chunk
+and took down **the public site** with "a client-side exception has occurred", not just the admin.
+The build gives no warning. Pure helpers now live in `lib/availabilityFormat.ts`, the pattern every
+`*Format.ts` module already follows (`campusFormat`, `bibleStudyFormat`, `checkinFormat`).
+
+**Rule:** a client component may import *types* from a server module, never values. When a client
+component needs a helper, put the helper in a `*Format.ts` file.
+
 ## Calendar density (2026-09-24, Travis)
 
 The week grid was drawing one row per item, which stops working somewhere around 40 studies. The

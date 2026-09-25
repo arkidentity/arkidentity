@@ -1,19 +1,16 @@
 import { randomBytes } from 'node:crypto';
 import { getSupabaseAdmin } from '@/lib/supabaseAdmin';
 import { siteUrl } from '@/lib/email';
+import { hhmm, type BusyBlock, type ScheduleLink } from '@/lib/availabilityFormat';
+
+// Client components import these from '@/lib/availabilityFormat' — this module
+// reaches the database and Resend, so pulling it into the browser bundle
+// breaks the whole app (it did, once).
+export type { BusyBlock, ScheduleLink };
+export { clashAt } from '@/lib/availabilityFormat';
 
 // A person's weekly busy blocks for one semester (migration 030). Used to
 // answer "who could take a Tuesday 8 PM study?" without guessing.
-
-export interface BusyBlock {
-  id: string;
-  staff_id: string;
-  semester: string;
-  day_of_week: number;
-  starts_at: string | null; // 'HH:MM:SS', null = all day
-  ends_at: string | null;
-  label: string | null;
-}
 
 const COLS = 'id, staff_id, semester, day_of_week, starts_at, ends_at, label';
 
@@ -29,8 +26,6 @@ export async function listBusy(semester: string, staffId?: string): Promise<Busy
   if (error) throw error;
   return (data ?? []) as BusyBlock[];
 }
-
-const hhmm = (t: string) => (t.length === 5 ? `${t}:00` : t);
 
 export async function addBusy(input: {
   staffId: string;
@@ -86,47 +81,9 @@ export async function copyBusy(staffId: string, from: string, to: string): Promi
   return blocks.length;
 }
 
-// Does this person have something at that day and time? A study is an hour, so
-// a block that merely touches the hour counts as a clash.
-export function clashAt(
-  blocks: BusyBlock[],
-  staffId: string,
-  dayOfWeek: number,
-  startTime: string,
-  minutes = 60
-): BusyBlock | null {
-  const start = hhmm(startTime);
-  const end = addMinutes(start, minutes);
-  return (
-    blocks.find(
-      (b) =>
-        b.staff_id === staffId &&
-        b.day_of_week === dayOfWeek &&
-        // All day beats any overlap check.
-        (!b.starts_at || !b.ends_at || (b.starts_at < end && b.ends_at > start))
-    ) ?? null
-  );
-}
-
-function addMinutes(time: string, minutes: number): string {
-  const [h, m] = time.split(':').map(Number);
-  const total = h * 60 + m + minutes;
-  const hh = String(Math.floor(total / 60) % 24).padStart(2, '0');
-  const mm = String(total % 60).padStart(2, '0');
-  return `${hh}:${mm}:00`;
-}
-
 // ---------------------------------------------------------------------------
 // The link each person fills in themselves (no login), renewed every semester.
 // ---------------------------------------------------------------------------
-
-export interface ScheduleLink {
-  staff_id: string;
-  semester: string;
-  token: string;
-  sent_at: string | null;
-  submitted_at: string | null;
-}
 
 const LINK_COLS = 'staff_id, semester, token, sent_at, submitted_at';
 

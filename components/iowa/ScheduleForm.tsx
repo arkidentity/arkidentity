@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { DAY_NAMES, formatTime } from '@/lib/bibleStudyFormat';
-import type { BusyBlock } from '@/lib/availability';
+import type { BusyBlock } from '@/lib/availabilityFormat';
 
 // What a leader sees on their private link: block out what you've got, leave
 // the rest open. Phrased as "when are you busy" rather than "when are you

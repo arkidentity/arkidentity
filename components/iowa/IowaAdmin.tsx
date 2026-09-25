@@ -6,7 +6,7 @@ import type { StudyWithMembers, StudyMember, StudyStatus } from '@/lib/bibleStud
 import { DAY_NAMES, PICKER_DAYS, formatTime } from '@/lib/bibleStudyFormat';
 import { DROP_REASONS, formatDate, isOverdue, type TaskPriority, type TaskStatus } from '@/lib/campusFormat';
 import { OverdueTag, PriorityBadge, StatusPill } from '@/components/iowa/campus/ui';
-import { clashAt, type BusyBlock } from '@/lib/availability';
+import { clashAt, type BusyBlock } from '@/lib/availabilityFormat';
 import PlanForm from '@/components/iowa/PlanForm';
 
 // Open campus tasks linked to a study, shown inside that study's editor.

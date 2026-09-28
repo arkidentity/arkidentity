@@ -481,7 +481,7 @@ export async function joinStudy(input: JoinInput): Promise<JoinResult> {
 export async function ensureStudentContact(input: {
   name: string;
   phone: string;
-  email: string;
+  email?: string | null;
   year?: string | null;
   metBy?: string | null;
 }) {
@@ -491,7 +491,7 @@ export async function ensureStudentContact(input: {
 async function contactForStudent(input: {
   name: string;
   phone: string;
-  email: string;
+  email?: string | null;
   year?: string | null;
   metBy?: string | null;
 }) {
@@ -700,7 +700,7 @@ export interface AddMemberInput {
   contactId?: string;
   name: string;
   phone: string;
-  email: string;
+  email?: string | null;
   year?: string;
   source?: string;
   notes?: string;

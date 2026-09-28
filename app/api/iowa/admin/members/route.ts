@@ -27,7 +27,8 @@ export async function POST(req: Request) {
   if (!body.contactId?.trim()) {
   if (!body.name?.trim()) return bad('Name is required.');
   if (!body.phone?.trim() || body.phone.replace(/\D/g, '').length < 10) return bad('A textable phone is required.');
-  if (!body.email?.trim() || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(body.email)) return bad('A valid email is required.');
+  // Email is optional — a student can be reached by phone alone.
+  if (body.email?.trim() && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(body.email.trim())) return bad('That email address looks wrong.');
   }
 
   try {

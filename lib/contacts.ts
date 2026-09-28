@@ -760,17 +760,20 @@ export async function unsubscribeByToken(token: string): Promise<boolean> {
 // worked this way; now every door does.
 export async function findOrCreateContact(input: {
   name: string;
-  email: string;
+  email?: string | null; // optional: a student can be phone-only
   phone: string;
   source?: string;
   subscribed?: boolean;
   tagIds?: string[];
 }): Promise<Contact> {
   const db = getSupabaseAdmin();
-  const email = normEmail(input.email)!;
+  const email = normEmail(input.email);
 
-  const { data: byEmail } = await db.from('contacts').select('*').ilike('email', email).maybeSingle();
-  let existing = (byEmail as Contact | null) ?? null;
+  let existing: Contact | null = null;
+  if (email) {
+    const { data: byEmail } = await db.from('contacts').select('*').ilike('email', email).maybeSingle();
+    existing = (byEmail as Contact | null) ?? null;
+  }
 
   if (!existing) {
     const digits = digitsOf(input.phone ?? '').slice(-10);

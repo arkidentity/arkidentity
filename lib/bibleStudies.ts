@@ -929,7 +929,8 @@ export async function updateCampusStudent(
     metBy?: string | null;
     dormantReason?: string | null;
     dormantNote?: string | null;
-  }
+  },
+  by?: { id: string } | null
 ): Promise<void> {
   const db = getSupabaseAdmin();
   await ensureCampusStudent(contactId);
@@ -940,11 +941,21 @@ export async function updateCampusStudent(
     update.status = patch.status;
     // Dormant stamps when it started (the check-in report counts from it);
     // anything else clears the why.
+    const { data: cur } = await db.from('campus_students').select('status').eq('contact_id', contactId).single();
     if (patch.status === 'dormant') {
-      const { data: cur } = await db.from('campus_students').select('status').eq('contact_id', contactId).single();
       if (cur?.status !== 'dormant') update.dormant_at = new Date().toISOString();
     } else {
       Object.assign(update, { dormant_at: null, dormant_reason: null, dormant_note: null });
+    }
+    // The history log (migration 031). Best-effort: a missing table must never
+    // block the status change itself.
+    if (cur?.status !== patch.status) {
+      await db.from('campus_student_events').insert({
+        contact_id: contactId,
+        staff_id: by?.id ?? null,
+        from_status: cur?.status ?? null,
+        to_status: patch.status,
+      });
     }
   }
   if ('dormantReason' in patch) update.dormant_reason = patch.dormantReason || null;

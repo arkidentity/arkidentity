@@ -203,6 +203,9 @@ export function CampusStudents({
     router.refresh();
   }
 
+  const filtered = !!(search.trim() || yearFilter || statusFilter || placement !== 'all');
+  const clearFilters = () => { setSearch(''); setYearFilter(''); setStatusFilter(''); setPlacement('all'); };
+
   const counts = useMemo(() => ({
     total: students.length,
     unplaced: students.filter((s) => s.studies.length === 0 && s.status === 'active').length,
@@ -217,7 +220,8 @@ export function CampusStudents({
           <div>
             <h1 className="text-3xl font-bold" style={{ color: 'var(--navy)' }}>Students</h1>
             <p className="mt-1" style={{ color: '#8a8378' }}>
-              {semester} · {counts.total} students
+              {semester} ·{' '}
+              {visible.length === counts.total ? `${counts.total} students` : `${visible.length} of ${counts.total} students`}
               {counts.unplaced > 0 && ` · ${counts.unplaced} active but not in a study`}
             </p>
           </div>
@@ -284,48 +288,66 @@ export function CampusStudents({
         {error && <p className="mb-4 text-sm" style={{ color: '#b91c1c' }}>{error}</p>}
 
         {/* Filters */}
-        <div className="rounded-xl p-4 mb-5 flex flex-wrap gap-3" style={{ backgroundColor: '#FFFFFF', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
+        <div className="rounded-xl p-3 sm:p-4 mb-5 grid grid-cols-2 sm:flex sm:flex-wrap gap-2 sm:gap-3" style={{ backgroundColor: '#FFFFFF', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
           <input
+            type="search"
             placeholder="Search name, email, phone"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className={`${input} flex-1 min-w-[200px]`}
+            className={`${input} col-span-2 sm:flex-1 sm:min-w-[200px]`}
           />
-          <select value={yearFilter} onChange={(e) => setYearFilter(e.target.value)} className={input}>
+          <select value={yearFilter} onChange={(e) => setYearFilter(e.target.value)} className={`${input} w-full sm:w-auto`}>
             <option value="">All years</option>
             {YEARS.map((y) => <option key={y} value={y}>{y}</option>)}
           </select>
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value as StudentStatus | '')}
-            className={input}
+            className={`${input} w-full sm:w-auto`}
           >
             <option value="">All statuses</option>
             {(Object.keys(STATUS_LABEL) as StudentStatus[]).map((s) => (
               <option key={s} value={s}>{STATUS_LABEL[s]}</option>
             ))}
           </select>
-          <select value={placement} onChange={(e) => setPlacement(e.target.value as Placement)} className={input}>
+          <select value={placement} onChange={(e) => setPlacement(e.target.value as Placement)} className={`${input} w-full sm:w-auto`}>
             <option value="all">Placed or not</option>
             <option value="placed">In a study</option>
             <option value="unplaced">Not in a study</option>
           </select>
+          {filtered && (
+            <button onClick={clearFilters} className="text-sm font-semibold underline whitespace-nowrap px-1" style={{ color: 'var(--navy)' }}>
+              Clear filters
+            </button>
+          )}
         </div>
 
         <Dupes groups={dupes} />
 
-        <p className="text-sm mb-3" style={{ color: '#8a8378' }}>{visible.length} shown</p>
-
         <div className="rounded-xl overflow-hidden" style={{ backgroundColor: '#FFFFFF', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
-          {visible.map((s) => (
-            <div key={s.contact_id} className="px-5 py-4 border-b" style={{ borderColor: '#f0ede8' }}>
-              <div className="flex flex-wrap items-center gap-3">
-                <div className="flex-1 min-w-[200px]">
+          {visible.map((s, i) => (
+            <div
+              key={s.contact_id}
+              className="px-4 sm:px-5 py-4 border-b"
+              // Alternate the shade so one student ends and the next begins at a glance.
+              style={{ borderColor: '#e8e3db', backgroundColor: i % 2 === 0 ? '#FFFFFF' : '#F6F3EE' }}
+            >
+              {/* Phone: name + contact across the top, then the pickers two to a row.
+                  Desktop: one line. */}
+              <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center sm:gap-3">
+                <div className="col-span-2 sm:flex-1 sm:min-w-[200px] min-w-0">
                   <p className="font-semibold" style={{ color: 'var(--navy)' }}>{s.name}</p>
                   {/* Both, always — the whole point of the contacts merge is not
-                      having to go hunting for someone's email. */}
-                  <p className="text-sm" style={{ color: '#8a8378' }}>
-                    {[s.phone, s.email].filter(Boolean).join(' · ') || 'No contact details'}
+                      having to go hunting for someone's email. Tappable to call/email. */}
+                  <p className="text-sm break-words" style={{ color: '#8a8378' }}>
+                    {!s.phone && !s.email && 'No contact details'}
+                    {s.phone && (
+                      <a href={`tel:${s.phone}`} className="hover:underline" style={{ color: '#6b6459' }}>{s.phone}</a>
+                    )}
+                    {s.phone && s.email && ' · '}
+                    {s.email && (
+                      <a href={`mailto:${s.email}`} className="hover:underline" style={{ color: '#6b6459' }}>{s.email}</a>
+                    )}
                   </p>
                 </div>
 
@@ -333,7 +355,7 @@ export function CampusStudents({
                   value={s.year ?? ''}
                   onChange={(e) => patchStudent(s.contact_id, { year: e.target.value || null })}
                   disabled={busy}
-                  className={input}
+                  className={`${input} w-full sm:w-auto`}
                 >
                   <option value="">Year?</option>
                   {YEARS.map((y) => <option key={y} value={y}>{y}</option>)}
@@ -344,7 +366,7 @@ export function CampusStudents({
                   value={s.met_by_staff_id ?? s.met_by_other ?? ''}
                   onChange={(e) => patchStudent(s.contact_id, { metBy: e.target.value })}
                   disabled={busy}
-                  className={input}
+                  className={`${input} w-full sm:w-auto`}
                   title="Who did they meet?"
                 >
                   <option value="">Met who?</option>
@@ -360,7 +382,7 @@ export function CampusStudents({
                   value={s.status}
                   onChange={(e) => patchStudent(s.contact_id, { status: e.target.value as StudentStatus })}
                   disabled={busy}
-                  className={input}
+                  className={`${input} w-full sm:w-auto`}
                   style={{ color: STATUS_COLOR[s.status], fontWeight: 600 }}
                 >
                   {(Object.keys(STATUS_LABEL) as StudentStatus[]).map((st) => (
@@ -370,7 +392,7 @@ export function CampusStudents({
 
                 <button
                   onClick={() => setEditing(editing === s.contact_id ? null : s.contact_id)}
-                  className="text-sm font-semibold px-3 py-2 rounded-md border"
+                  className="w-full sm:w-auto text-sm font-semibold px-3 py-2 rounded-md border bg-white"
                   style={{ borderColor: '#d1d5db', color: 'var(--navy)' }}
                 >
                   {editing === s.contact_id ? 'Close' : 'Edit'}
@@ -385,7 +407,7 @@ export function CampusStudents({
                     value={s.dormant_reason ?? ''}
                     onChange={(e) => patchStudent(s.contact_id, { dormantReason: e.target.value || null })}
                     disabled={busy}
-                    className={input}
+                    className={`${input} w-full sm:w-auto`}
                   >
                     <option value="">— pick a reason —</option>
                     {DORMANT_REASONS.map((r) => <option key={r.key} value={r.key}>{r.label}</option>)}
@@ -397,7 +419,7 @@ export function CampusStudents({
                       if (e.target.value !== (s.dormant_note ?? '')) patchStudent(s.contact_id, { dormantNote: e.target.value });
                     }}
                     placeholder="Note (optional)"
-                    className={`${input} flex-1 min-w-[180px]`}
+                    className={`${input} w-full sm:w-auto sm:flex-1 sm:min-w-[180px]`}
                   />
                 </div>
               )}
@@ -427,7 +449,7 @@ export function CampusStudents({
                         defaultValue=""
                         disabled={busy}
                         onChange={(e) => { if (e.target.value) move(st.member_id, e.target.value); }}
-                        className={input}
+                        className={`${input} max-w-full`}
                       >
                         <option value="">— pick a study —</option>
                         {studies
@@ -471,7 +493,7 @@ export function CampusStudents({
             <p className="px-5 py-6 text-sm" style={{ color: '#8a8378' }}>
               {students.length === 0
                 ? 'No students yet. Add one above, or they appear once someone joins a Bible study.'
-                : 'Nothing matches those filters.'}
+                : <>Nothing matches those filters. <button onClick={clearFilters} className="font-semibold underline" style={{ color: 'var(--navy)' }}>Clear filters</button></>}
             </p>
           )}
         </div>

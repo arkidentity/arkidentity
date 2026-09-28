@@ -106,6 +106,8 @@ export function CampusStudents({
   const [placement, setPlacement] = useState<Placement>('all');
   const [editing, setEditing] = useState<string | null>(null);
   const [showReport, setShowReport] = useState(openReport);
+  const [adding, setAdding] = useState(false);
+  const [f, setF] = useState({ name: '', phone: '', email: '', year: '', metBy: '' });
 
   // Moving a student refreshes the server data; pick it up (see EventDetail).
   useEffect(() => { setStudents(initial); }, [initial]);
@@ -180,6 +182,25 @@ export function CampusStudents({
     router.refresh();
   }
 
+  // A new student with no study yet. Phone is required, email is not.
+  async function addStudent() {
+    setBusy(true);
+    setError('');
+    const res = await fetch('/api/iowa/admin/students', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(f),
+    });
+    setBusy(false);
+    if (!res.ok) {
+      setError((await res.json().catch(() => ({}))).error || 'Could not add them.');
+      return;
+    }
+    setF({ name: '', phone: '', email: '', year: '', metBy: '' });
+    setAdding(false);
+    router.refresh();
+  }
+
   const counts = useMemo(() => ({
     total: students.length,
     unplaced: students.filter((s) => s.studies.length === 0 && s.status === 'active').length,
@@ -190,6 +211,13 @@ export function CampusStudents({
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
         <div className="flex flex-wrap items-center justify-between gap-3 mb-1">
           <h1 className="text-3xl font-bold" style={{ color: 'var(--navy)' }}>Students</h1>
+          <button
+            onClick={() => setAdding((v) => !v)}
+            className="px-4 py-2 rounded-lg font-semibold text-sm border"
+            style={{ borderColor: 'var(--navy)', color: 'var(--navy)' }}
+          >
+            + Add student
+          </button>
           {report && (
             <button
               onClick={() => setShowReport(true)}
@@ -206,6 +234,40 @@ export function CampusStudents({
             events={events}
             onClose={() => { setShowReport(false); router.refresh(); }}
           />
+        )}
+        {adding && (
+          <div className="rounded-xl border border-gray-200 bg-white p-4 mb-4 grid sm:grid-cols-2 gap-2">
+            <input className={input} placeholder="Name" value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} />
+            <input className={input} placeholder="Phone" value={f.phone} onChange={(e) => setF({ ...f, phone: e.target.value })} />
+            <input className={input} placeholder="Email (optional)" value={f.email} onChange={(e) => setF({ ...f, email: e.target.value })} />
+            <select className={input} value={f.year} onChange={(e) => setF({ ...f, year: e.target.value })}>
+              <option value="">Year (optional)</option>
+              {YEARS.map((y) => (
+                <option key={y} value={y}>{y}</option>
+              ))}
+            </select>
+            <select className={input} value={f.metBy} onChange={(e) => setF({ ...f, metBy: e.target.value })}>
+              <option value="">Who met them? (optional)</option>
+              {staff.map((p) => (
+                <option key={p.id} value={p.id}>{p.name}</option>
+              ))}
+              <option value="friend">A friend invited them</option>
+              <option value="self">Found it on their own</option>
+            </select>
+            <div className="sm:col-span-2 flex gap-2">
+              <button
+                disabled={busy}
+                onClick={addStudent}
+                className="px-4 py-2 rounded-md text-sm font-semibold text-white transition hover:opacity-90 disabled:opacity-50"
+                style={{ backgroundColor: 'var(--navy)' }}
+              >
+                Add
+              </button>
+              <button onClick={() => setAdding(false)} className="px-4 py-2 rounded-md text-sm text-[#8a8378]">
+                Cancel
+              </button>
+            </div>
+          </div>
         )}
         <p className="mb-6" style={{ color: '#8a8378' }}>
           {semester} · {counts.total} students
@@ -378,7 +440,7 @@ export function CampusStudents({
           {visible.length === 0 && (
             <p className="px-5 py-6 text-sm" style={{ color: '#8a8378' }}>
               {students.length === 0
-                ? 'No students yet. They appear here once someone joins a Bible study.'
+                ? 'No students yet. Add one above, or they appear once someone joins a Bible study.'
                 : 'Nothing matches those filters.'}
             </p>
           )}

@@ -867,7 +867,7 @@ function AddMemberForm({
         <div className="grid sm:grid-cols-2 gap-2">
           <input className={input} placeholder="Name" value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} />
           <input className={input} placeholder="Phone" value={f.phone} onChange={(e) => setF({ ...f, phone: e.target.value })} />
-          <input className={input} placeholder="Email" value={f.email} onChange={(e) => setF({ ...f, email: e.target.value })} />
+          <input className={input} placeholder="Email (optional)" value={f.email} onChange={(e) => setF({ ...f, email: e.target.value })} />
           <input className={input} placeholder="Year (optional)" value={f.year} onChange={(e) => setF({ ...f, year: e.target.value })} />
           <select className={input} value={f.metBy} onChange={(e) => setF({ ...f, metBy: e.target.value })}>
             <option value="">Who met them? (optional)</option>

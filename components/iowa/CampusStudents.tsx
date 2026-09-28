@@ -211,24 +211,34 @@ export function CampusStudents({
   return (
     <div style={{ background: '#FAF8F5', minHeight: '100vh' }}>
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
-        <div className="flex flex-wrap items-center justify-between gap-3 mb-1">
-          <h1 className="text-3xl font-bold" style={{ color: 'var(--navy)' }}>Students</h1>
-          <button
-            onClick={() => setAdding((v) => !v)}
-            className="px-4 py-2 rounded-lg font-semibold text-sm border"
-            style={{ borderColor: 'var(--navy)', color: 'var(--navy)' }}
-          >
-            + Add student
-          </button>
-          {report && (
+        {/* Title + count on the left, actions together on the right. On a phone the
+            two buttons drop below and split the row so both are easy thumb targets. */}
+        <div className="flex flex-wrap items-end justify-between gap-x-4 gap-y-3 mb-5">
+          <div>
+            <h1 className="text-3xl font-bold" style={{ color: 'var(--navy)' }}>Students</h1>
+            <p className="mt-1" style={{ color: '#8a8378' }}>
+              {semester} · {counts.total} students
+              {counts.unplaced > 0 && ` · ${counts.unplaced} active but not in a study`}
+            </p>
+          </div>
+          <div className="flex w-full sm:w-auto gap-2">
+            {report && (
+              <button
+                onClick={() => setShowReport(true)}
+                className="flex-1 sm:flex-none px-4 py-2.5 rounded-lg font-semibold text-sm border"
+                style={{ borderColor: 'var(--navy)', color: 'var(--navy)', backgroundColor: 'white' }}
+              >
+                Check-in report{report.length > 0 && ` (${report.length})`}
+              </button>
+            )}
             <button
-              onClick={() => setShowReport(true)}
-              className="px-4 py-2 rounded-lg font-semibold text-sm"
+              onClick={() => setAdding((v) => !v)}
+              className="flex-1 sm:flex-none px-4 py-2.5 rounded-lg font-semibold text-sm"
               style={{ backgroundColor: 'var(--navy)', color: 'white' }}
             >
-              Check-in report{report.length > 0 && ` (${report.length})`}
+              {adding ? 'Close' : '+ Add student'}
             </button>
-          )}
+          </div>
         </div>
         {showReport && report && (
           <CheckinReport
@@ -271,10 +281,7 @@ export function CampusStudents({
             </div>
           </div>
         )}
-        <p className="mb-6" style={{ color: '#8a8378' }}>
-          {semester} · {counts.total} students
-          {counts.unplaced > 0 && ` · ${counts.unplaced} active but not in a study`}
-        </p>
+        {error && <p className="mb-4 text-sm" style={{ color: '#b91c1c' }}>{error}</p>}
 
         {/* Filters */}
         <div className="rounded-xl p-4 mb-5 flex flex-wrap gap-3" style={{ backgroundColor: '#FFFFFF', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
@@ -306,8 +313,6 @@ export function CampusStudents({
         </div>
 
         <Dupes groups={dupes} />
-
-        {error && <p className="mb-4 text-sm" style={{ color: '#b91c1c' }}>{error}</p>}
 
         <p className="text-sm mb-3" style={{ color: '#8a8378' }}>{visible.length} shown</p>
 
@@ -364,14 +369,6 @@ export function CampusStudents({
                 </select>
 
                 <button
-                  onClick={() => setHistoryOpen(historyOpen === s.contact_id ? null : s.contact_id)}
-                  className="text-sm font-semibold px-3 py-2 rounded-md border"
-                  style={{ borderColor: '#d1d5db', color: 'var(--navy)' }}
-                >
-                  {historyOpen === s.contact_id ? 'Hide history' : 'History'}
-                </button>
-
-                <button
                   onClick={() => setEditing(editing === s.contact_id ? null : s.contact_id)}
                   className="text-sm font-semibold px-3 py-2 rounded-md border"
                   style={{ borderColor: '#d1d5db', color: 'var(--navy)' }}
@@ -405,12 +402,6 @@ export function CampusStudents({
                 </div>
               )}
 
-              {historyOpen === s.contact_id && (
-                <div className="mt-3 pt-3 border-t" style={{ borderColor: '#f0ede8' }}>
-                  <StudentHistory contactId={s.contact_id} />
-                </div>
-              )}
-
               {editing === s.contact_id && (
                 <ContactFields
                   student={s}
@@ -423,7 +414,8 @@ export function CampusStudents({
               )}
 
               {/* Placement */}
-              <div className="mt-3 pt-3 border-t" style={{ borderColor: '#f0ede8' }}>
+              <div className="mt-3 pt-3 border-t flex items-start justify-between gap-3" style={{ borderColor: '#f0ede8' }}>
+                <div className="min-w-0">
                 {s.studies.length === 0 ? (
                   <p className="text-sm" style={{ color: '#9d855a' }}>Not in a study.</p>
                 ) : (
@@ -449,7 +441,29 @@ export function CampusStudents({
                     </div>
                   ))
                 )}
+                </div>
+                {/* History is always one tap away: the chevron opens their timeline. */}
+                <button
+                  onClick={() => setHistoryOpen(historyOpen === s.contact_id ? null : s.contact_id)}
+                  aria-expanded={historyOpen === s.contact_id}
+                  className="shrink-0 flex items-center gap-1 text-sm font-semibold"
+                  style={{ color: 'var(--navy)' }}
+                >
+                  History
+                  <svg
+                    width="14" height="14" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2.5"
+                    strokeLinecap="round" strokeLinejoin="round" aria-hidden
+                    className={`transition-transform ${historyOpen === s.contact_id ? 'rotate-180' : ''}`}
+                  >
+                    <path d="M5 8l5 5 5-5" />
+                  </svg>
+                </button>
               </div>
+              {historyOpen === s.contact_id && (
+                <div className="mt-3 pt-3 border-t" style={{ borderColor: '#f0ede8' }}>
+                  <StudentHistory contactId={s.contact_id} />
+                </div>
+              )}
             </div>
           ))}
 

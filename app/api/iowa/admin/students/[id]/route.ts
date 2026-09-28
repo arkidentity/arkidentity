@@ -55,7 +55,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     if ('metBy' in body) campus.metBy = body.metBy;
     if ('dormantReason' in body) campus.dormantReason = body.dormantReason;
     if ('dormantNote' in body) campus.dormantNote = body.dormantNote;
-    if (Object.keys(campus).length) await updateCampusStudent(id, campus);
+    if (Object.keys(campus).length) await updateCampusStudent(id, campus, me);
 
     const person: { name?: string; phone?: string | null; email?: string | null } = {};
     if ('name' in body) person.name = body.name!.trim();

@@ -7,6 +7,7 @@ import { DAY_NAMES, formatTime } from '@/lib/bibleStudyFormat';
 import { DORMANT_REASONS, type CheckinRow, type SocialEventOption } from '@/lib/checkinFormat';
 import type { DupeGroup } from '@/lib/studentDupes';
 import { CheckinReport } from '@/components/iowa/CheckinReport';
+import { StudentHistory } from '@/components/iowa/StudentHistory';
 
 // Managing students as people rather than as roster lines. Every student here
 // is also a contact in the main database — this view just adds the campus facts
@@ -105,6 +106,7 @@ export function CampusStudents({
   const [statusFilter, setStatusFilter] = useState<StudentStatus | ''>('');
   const [placement, setPlacement] = useState<Placement>('all');
   const [editing, setEditing] = useState<string | null>(null);
+  const [historyOpen, setHistoryOpen] = useState<string | null>(null);
   const [showReport, setShowReport] = useState(openReport);
   const [adding, setAdding] = useState(false);
   const [f, setF] = useState({ name: '', phone: '', email: '', year: '', metBy: '' });
@@ -362,6 +364,14 @@ export function CampusStudents({
                 </select>
 
                 <button
+                  onClick={() => setHistoryOpen(historyOpen === s.contact_id ? null : s.contact_id)}
+                  className="text-sm font-semibold px-3 py-2 rounded-md border"
+                  style={{ borderColor: '#d1d5db', color: 'var(--navy)' }}
+                >
+                  {historyOpen === s.contact_id ? 'Hide history' : 'History'}
+                </button>
+
+                <button
                   onClick={() => setEditing(editing === s.contact_id ? null : s.contact_id)}
                   className="text-sm font-semibold px-3 py-2 rounded-md border"
                   style={{ borderColor: '#d1d5db', color: 'var(--navy)' }}
@@ -392,6 +402,12 @@ export function CampusStudents({
                     placeholder="Note (optional)"
                     className={`${input} flex-1 min-w-[180px]`}
                   />
+                </div>
+              )}
+
+              {historyOpen === s.contact_id && (
+                <div className="mt-3 pt-3 border-t" style={{ borderColor: '#f0ede8' }}>
+                  <StudentHistory contactId={s.contact_id} />
                 </div>
               )}
 

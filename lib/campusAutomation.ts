@@ -16,7 +16,6 @@ import {
   chicagoToday,
   compareTasks,
   dayOfWeek,
-  eventDatesInRange,
   formatDate,
   isOverdue,
   nextMeetingOnOrAfter,
@@ -24,7 +23,7 @@ import {
   type SchoolPeriod,
   type Semester,
 } from '@/lib/campusFormat';
-import { listEvents, listTasks, type CampusTask } from '@/lib/campusTasks';
+import { listTasks, type CampusTask } from '@/lib/campusTasks';
 import { schedulesFor, scheduleHtml, taskLine, type ScheduleLine } from '@/lib/taskDigest';
 import { escapeEmailHtml as esc, sendEmailBatch, siteUrl } from '@/lib/email';
 
@@ -146,29 +145,6 @@ async function closeTasks(ids: string[], why: string) {
   const now = new Date().toISOString();
   await db.from('iowa_tasks').update({ status: 'done', completed_at: now, updated_at: now }).in('id', ids);
   await db.from('iowa_task_activity').insert(ids.map((task_id) => ({ task_id, staff_id: null, action: why })));
-}
-
-// Someone who drifted from a Bible study may still say yes to Taco Night, an
-// outing, or a call from another student. Every reconnect-style task carries
-// this menu: the next few campus events, and a prayer call from a student
-// leader (theirs if their old study had one).
-async function reconnectIdeas(today: string): Promise<(leader?: { name: string; phone: string | null } | null) => string> {
-  const events = await listEvents(today, addDays(today, 21)).catch(() => []);
-  const upcoming = events
-    .flatMap((e) => eventDatesInRange(e, today, addDays(today, 21)).map((date) => ({ date, e })))
-    .sort((a, b) => a.date.localeCompare(b.date))
-    .slice(0, 3)
-    .map(({ date, e }) => `  – ${e.title}, ${formatDate(date)}${e.start_time ? ` at ${formatTime(e.start_time)}` : ''}`);
-  return (leader) =>
-    [
-      'Ways to reconnect (not just another Bible study invite):',
-      upcoming.length ? '• Invite them to something low-key:' : '• Invite them to the next Taco Night or outing',
-      ...upcoming,
-      `• A prayer call from a student: ${
-        leader ? `ask ${leader.name}${leader.phone ? ` (${leader.phone})` : ''}` : 'ask a student leader'
-      } to call and say "Just checking in. You signed up for a Bible study; how can I pray for you?"`,
-      '• A simple text: no ask, just "thinking of you."',
-    ].join('\n');
 }
 
 // Owner: whoever met them (if still active) → staff on point → unowned.
@@ -435,7 +411,6 @@ async function staleStudents(
     db.from('campus_students').select('contact_id, status, met_by_staff_id, created_at, contacts(name, phone)'),
     db.from('bible_study_members').select('contact_id, status, drop_reason, drop_note, left_at, bible_studies(semester, leader_name, leader_phone)'),
   ]);
-  const ideas = await reconnectIdeas(today);
   type Seat = {
     contact_id: string;
     status: string;
@@ -465,28 +440,27 @@ async function staleStudents(
     const base = { owner_id: owner, due_date: addDays(today, 3), contact_id: c.contact_id, typeName: 'Follow-up', priority: 'normal' as const };
 
     if (c.status === 'dormant') {
-      if (await createAutoTask({ ...base, key: `reconnect:${c.contact_id}:${semester}`, kind: 'reconnect', title: `Reconnect with ${c.contacts.name}`, description: [who, met, 'Marked dormant on the Students page.', '', ideas(null)].filter((x) => x !== null).join('\n') })) counts.reconnect++;
+      if (await createAutoTask({ ...base, key: `reconnect:${c.contact_id}:${semester}`, kind: 'reconnect', title: `Reconnect with ${c.contacts.name}`, description: [who, met, 'Marked dormant on the Students page.'].filter((x) => x !== null).join('\n') })) counts.reconnect++;
       continue;
     }
     if (c.status !== 'active') continue; // graduated, transferred, left school
 
     const dropped = mine.filter((s) => s.status === 'dropped').sort((a, b) => (b.left_at ?? '').localeCompare(a.left_at ?? ''));
     const last = dropped[0];
-    const leader = last?.bible_studies?.leader_name ? { name: last.bible_studies.leader_name, phone: last.bible_studies.leader_phone } : null;
 
     if (!last) {
       // Met, never placed.
       if (chicagoDateTime(c.created_at).date <= addDays(today, -14)) {
-        if (await createAutoTask({ ...base, key: `place:${c.contact_id}:${semester}`, kind: 'place', title: `Help ${c.contacts.name} find a Bible study`, description: [who, met, 'Met 2+ weeks ago and still not in a study.', '', ideas(null)].filter((x) => x !== null).join('\n') })) counts.place++;
+        if (await createAutoTask({ ...base, key: `place:${c.contact_id}:${semester}`, kind: 'place', title: `Help ${c.contacts.name} find a Bible study`, description: [who, met, 'Met 2+ weeks ago and still not in a study.'].filter((x) => x !== null).join('\n') })) counts.place++;
       }
       continue;
     }
 
     const why = last.drop_note ? ` (${last.drop_note})` : '';
     if (last.drop_reason === 'schedule_changed' && last.bible_studies?.semester !== reinviteSemester) {
-      if (await createAutoTask({ ...base, key: `reinvite:${c.contact_id}:${reinviteSemester}`, kind: 'reinvite', title: `Re-invite ${c.contacts.name} for ${reinviteSemester}`, description: [who, met, `Dropped in ${last.bible_studies?.semester} because their schedule changed${why}. ${reinviteSemester} signup is open, so invite them to a study that fits their new schedule.`, '', ideas(leader)].filter((x) => x !== null).join('\n') })) counts.reinvite++;
+      if (await createAutoTask({ ...base, key: `reinvite:${c.contact_id}:${reinviteSemester}`, kind: 'reinvite', title: `Re-invite ${c.contacts.name} for ${reinviteSemester}`, description: [who, met, `Dropped in ${last.bible_studies?.semester} because their schedule changed${why}. ${reinviteSemester} signup is open, so invite them to a study that fits their new schedule.`].filter((x) => x !== null).join('\n') })) counts.reinvite++;
     } else if (last.drop_reason === 'unresponsive' && last.left_at && chicagoDateTime(last.left_at).date <= addDays(today, -30)) {
-      if (await createAutoTask({ ...base, key: `reconnect:${c.contact_id}:${semester}`, kind: 'reconnect', title: `Reconnect with ${c.contacts.name}`, description: [who, met, `Dropped for being unresponsive${why} 30+ days ago. Worth one more try, maybe a different kind of touch.`, '', ideas(leader)].filter((x) => x !== null).join('\n') })) counts.reconnect++;
+      if (await createAutoTask({ ...base, key: `reconnect:${c.contact_id}:${semester}`, kind: 'reconnect', title: `Reconnect with ${c.contacts.name}`, description: [who, met, `Dropped for being unresponsive${why} 30+ days ago. Worth one more try, maybe a different kind of touch.`].filter((x) => x !== null).join('\n') })) counts.reconnect++;
     }
   }
   return counts;
@@ -648,8 +622,6 @@ export async function recordFirstShow(
       description: [
         `${m.name} · ${m.phone}`,
         `Missed ${formatSlot(study)}${study.location ? ` at ${study.location}` : ''}. Check in, see if the time still works, or help them find another study.`,
-        '',
-        (await reconnectIdeas(chicagoToday()))(study.leader_name ? { name: study.leader_name, phone: study.leader_phone } : null),
       ].join('\n'),
       owner_id: by?.id ?? study.point_staff_id,
       due_date: chicagoToday(),

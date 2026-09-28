@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react';
 import type { CampusTask, TaskActivity } from '@/lib/campusTasks';
 import type { TaskFile } from '@/lib/taskFiles';
 import { supabase } from '@/lib/supabase';
+import { StudentHistory } from '@/components/iowa/StudentHistory';
 import {
   PRIORITIES,
   TASK_STATUSES,
@@ -456,6 +457,14 @@ function TaskDetail(props: TaskListProps & { t: CampusTask; busy: boolean; call:
   return (
     <div className="border-t border-gray-100 px-4 py-3 space-y-3">
       {t.description && <p className="text-[15px] md:text-sm text-[#4a4540] whitespace-pre-wrap">{t.description}</p>}
+      {t.contact_id && (
+        <div className="rounded-lg border border-gray-200 bg-[#FAF8F5] p-3">
+          <p className="text-xs font-bold uppercase tracking-wide text-[#8a8378] mb-2">
+            {t.contact_name ? `${t.contact_name.split(' ')[0]}'s history` : 'Their history'}
+          </p>
+          <StudentHistory contactId={t.contact_id} compact />
+        </div>
+      )}
       <p className="text-sm md:text-xs text-[#8a8378]">
         {[
           t.due_date ? `Due ${formatDate(t.due_date)}` : 'No due date',

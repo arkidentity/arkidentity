@@ -1,16 +1,12 @@
 'use client';
 
 import { useState } from 'react';
-import { DAY_NAMES, formatTime } from '@/lib/bibleStudyFormat';
 import type { BusyBlock, ScheduleLink } from '@/lib/availabilityFormat';
 import { Section, useCall, type StaffOption } from '@/components/iowa/campus/ui';
 import ScheduleEditor from '@/components/iowa/ScheduleEditor';
 
 // Who's told us their semester, and who still owes it. The link is theirs to
 // fill in, or staff can paint it in for them from here.
-
-const timeLabel = (b: BusyBlock) =>
-  b.starts_at && b.ends_at ? `${formatTime(b.starts_at)}–${formatTime(b.ends_at)}` : 'all day';
 
 export default function Schedules({
   staff,
@@ -23,25 +19,21 @@ export default function Schedules({
   links: ScheduleLink[];
   blocks: BusyBlock[];
 }) {
-  const { call, busy, error } = useCall();
+  const { error } = useCall();
   const [copied, setCopied] = useState('');
-  const [open, setOpen] = useState<string | null>(null);
-  // Staff filling one in for someone: same editor, same token, no email needed.
+  // Open calendar: the same week the person sees on their link, live — so staff
+  // can check it works, see what they've put in, and fill it in for them.
   const [editing, setEditing] = useState<{ staffId: string; token: string } | null>(null);
   const people = staff.filter((p) => p.active);
 
-  async function link(staffId: string, send: boolean) {
+  async function copyLink(staffId: string) {
     const res = await fetch('/api/iowa/admin/schedules', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ staffId, semester, send }),
+      body: JSON.stringify({ staffId, semester }),
     });
     const json = await res.json().catch(() => ({}));
     if (!res.ok) return;
-    if (send) {
-      await call('/api/iowa/admin/schedules', 'POST', { staffId, semester }); // refresh the row
-      return;
-    }
     await navigator.clipboard?.writeText(json.url).catch(() => {});
     setCopied(staffId);
     setTimeout(() => setCopied(''), 2000);
@@ -52,7 +44,7 @@ export default function Schedules({
     const res = await fetch('/api/iowa/admin/schedules', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ staffId, semester, send: false }),
+      body: JSON.stringify({ staffId, semester }),
     });
     const json = await res.json().catch(() => ({}));
     if (!res.ok) return;
@@ -62,8 +54,8 @@ export default function Schedules({
   return (
     <Section title={`Schedules · ${semester}`}>
       <p className="text-sm text-[#8a8378] mb-3">
-        Send each person their own link and they block out class, work and practice on a week view — or use Edit
-        schedule to fill one in for them. Used to flag a clash before you hand someone a study. It resets every semester on purpose — a schedule nobody re-confirmed isn&apos;t worth
+        Send each person their own link and they block out class, work and practice on a week view — or use Open
+        calendar to see what they&apos;ve entered or fill it in for them. Used to flag a clash before you hand someone a study. It resets every semester on purpose — a schedule nobody re-confirmed isn&apos;t worth
         trusting.
       </p>
       {error && <p className="text-sm text-red-700 mb-2">{error}</p>}
@@ -77,40 +69,20 @@ export default function Schedules({
                 <span className="font-semibold" style={{ color: 'var(--navy)' }}>
                   {p.name}
                 </span>
-                {theirs?.submitted_at ? (
+                {mine.length > 0 ? (
                   <span className="text-xs font-semibold text-green-700">
-                    ✓ {mine.length} block{mine.length === 1 ? '' : 's'}
-                  </span>
-                ) : theirs?.sent_at ? (
-                  <span className="text-xs" style={{ color: '#9d855a' }}>
-                    sent, no answer yet
+                    {mine.length} block{mine.length === 1 ? '' : 's'}
+                    {theirs?.submitted_at ? ' · confirmed' : ''}
                   </span>
                 ) : (
-                  <span className="text-xs text-[#8a8378]">not asked</span>
+                  <span className="text-xs text-[#8a8378]">nothing yet</span>
                 )}
                 <span className="ml-auto flex gap-3">
-                  {mine.length > 0 && (
-                    <button
-                      onClick={() => setOpen(open === p.id ? null : p.id)}
-                      className="text-xs font-semibold"
-                      style={{ color: 'var(--navy)' }}
-                    >
-                      {open === p.id ? 'Hide' : 'View'}
-                    </button>
-                  )}
                   <button onClick={() => edit(p.id)} className="text-xs font-semibold" style={{ color: 'var(--navy)' }}>
-                    {editing?.staffId === p.id ? 'Done' : 'Edit schedule'}
+                    {editing?.staffId === p.id ? 'Close calendar' : 'Open calendar'}
                   </button>
-                  <button onClick={() => link(p.id, false)} className="text-xs font-semibold" style={{ color: 'var(--navy)' }}>
+                  <button onClick={() => copyLink(p.id)} className="text-xs font-semibold" style={{ color: 'var(--navy)' }}>
                     {copied === p.id ? 'Copied' : 'Copy link'}
-                  </button>
-                  <button
-                    disabled={busy}
-                    onClick={() => link(p.id, true)}
-                    className="text-xs font-semibold disabled:opacity-50"
-                    style={{ color: 'var(--navy)' }}
-                  >
-                    {theirs?.sent_at ? 'Send again' : 'Email it'}
                   </button>
                 </span>
               </div>
@@ -121,22 +93,6 @@ export default function Schedules({
                 </div>
               )}
 
-              {open === p.id && editing?.staffId !== p.id && (
-                <div className="mt-2 pl-1 text-xs text-[#4a4540] space-y-0.5">
-                  {DAY_NAMES.map((day, i) => {
-                    const dayBlocks = mine
-                      .filter((b) => b.day_of_week === i)
-                      .sort((a, b) => (a.starts_at ?? '').localeCompare(b.starts_at ?? ''));
-                    if (dayBlocks.length === 0) return null;
-                    return (
-                      <p key={day}>
-                        <span className="font-semibold">{day.slice(0, 3)}</span>{' '}
-                        {dayBlocks.map((b) => `${timeLabel(b)}${b.label ? ` ${b.label}` : ''}`).join(' · ')}
-                      </p>
-                    );
-                  })}
-                </div>
-              )}
             </li>
           );
         })}

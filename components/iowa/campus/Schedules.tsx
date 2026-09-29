@@ -4,9 +4,10 @@ import { useState } from 'react';
 import { DAY_NAMES, formatTime } from '@/lib/bibleStudyFormat';
 import type { BusyBlock, ScheduleLink } from '@/lib/availabilityFormat';
 import { Section, useCall, type StaffOption } from '@/components/iowa/campus/ui';
+import ScheduleEditor from '@/components/iowa/ScheduleEditor';
 
 // Who's told us their semester, and who still owes it. The link is theirs to
-// fill in — nobody types someone else's class schedule.
+// fill in, or staff can paint it in for them from here.
 
 const timeLabel = (b: BusyBlock) =>
   b.starts_at && b.ends_at ? `${formatTime(b.starts_at)}–${formatTime(b.ends_at)}` : 'all day';
@@ -25,6 +26,8 @@ export default function Schedules({
   const { call, busy, error } = useCall();
   const [copied, setCopied] = useState('');
   const [open, setOpen] = useState<string | null>(null);
+  // Staff filling one in for someone: same editor, same token, no email needed.
+  const [editing, setEditing] = useState<{ staffId: string; token: string } | null>(null);
   const people = staff.filter((p) => p.active);
 
   async function link(staffId: string, send: boolean) {
@@ -44,11 +47,23 @@ export default function Schedules({
     setTimeout(() => setCopied(''), 2000);
   }
 
+  async function edit(staffId: string) {
+    if (editing?.staffId === staffId) return setEditing(null);
+    const res = await fetch('/api/iowa/admin/schedules', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ staffId, semester, send: false }),
+    });
+    const json = await res.json().catch(() => ({}));
+    if (!res.ok) return;
+    setEditing({ staffId, token: String(json.url).split('/').pop() ?? '' });
+  }
+
   return (
     <Section title={`Schedules · ${semester}`}>
       <p className="text-sm text-[#8a8378] mb-3">
-        Send each person their own link and they block out class, work and practice. Used to flag a clash before you
-        hand someone a study. It resets every semester on purpose — a schedule nobody re-confirmed isn&apos;t worth
+        Send each person their own link and they block out class, work and practice on a week view — or use Edit
+        schedule to fill one in for them. Used to flag a clash before you hand someone a study. It resets every semester on purpose — a schedule nobody re-confirmed isn&apos;t worth
         trusting.
       </p>
       {error && <p className="text-sm text-red-700 mb-2">{error}</p>}
@@ -83,6 +98,9 @@ export default function Schedules({
                       {open === p.id ? 'Hide' : 'View'}
                     </button>
                   )}
+                  <button onClick={() => edit(p.id)} className="text-xs font-semibold" style={{ color: 'var(--navy)' }}>
+                    {editing?.staffId === p.id ? 'Done' : 'Edit schedule'}
+                  </button>
                   <button onClick={() => link(p.id, false)} className="text-xs font-semibold" style={{ color: 'var(--navy)' }}>
                     {copied === p.id ? 'Copied' : 'Copy link'}
                   </button>
@@ -97,7 +115,13 @@ export default function Schedules({
                 </span>
               </div>
 
-              {open === p.id && (
+              {editing?.staffId === p.id && (
+                <div className="mt-3">
+                  <ScheduleEditor token={editing.token} initial={mine} />
+                </div>
+              )}
+
+              {open === p.id && editing?.staffId !== p.id && (
                 <div className="mt-2 pl-1 text-xs text-[#4a4540] space-y-0.5">
                   {DAY_NAMES.map((day, i) => {
                     const dayBlocks = mine

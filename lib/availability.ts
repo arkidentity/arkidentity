@@ -12,7 +12,7 @@ export { clashAt } from '@/lib/availabilityFormat';
 // A person's weekly busy blocks for one semester (migration 030). Used to
 // answer "who could take a Tuesday 8 PM study?" without guessing.
 
-const COLS = 'id, staff_id, semester, day_of_week, starts_at, ends_at, label';
+const COLS = 'id, staff_id, semester, day_of_week, starts_at, ends_at, label, starts_on, ends_on';
 
 export async function listBusy(semester: string, staffId?: string): Promise<BusyBlock[]> {
   let q = getSupabaseAdmin()
@@ -34,12 +34,10 @@ export async function addBusy(input: {
   startsAt?: string | null;
   endsAt?: string | null;
   label?: string | null;
+  startsOn?: string | null;
+  endsOn?: string | null;
 }): Promise<BusyBlock> {
-  if (input.dayOfWeek < 0 || input.dayOfWeek > 6) throw new Error('Pick a day.');
-  const starts = input.startsAt ? hhmm(input.startsAt) : null;
-  const ends = input.endsAt ? hhmm(input.endsAt) : null;
-  if (starts && ends && ends <= starts) throw new Error('The end time has to be after the start.');
-  if (!starts !== !ends) throw new Error('Give both times, or neither for all day.');
+  const f = checked(input);
 
   const { data, error } = await getSupabaseAdmin()
     .from('iowa_availability')
@@ -47,10 +45,58 @@ export async function addBusy(input: {
       staff_id: input.staffId,
       semester: input.semester,
       day_of_week: input.dayOfWeek,
-      starts_at: starts,
-      ends_at: ends,
-      label: input.label?.trim().slice(0, 80) || null,
+      ...f,
     })
+    .select(COLS)
+    .single();
+  if (error) throw error;
+  return data as BusyBlock;
+}
+
+// Validates the parts of a block that can change, and shapes them for the table.
+function checked(input: {
+  dayOfWeek: number;
+  startsAt?: string | null;
+  endsAt?: string | null;
+  label?: string | null;
+  startsOn?: string | null;
+  endsOn?: string | null;
+}) {
+  if (!Number.isInteger(input.dayOfWeek) || input.dayOfWeek < 0 || input.dayOfWeek > 6) throw new Error('Pick a day.');
+  const starts = input.startsAt ? hhmm(input.startsAt) : null;
+  const ends = input.endsAt ? hhmm(input.endsAt) : null;
+  if (starts && ends && ends <= starts) throw new Error('The end time has to be after the start.');
+  if (!starts !== !ends) throw new Error('Give both times, or neither for all day.');
+  const date = (d?: string | null) => {
+    if (!d) return null;
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(d)) throw new Error('That date doesn’t look right.');
+    return d;
+  };
+  const startsOn = date(input.startsOn);
+  const endsOn = date(input.endsOn);
+  if (startsOn && endsOn && endsOn < startsOn) throw new Error('The end date has to be after the start date.');
+  return {
+    starts_at: starts,
+    ends_at: ends,
+    label: input.label?.trim().slice(0, 80) || null,
+    starts_on: startsOn,
+    ends_on: endsOn,
+  };
+}
+
+// Move, resize, relabel or re-date a block. `staffId` keeps a token from
+// touching anyone else's schedule.
+export async function updateBusy(
+  id: string,
+  staffId: string,
+  input: Parameters<typeof checked>[0]
+): Promise<BusyBlock> {
+  const f = checked(input);
+  const { data, error } = await getSupabaseAdmin()
+    .from('iowa_availability')
+    .update({ day_of_week: input.dayOfWeek, ...f })
+    .eq('id', id)
+    .eq('staff_id', staffId)
     .select(COLS)
     .single();
   if (error) throw error;

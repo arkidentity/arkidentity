@@ -1,6 +1,7 @@
 import { NextResponse, after } from 'next/server';
 import { revalidatePath } from 'next/cache';
-import { joinStudy, formatSlot } from '@/lib/bibleStudies';
+import { joinStudy, formatSlot, saveFreeSlots } from '@/lib/bibleStudies';
+import { cleanFreeSlots } from '@/lib/bibleStudyFormat';
 import { sendStudyConfirmation, sendStudyRosterAlerts } from '@/lib/email';
 import { googleCalendarUrl } from '@/lib/ics';
 import { studyCalendarDates } from '@/lib/semesters';
@@ -20,6 +21,7 @@ export async function POST(req: Request) {
     email?: string;
     year?: string;
     metBy?: string; // staff id | friend | self | other — "Who did you meet?"
+    freeSlots?: unknown; // the "When are you free?" boxes they ticked
     hpField?: string; // honeypot — real users leave it empty
   };
 
@@ -48,6 +50,7 @@ export async function POST(req: Request) {
       metBy: body.metBy,
     });
 
+    await saveFreeSlots(member.contact_id, cleanFreeSlots(body.freeSlots));
     revalidatePath('/iowa'); // a seat changed; /iowa is cached (revalidate = 60)
     queueStudySync(study.id); // roster changed → refresh the Google description
     // No separate "someone signed up" email: queueSeated makes the welcome-text

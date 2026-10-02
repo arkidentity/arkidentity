@@ -1,5 +1,6 @@
 import { NextResponse, after } from 'next/server';
-import { startStudy, formatSlot } from '@/lib/bibleStudies';
+import { startStudy, formatSlot, saveFreeSlots } from '@/lib/bibleStudies';
+import { cleanFreeSlots } from '@/lib/bibleStudyFormat';
 import { sendStudyAdminAlert } from '@/lib/email';
 import { semesterContext } from '@/lib/semesters';
 import { queueSeated } from '@/lib/campusAutomation';
@@ -19,6 +20,7 @@ export async function POST(req: Request) {
     year?: string;
     metBy?: string; // staff id | friend | self | other — "Who did you meet?"
     semester?: string; // the tab they were on (current, or next once open)
+    freeSlots?: unknown; // the "When are you free?" boxes they ticked
     hpField?: string; // honeypot — real users leave it empty
   };
 
@@ -51,6 +53,7 @@ export async function POST(req: Request) {
       year: body.year,
       metBy: body.metBy,
     });
+    await saveFreeSlots(member.contact_id, cleanFreeSlots(body.freeSlots));
     queueSeated(member.id); // first-ever seat → welcome-text task
     const slot = formatSlot(study);
     after(async () => {

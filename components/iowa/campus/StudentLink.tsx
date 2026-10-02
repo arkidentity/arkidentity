@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { StudentHistory } from '@/components/iowa/StudentHistory';
 import { ContactButtons } from '@/components/iowa/campus/ui';
+import { slotLabel, sortSlots } from '@/lib/bibleStudyFormat';
 
 // A student's name, anywhere in the admin, that opens their card: Text/Email,
 // year + status, the studies they're in, notes, and their full history. A
@@ -17,6 +18,7 @@ interface Card {
   status: string;
   notes: string | null;
   studies: { id: string; label: string }[];
+  free_slots?: string[];
 }
 
 const STATUS: Record<string, { label: string; color: string }> = {
@@ -125,6 +127,13 @@ function StudentCard({ contactId, fallbackName, onClose }: { contactId: string; 
                 </ul>
               )}
             </div>
+
+            {(card.free_slots?.length ?? 0) > 0 && (
+              <div>
+                <p className="text-xs font-bold uppercase tracking-wide text-[#8a8378] mb-1">Free (from signup)</p>
+                <p className="text-sm text-[#4a4540]">{sortSlots(card.free_slots!).map(slotLabel).join(', ')}</p>
+              </div>
+            )}
 
             {card.notes && (
               <div>

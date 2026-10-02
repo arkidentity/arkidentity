@@ -579,7 +579,7 @@ so the next checklist top-up remade it. `deleteTask` now records the key in `iow
 `generateForEvent` and `createAutoTask` skip recorded keys. Before 033 runs, the lookup quietly
 returns nothing (old behavior).
 
-## Feedback queue (2026-10-02, Travis + Keilor) — #2–#8, #10 BUILT; rest not built
+## Feedback queue (2026-10-02, Travis + Keilor) — #2–#10 BUILT; rest not built
 
 **1. Group health / attendance.** Leaders take attendance per study meeting. Roll it up into a health
 level so we know how safe it is to add a student: Level 1 = flaky, Level 2 = some consistency but not
@@ -606,7 +606,7 @@ popup student profile with history, text/email, Move/Drop. Popup, not a jump to 
 
 **8. ✅ Student list order.** Active students first (A–Z by first name), then dormant (A–Z).
 
-**9. Save the student's time filter at signup.** The times a student picks while browsing studies get
+**9. ✅ Free times at signup (migration 034).** `campus_students.free_slots` ("<js day>-<block>"). The public grid's ticked boxes are sent with Join / Start / "Have us reach out" and saved (`saveFreeSlots`; empty pick keeps the old value; never fatal). Shown on the student card ("Free (from signup)"), the Students list, and a **Who's waiting** panel under the Studies page: active, unplaced students grouped by slot, busiest first, with any open study in that slot ("Open: Tue 2:00 PM (2 spots)") or "enough to start one" at 3+. Original ask: The times a student picks while browsing studies get
 saved to their profile. Whoever follows up sees "open in their schedule" and can place them. Later:
 a demand view showing "3 students waiting for a study at Tue 4 PM" so we know when to start one.
 

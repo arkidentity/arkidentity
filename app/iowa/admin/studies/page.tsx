@@ -2,7 +2,8 @@ import { redirect } from 'next/navigation';
 import { can } from '@/lib/iowaPerms';
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { listStudentOptions, listStudies } from '@/lib/bibleStudies';
+import { blockOf, formatSlot, listCampusStudents, listStudentOptions, listStudies } from '@/lib/bibleStudies';
+import WaitingBySlot, { type WaitingSlot } from '@/components/iowa/campus/WaitingBySlot';
 import { listBusy } from '@/lib/availability';
 import { semesterContext } from '@/lib/semesters';
 import { currentStaff, listStaff } from '@/lib/iowaStaff';
@@ -20,13 +21,33 @@ export default async function IowaStudiesPage({ searchParams }: { searchParams: 
   const [{ semester: asked }, ctx] = await Promise.all([searchParams, semesterContext()]);
   const tabs = ctx.active;
   const semester = asked && tabs.includes(asked) ? asked : ctx.current?.name ?? tabs[0] ?? '';
-  const [studies, staff, me, tasks, students] = await Promise.all([
+  const [studies, staff, me, tasks, students, everyone] = await Promise.all([
     listStudies(semester),
     listStaff(),
     currentStaff(),
     listTasks(),
     listStudentOptions(),
+    listCampusStudents(),
   ]);
+  // Who's waiting (migration 034): active, not in a study, grouped by free slot.
+  const unplaced = everyone.filter((p) => p.status === 'active' && p.studies.length === 0);
+  const bySlot = new Map<string, WaitingSlot>();
+  for (const p of unplaced) {
+    for (const slot of p.free_slots) {
+      const w = bySlot.get(slot) ?? { slot, open: [], students: [] };
+      w.students.push({ contact_id: p.contact_id, name: p.name, phone: p.phone, email: p.email });
+      bySlot.set(slot, w);
+    }
+  }
+  for (const w of bySlot.values()) {
+    const [day, block] = w.slot.split('-');
+    w.open = studies
+      .filter((st) => ['forming', 'activated'].includes(st.status) && st.day_of_week === Number(day) && blockOf(st.start_time) === block)
+      .filter((st) => st.activeCount < st.capacity)
+      .map((st) => ({ id: st.id, label: formatSlot(st), spotsLeft: st.capacity - st.activeCount }));
+  }
+  const waiting = [...bySlot.values()].sort((a, b) => b.students.length - a.students.length);
+  const unplacedNoTimes = unplaced.filter((p) => p.free_slots.length === 0).length;
   // This semester's busy blocks, so the point-person picker can flag a clash.
   const busyBlocks = await listBusy(semester);
   const nameOf = new Map(staff.map((s) => [s.id, s.name]));
@@ -79,6 +100,9 @@ export default async function IowaStudiesPage({ searchParams }: { searchParams: 
       students={students}
       busyBlocks={busyBlocks}
     />
+      <div style={{ background: '#FAF8F5' }}>
+        <WaitingBySlot slots={waiting} unplacedNoTimes={unplacedNoTimes} />
+      </div>
     </>
   );
 }

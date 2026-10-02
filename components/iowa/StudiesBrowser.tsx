@@ -245,6 +245,7 @@ export default function StudiesBrowser({
                             spotsLeft={s.spotsLeft}
                             capacity={s.capacity}
                             onJoined={refresh}
+                            freeSlots={[...cells]}
                           />
                         </div>
                       )}
@@ -278,7 +279,7 @@ export default function StudiesBrowser({
         </div>
         {showStart && (
           <div className="mt-5">
-            <StartForm semester={tabs.length > 1 ? tab : undefined} />
+            <StartForm semester={tabs.length > 1 ? tab : undefined} freeSlots={[...cells]} />
           </div>
         )}
       </div>
@@ -305,7 +306,7 @@ export default function StudiesBrowser({
         </div>
         {showInterest && (
           <div className="mt-5">
-            <InterestForm />
+            <InterestForm freeSlots={[...cells]} />
           </div>
         )}
       </div>
@@ -314,7 +315,7 @@ export default function StudiesBrowser({
 }
 
 // Name, number, and anything they want us to know — no day, no time, no study.
-function InterestForm() {
+function InterestForm({ freeSlots }: { freeSlots: string[] }) {
   const [form, setForm] = useState({ name: '', phone: '', email: '', year: '', metBy: '', note: '', hpField: '' });
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [message, setMessage] = useState('');
@@ -327,7 +328,7 @@ function InterestForm() {
       const res = await fetch('/api/iowa/studies/interest', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form),
+        body: JSON.stringify({ ...form, freeSlots }),
       });
       const data = await res.json().catch(() => ({}));
       if (res.ok) setStatus('success');
@@ -441,7 +442,7 @@ const inputClass =
   'w-full px-4 py-3 border border-gray-300 rounded-lg text-gray-900 bg-white focus:ring-2 focus:ring-offset-0 focus:border-transparent';
 const YEARS = ['First-year', 'Sophomore', 'Junior', 'Senior', 'Grad', 'Other'];
 
-function StartForm({ semester }: { semester?: string }) {
+function StartForm({ semester, freeSlots }: { semester?: string; freeSlots: string[] }) {
   const [form, setForm] = useState({
     dayOfWeek: '',
     startTime: '',
@@ -467,6 +468,7 @@ function StartForm({ semester }: { semester?: string }) {
           ...form,
           dayOfWeek: Number(form.dayOfWeek),
           semester,
+          freeSlots,
         }),
       });
       const data = await res.json().catch(() => ({}));

@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import type { CampusStudent, StudentStatus } from '@/lib/bibleStudies';
-import { DAY_NAMES, formatTime } from '@/lib/bibleStudyFormat';
+import { DAY_NAMES, formatTime, slotLabel, sortSlots } from '@/lib/bibleStudyFormat';
 import { DORMANT_REASONS, type CheckinRow, type SocialEventOption } from '@/lib/checkinFormat';
 import type { DupeGroup } from '@/lib/studentDupes';
 import { CheckinReport } from '@/components/iowa/CheckinReport';
@@ -355,6 +355,11 @@ export function CampusStudents({
                       <a href={`mailto:${s.email}`} className="hover:underline" style={{ color: '#6b6459' }}>{s.email}</a>
                     )}
                   </p>
+                  {s.free_slots.length > 0 && (
+                    <p className="text-xs mt-0.5" style={{ color: '#8a8378' }}>
+                      Free: {sortSlots(s.free_slots).map(slotLabel).join(', ')}
+                    </p>
+                  )}
                 </div>
 
                 <select

@@ -57,3 +57,24 @@ export function spotsLabel(spotsLeft: number, capacity: number): string {
   if (spotsLeft === 1) return '1 spot left';
   return `${spotsLeft} of ${capacity} open · join them`;
 }
+
+// A "When are you free?" box: "<js day>-<block>", e.g. "2-afternoon".
+const SLOT_RE = /^[0-6]-(morning|afternoon|evening|late)$/;
+export function cleanFreeSlots(input: unknown): string[] {
+  if (!Array.isArray(input)) return [];
+  return [...new Set(input.filter((x): x is string => typeof x === 'string' && SLOT_RE.test(x)))].slice(0, 28);
+}
+export function slotLabel(slot: string): string {
+  const [d, b] = slot.split('-');
+  return `${DAY_NAMES[Number(d)].slice(0, 3)} ${BLOCKS.find((x) => x.key === b)?.label.toLowerCase() ?? b}`;
+}
+// Sorted Monday-first, morning→late, for display.
+export function sortSlots(slots: string[]): string[] {
+  const dayRank = (d: number) => PICKER_DAYS.findIndex((p) => p.value === d);
+  const blockRank = (b: string) => BLOCKS.findIndex((x) => x.key === b);
+  return [...slots].sort((a, b) => {
+    const [da, ba] = a.split('-');
+    const [db, bb] = b.split('-');
+    return dayRank(Number(da)) - dayRank(Number(db)) || blockRank(ba) - blockRank(bb);
+  });
+}

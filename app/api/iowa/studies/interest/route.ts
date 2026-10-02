@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
 import { recordInterest } from '@/lib/campusAutomation';
+import { saveFreeSlots } from '@/lib/bibleStudies';
+import { cleanFreeSlots } from '@/lib/bibleStudyFormat';
 
 export const dynamic = 'force-dynamic';
 
@@ -14,6 +16,7 @@ export async function POST(req: Request) {
     year?: string;
     metBy?: string;
     note?: string;
+    freeSlots?: unknown; // the "When are you free?" boxes they ticked
     hpField?: string; // honeypot — real users leave it empty
   };
 
@@ -31,7 +34,7 @@ export async function POST(req: Request) {
   if (!email || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return bad('Please enter an email we can reach you at.');
 
   try {
-    await recordInterest({
+    const { contactId } = await recordInterest({
       name,
       phone,
       email,
@@ -39,6 +42,7 @@ export async function POST(req: Request) {
       metBy: body.metBy || null,
       note: body.note?.trim().slice(0, 500) || null,
     });
+    await saveFreeSlots(contactId, cleanFreeSlots(body.freeSlots));
     return NextResponse.json({ ok: true });
   } catch (e) {
     console.error('[iowa interest]', e);

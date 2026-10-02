@@ -6,6 +6,7 @@ import type { CampusEvent } from '@/lib/campusTasks';
 import type { Rsvp } from '@/lib/eventInvites';
 import { chicagoToday, formatDate } from '@/lib/campusFormat';
 import DeclineForm from '@/components/iowa/DeclineForm';
+import { ReminderListEditor } from '@/components/iowa/campus/ReminderList';
 import { useCall, type StaffOption } from '@/components/iowa/campus/ui';
 
 // Who's coming to an event:
@@ -270,6 +271,14 @@ function Rsvps({
           </div>
         )}
       </div>
+
+      {/* ---- Reminder list (migration 036) ---- */}
+      <ReminderListEditor
+        eventId={event.id}
+        days={event.reminder_days_before ?? 2}
+        students={students}
+        weekly={event.repeat_weekly}
+      />
     </div>
   );
 }

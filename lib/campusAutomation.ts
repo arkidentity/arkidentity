@@ -1,4 +1,5 @@
 import { after } from 'next/server';
+import { generateReminderTasks } from '@/lib/eventReminders';
 import { getSupabaseAdmin } from '@/lib/supabaseAdmin';
 import { sendTaskAssignedNow as notifyTaskAssignedNow } from '@/lib/taskNotify';
 import { notify } from '@/lib/notifications';
@@ -232,9 +233,17 @@ export async function runMorning(): Promise<Record<string, number | string>> {
   const db = getSupabaseAdmin();
   const today = chicagoToday();
   const dow = dayOfWeek(today);
+  // Reminder lists run every day (Sunday too: a Tuesday prayer call's task is
+  // due Sunday). Never fatal to the rest of the run.
+  let remindersMade = 0;
+  try {
+    remindersMade = await generateReminderTasks(today);
+  } catch (e) {
+    console.error('[iowa morning] reminder lists failed (migration 036 run?)', e);
+  }
   // Monday–Saturday only. Saturday covers Monday AND Tuesday studies so the
   // skipped Sunday never leaves a study unconfirmed.
-  if (dow === 0) return { skipped: 'Sunday' };
+  if (dow === 0) return { skipped: 'Sunday', remindersMade };
   const targets = dow === 6 ? [addDays(today, 2), addDays(today, 3)] : [addDays(today, 2)];
   const ctx = await semesterContext(today);
   const { periods, semesters } = ctx;
@@ -242,7 +251,7 @@ export async function runMorning(): Promise<Record<string, number | string>> {
   const [studies, staff] = await Promise.all([listStudies(ctx.active), listStaff()]);
   const team = await listStudyTeam(studies.map((s) => s.id));
   const activeStaff = staff.filter((s) => s.active);
-  const summary: Record<string, number | string> = {};
+  const summary: Record<string, number | string> = { remindersMade };
   const bump = (k: string) => (summary[k] = ((summary[k] as number) ?? 0) + 1);
 
   // Confirm tasks whose study already met: close them so missed weeks don't pile up.

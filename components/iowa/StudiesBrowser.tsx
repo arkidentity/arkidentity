@@ -306,7 +306,7 @@ export default function StudiesBrowser({
         </div>
         {showInterest && (
           <div className="mt-5">
-            <InterestForm freeSlots={[...cells]} />
+            <InterestForm freeSlots={[...cells]} semester={tabs.length > 1 ? tab : undefined} />
           </div>
         )}
       </div>
@@ -315,7 +315,7 @@ export default function StudiesBrowser({
 }
 
 // Name, number, and anything they want us to know — no day, no time, no study.
-function InterestForm({ freeSlots }: { freeSlots: string[] }) {
+function InterestForm({ freeSlots, semester }: { freeSlots: string[]; semester?: string }) {
   const [form, setForm] = useState({ name: '', phone: '', email: '', year: '', metBy: '', note: '', hpField: '' });
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [message, setMessage] = useState('');
@@ -328,7 +328,7 @@ function InterestForm({ freeSlots }: { freeSlots: string[] }) {
       const res = await fetch('/api/iowa/studies/interest', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...form, freeSlots }),
+        body: JSON.stringify({ ...form, freeSlots, semester }),
       });
       const data = await res.json().catch(() => ({}));
       if (res.ok) setStatus('success');

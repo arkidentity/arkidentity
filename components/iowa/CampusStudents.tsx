@@ -357,7 +357,7 @@ export function CampusStudents({
                   </p>
                   {s.free_slots.length > 0 && (
                     <p className="text-xs mt-0.5" style={{ color: '#8a8378' }}>
-                      Free: {sortSlots(s.free_slots).map(slotLabel).join(', ')}
+                      Free{s.free_slots_semester ? ` (${s.free_slots_semester})` : ''}: {sortSlots(s.free_slots).map(slotLabel).join(', ')}
                     </p>
                   )}
                 </div>

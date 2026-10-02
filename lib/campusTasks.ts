@@ -77,6 +77,7 @@ export interface CampusEvent {
   source: 'app' | 'google'; // 'google' = owned by Google Calendar, read-only here (migration 014)
   skip_dates: string[]; // weeks a repeating event doesn't happen (migration 016)
   checklist_template_id: string | null; // migration 019
+  reminder_days_before?: number; // migration 036 — "text the list" task lead time
   google_event_id: string | null;
   google_html_link: string | null;
 }

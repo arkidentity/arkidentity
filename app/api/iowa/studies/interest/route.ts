@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { recordInterest } from '@/lib/campusAutomation';
+import { semesterContext } from '@/lib/semesters';
 import { saveFreeSlots } from '@/lib/bibleStudies';
 import { cleanFreeSlots } from '@/lib/bibleStudyFormat';
 
@@ -16,6 +17,7 @@ export async function POST(req: Request) {
     year?: string;
     metBy?: string;
     note?: string;
+    semester?: string; // the semester tab they were on
     freeSlots?: unknown; // the "When are you free?" boxes they ticked
     hpField?: string; // honeypot — real users leave it empty
   };
@@ -42,7 +44,9 @@ export async function POST(req: Request) {
       metBy: body.metBy || null,
       note: body.note?.trim().slice(0, 500) || null,
     });
-    await saveFreeSlots(contactId, cleanFreeSlots(body.freeSlots));
+    const ctx = await semesterContext();
+    const semester = body.semester && ctx.active.includes(body.semester) ? body.semester : ctx.current?.name ?? ctx.active[0] ?? '';
+    await saveFreeSlots(contactId, cleanFreeSlots(body.freeSlots), semester);
     return NextResponse.json({ ok: true });
   } catch (e) {
     console.error('[iowa interest]', e);

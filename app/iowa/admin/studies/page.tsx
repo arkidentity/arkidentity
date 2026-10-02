@@ -33,6 +33,7 @@ export default async function IowaStudiesPage({ searchParams }: { searchParams: 
   const unplaced = everyone.filter((p) => p.status === 'active' && p.studies.length === 0);
   const bySlot = new Map<string, WaitingSlot>();
   for (const p of unplaced) {
+    if (p.free_slots_semester !== semester) continue; // last semester's answers don't count
     for (const slot of p.free_slots) {
       const w = bySlot.get(slot) ?? { slot, open: [], students: [] };
       w.students.push({ contact_id: p.contact_id, name: p.name, phone: p.phone, email: p.email });
@@ -47,7 +48,7 @@ export default async function IowaStudiesPage({ searchParams }: { searchParams: 
       .map((st) => ({ id: st.id, label: formatSlot(st), spotsLeft: st.capacity - st.activeCount }));
   }
   const waiting = [...bySlot.values()].sort((a, b) => b.students.length - a.students.length);
-  const unplacedNoTimes = unplaced.filter((p) => p.free_slots.length === 0).length;
+  const unplacedNoTimes = unplaced.filter((p) => p.free_slots_semester !== semester).length;
   // This semester's busy blocks, so the point-person picker can flag a clash.
   const busyBlocks = await listBusy(semester);
   const nameOf = new Map(staff.map((s) => [s.id, s.name]));
@@ -101,7 +102,7 @@ export default async function IowaStudiesPage({ searchParams }: { searchParams: 
       busyBlocks={busyBlocks}
     />
       <div style={{ background: '#FAF8F5' }}>
-        <WaitingBySlot slots={waiting} unplacedNoTimes={unplacedNoTimes} />
+        <WaitingBySlot slots={waiting} unplacedNoTimes={unplacedNoTimes} semester={semester} />
       </div>
     </>
   );

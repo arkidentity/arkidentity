@@ -19,6 +19,7 @@ interface Card {
   notes: string | null;
   studies: { id: string; label: string }[];
   free_slots?: string[];
+  free_slots_semester?: string | null;
 }
 
 const STATUS: Record<string, { label: string; color: string }> = {
@@ -130,7 +131,7 @@ function StudentCard({ contactId, fallbackName, onClose }: { contactId: string; 
 
             {(card.free_slots?.length ?? 0) > 0 && (
               <div>
-                <p className="text-xs font-bold uppercase tracking-wide text-[#8a8378] mb-1">Free (from signup)</p>
+                <p className="text-xs font-bold uppercase tracking-wide text-[#8a8378] mb-1">Free{card.free_slots_semester ? ` for ${card.free_slots_semester}` : ''} (from signup)</p>
                 <p className="text-sm text-[#4a4540]">{sortSlots(card.free_slots!).map(slotLabel).join(', ')}</p>
               </div>
             )}

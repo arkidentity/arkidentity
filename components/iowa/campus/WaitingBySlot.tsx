@@ -14,15 +14,15 @@ export interface WaitingSlot {
   students: { contact_id: string; name: string; phone: string | null; email: string | null }[];
 }
 
-export default function WaitingBySlot({ slots, unplacedNoTimes }: { slots: WaitingSlot[]; unplacedNoTimes: number }) {
+export default function WaitingBySlot({ slots, unplacedNoTimes, semester }: { slots: WaitingSlot[]; unplacedNoTimes: number; semester: string }) {
   return (
     <section className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pb-12">
       <h2 className="text-lg font-bold mb-1" style={{ color: 'var(--navy)' }}>
         Who’s waiting
       </h2>
       <p className="text-sm text-[#8a8378] mb-4">
-        Students not in a study yet, by the times they said they’re free on the signup page.
-        {unplacedNoTimes > 0 && ` ${unplacedNoTimes} more aren’t placed but didn’t pick any times.`}
+        Students not in a study yet, by the times they said they’re free for {semester} on the signup page.
+        {unplacedNoTimes > 0 && ` ${unplacedNoTimes} more aren’t placed but haven’t picked {semester} times.`}
       </p>
       {slots.length === 0 ? (
         <p className="text-sm text-[#8a8378]">Nobody waiting with times picked.</p>

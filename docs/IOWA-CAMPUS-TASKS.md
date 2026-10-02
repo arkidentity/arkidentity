@@ -579,7 +579,7 @@ so the next checklist top-up remade it. `deleteTask` now records the key in `iow
 `generateForEvent` and `createAutoTask` skip recorded keys. Before 033 runs, the lookup quietly
 returns nothing (old behavior).
 
-## Feedback queue (2026-10-02, Travis + Keilor) — #2–#10 BUILT; rest not built
+## Feedback queue (2026-10-02, Travis + Keilor) — #2–#11 BUILT; #1 not built
 
 **1. Group health / attendance.** Leaders take attendance per study meeting. Roll it up into a health
 level so we know how safe it is to add a student: Level 1 = flaky, Level 2 = some consistency but not
@@ -606,13 +606,13 @@ popup student profile with history, text/email, Move/Drop. Popup, not a jump to 
 
 **8. ✅ Student list order.** Active students first (A–Z by first name), then dormant (A–Z).
 
-**9. ✅ Free times at signup (migration 034).** `campus_students.free_slots` ("<js day>-<block>"). The public grid's ticked boxes are sent with Join / Start / "Have us reach out" and saved (`saveFreeSlots`; empty pick keeps the old value; never fatal). Shown on the student card ("Free (from signup)"), the Students list, and a **Who's waiting** panel under the Studies page: active, unplaced students grouped by slot, busiest first, with any open study in that slot ("Open: Tue 2:00 PM (2 spots)") or "enough to start one" at 3+. Original ask: The times a student picks while browsing studies get
+**9. ✅ Free times at signup (migrations 034 + 035).** 035: each pick is stamped with its semester (`free_slots_semester`: the joined/started study's semester, or the tab they were on); Who's waiting counts only the viewed semester, so old answers drop off. Returning students' December re-signup is a separate, future feature (a personal link like the staff schedule links). `campus_students.free_slots` ("<js day>-<block>"). The public grid's ticked boxes are sent with Join / Start / "Have us reach out" and saved (`saveFreeSlots`; empty pick keeps the old value; never fatal). Shown on the student card ("Free (from signup)"), the Students list, and a **Who's waiting** panel under the Studies page: active, unplaced students grouped by slot, busiest first, with any open study in that slot ("Open: Tue 2:00 PM (2 spots)") or "enough to start one" at 3+. Original ask: The times a student picks while browsing studies get
 saved to their profile. Whoever follows up sees "open in their schedule" and can place them. Later:
 a demand view showing "3 students waiting for a study at Tue 4 PM" so we know when to start one.
 
 **10. ✅ Students can be in more than one study.** The schema always allowed it (one active seat per study per contact); the UI only offered Move. Now "+ Study" beside Move/Drop (Studies page + calendar study popup, `AlsoAddSelect`) adds a seat in another live study they aren't in; full studies show but can't be picked. `addMember` now resyncs full/forming. Today it's one study per student (Move swaps it). Keep
 Move (out of one, into another) but add "Add to another study" so a student can hold several.
 
-**11. Event reminder lists.** Staff build a list per event (Friday Fill Up, Tue prayer call, etc.) of
+**11. ✅ Event reminder lists (migration 036).** `lib/eventReminders.ts`, table `iowa_event_reminder_people` (one list per event; weekly lists carry over), `iowa_events.reminder_days_before` (default 2). Event popup → "Reminder list": add students, Yes/Maybe/No, ✕, lead days. The morning run (every day, Sunday included, catches up) makes an unowned "Text the <event> list" task per date (`auto_kind = reminder_list`, key `reminder:<event>:<date>`; deleting it sticks). The task shows yes + maybe with a Text button each. Editing needs manageEvents; reading is anyone signed in. Original ask: Staff build a list per event (Friday Fill Up, Tue prayer call, etc.) of
 students who said yes / no in person. A couple of days before (or on a set day), it becomes a task for
 a student volunteer: "Text these people," with tap-to-text per name. Maybe later a self sign-up instead.

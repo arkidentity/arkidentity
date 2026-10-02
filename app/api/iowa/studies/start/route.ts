@@ -53,7 +53,7 @@ export async function POST(req: Request) {
       year: body.year,
       metBy: body.metBy,
     });
-    await saveFreeSlots(member.contact_id, cleanFreeSlots(body.freeSlots));
+    await saveFreeSlots(member.contact_id, cleanFreeSlots(body.freeSlots), study.semester);
     queueSeated(member.id); // first-ever seat → welcome-text task
     const slot = formatSlot(study);
     after(async () => {

@@ -50,7 +50,7 @@ export async function POST(req: Request) {
       metBy: body.metBy,
     });
 
-    await saveFreeSlots(member.contact_id, cleanFreeSlots(body.freeSlots));
+    await saveFreeSlots(member.contact_id, cleanFreeSlots(body.freeSlots), study.semester);
     revalidatePath('/iowa'); // a seat changed; /iowa is cached (revalidate = 60)
     queueStudySync(study.id); // roster changed → refresh the Google description
     // No separate "someone signed up" email: queueSeated makes the welcome-text

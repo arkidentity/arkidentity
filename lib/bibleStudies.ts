@@ -815,6 +815,7 @@ export interface CampusStudent {
   dormant_note: string | null;
   free_slots: string[]; // migration 034 — "When are you free?" boxes from signup
   free_slots_at: string | null;
+  free_slots_semester: string | null; // migration 035 — which semester those times were for
   // Derived, never stored: the studies they currently hold an active seat in.
   // Empty means unplaced — met, but not in a study yet.
   studies: { id: string; label: string; member_id: string }[];
@@ -883,6 +884,7 @@ export async function listCampusStudents(): Promise<CampusStudent[]> {
       dormant_note: string | null;
       free_slots?: string[] | null;
       free_slots_at?: string | null;
+      free_slots_semester?: string | null;
     }[])
       .map((r) => [r.contact_id, r])
   );
@@ -921,6 +923,7 @@ export async function listCampusStudents(): Promise<CampusStudent[]> {
         dormant_note: c?.dormant_note ?? null,
         free_slots: c?.free_slots ?? [],
         free_slots_at: c?.free_slots_at ?? null,
+        free_slots_semester: c?.free_slots_semester ?? null,
         studies: seatsByContact.get(p.contact_id) ?? [],
       };
     })
@@ -1006,13 +1009,13 @@ export async function setMemberStatus(
 // Save the "When are you free?" boxes a student ticked on the public page
 // (migration 034). An empty pick leaves what we had. Never fatal: the signup
 // already worked, this is a nice-to-have on top.
-export async function saveFreeSlots(contactId: string, slots: string[]): Promise<void> {
+export async function saveFreeSlots(contactId: string, slots: string[], semester: string): Promise<void> {
   if (slots.length === 0) return;
   try {
     await ensureCampusStudent(contactId);
     const { error } = await getSupabaseAdmin()
       .from('campus_students')
-      .update({ free_slots: slots, free_slots_at: new Date().toISOString() })
+      .update({ free_slots: slots, free_slots_at: new Date().toISOString(), free_slots_semester: semester })
       .eq('contact_id', contactId);
     if (error) throw error;
   } catch (e) {

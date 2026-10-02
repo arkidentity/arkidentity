@@ -113,6 +113,19 @@ export default function CampusCalendar({
           <a href={`?week=${addDays(weekStart, SPAN_DAYS[span])}${span === 'week' ? '&span=week' : ''}#week`} className="px-1.5 sm:px-2 py-1 rounded border border-gray-300 bg-white" aria-label="Next week">
             →
           </a>
+          {/* Jump straight to a far-out date instead of arrowing five days at a time. */}
+          <label className="relative px-1.5 sm:px-2 py-1 rounded border border-gray-300 bg-white cursor-pointer" aria-label="Go to date" title="Go to date">
+            📅
+            <input
+              type="date"
+              className="absolute inset-0 opacity-0 cursor-pointer"
+              defaultValue={weekStart}
+              onChange={(e) => {
+                const d = e.target.value;
+                if (d) window.location.href = `?week=${d}${span === 'week' ? '&span=week' : ''}#week`;
+              }}
+            />
+          </label>
         </div>
         <MineToggle mineOnly={mineOnly} onChange={setMineOnly} />
       </div>

@@ -212,3 +212,26 @@ export function Modal({ title, sub, onClose, children }: { title: string; sub?: 
     </div>
   );
 }
+
+// Text / Email buttons for a person. Text opens Messages (sms:), not a call —
+// texting is how staff reach students. Renders nothing without details.
+export function ContactButtons({ phone, email, size = 'sm' }: { phone?: string | null; email?: string | null; size?: 'xs' | 'sm' }) {
+  if (!phone && !email) return null;
+  const cls =
+    (size === 'xs' ? 'text-xs px-2 py-0.5' : 'text-sm px-3 py-1.5') +
+    ' inline-flex items-center rounded-md font-semibold border border-gray-300 bg-white hover:bg-gray-50 transition';
+  return (
+    <span className="inline-flex gap-1.5 align-middle">
+      {phone && (
+        <a href={`sms:${phone.replace(/[^\d+]/g, '')}`} onClick={(e) => e.stopPropagation()} className={cls} style={{ color: 'var(--navy)' }}>
+          Text
+        </a>
+      )}
+      {email && (
+        <a href={`mailto:${email}`} onClick={(e) => e.stopPropagation()} className={cls} style={{ color: 'var(--navy)' }}>
+          Email
+        </a>
+      )}
+    </span>
+  );
+}

@@ -121,14 +121,18 @@ export function CampusStudents({
 
   const visible = useMemo(() => {
     const q = search.trim().toLowerCase();
-    return students.filter((s) => {
+    // Active first, then dormant, then everyone else — A–Z within each.
+    const rank = (st: StudentStatus) => Object.keys(STATUS_LABEL).indexOf(st);
+    return students
+      .filter((s) => {
       if (yearFilter && s.year !== yearFilter) return false;
       if (statusFilter && s.status !== statusFilter) return false;
       if (placement === 'placed' && s.studies.length === 0) return false;
       if (placement === 'unplaced' && s.studies.length > 0) return false;
       if (!q) return true;
       return [s.name, s.email, s.phone].some((v) => v?.toLowerCase().includes(q));
-    });
+    })
+      .sort((a, b) => rank(a.status) - rank(b.status) || a.name.localeCompare(b.name));
   }, [students, search, yearFilter, statusFilter, placement]);
 
   // One endpoint for both records: campus facts land on campus_students, name /
@@ -342,7 +346,7 @@ export function CampusStudents({
                   <p className="text-sm break-words" style={{ color: '#8a8378' }}>
                     {!s.phone && !s.email && 'No contact details'}
                     {s.phone && (
-                      <a href={`tel:${s.phone}`} className="hover:underline" style={{ color: '#6b6459' }}>{s.phone}</a>
+                      <a href={`sms:${s.phone.replace(/[^\d+]/g, '')}`} title="Text" className="hover:underline" style={{ color: '#6b6459' }}>{s.phone}</a>
                     )}
                     {s.phone && s.email && ' · '}
                     {s.email && (

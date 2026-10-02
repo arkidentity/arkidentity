@@ -25,6 +25,7 @@ import {
   Modal,
   OverdueTag,
   PriorityBadge,
+  ContactButtons,
   StatusPill,
   btnPrimary,
   btnSmall,
@@ -459,9 +460,12 @@ function TaskDetail(props: TaskListProps & { t: CampusTask; busy: boolean; call:
       {t.description && <p className="text-[15px] md:text-sm text-[#4a4540] whitespace-pre-wrap">{t.description}</p>}
       {t.contact_id && (
         <div className="rounded-lg border border-gray-200 bg-[#FAF8F5] p-3">
-          <p className="text-xs font-bold uppercase tracking-wide text-[#8a8378] mb-2">
-            {t.contact_name ? `${t.contact_name.split(' ')[0]}'s history` : 'Their history'}
-          </p>
+          <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
+            <p className="text-xs font-bold uppercase tracking-wide text-[#8a8378]">
+              {t.contact_name ? `${t.contact_name.split(' ')[0]}'s history` : 'Their history'}
+            </p>
+            <ContactButtons phone={t.contact_phone} email={t.contact_email} size="xs" />
+          </div>
           <StudentHistory contactId={t.contact_id} compact />
         </div>
       )}

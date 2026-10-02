@@ -658,7 +658,12 @@ function MemberRow({
           {m.name}
           {/* Phone AND email — you can't text someone their email address. */}
           <span className="text-[#8a8378]">
-            {' · '}{[m.phone, m.email].filter(Boolean).join(' · ')}
+            {m.phone && (
+              <>{' · '}<a href={`sms:${m.phone.replace(/[^\d+]/g, '')}`} title="Text" className="hover:underline">{m.phone}</a></>
+            )}
+            {m.email && (
+              <>{' · '}<a href={`mailto:${m.email}`} className="hover:underline">{m.email}</a></>
+            )}
             {m.year ? ` · ${m.year}` : ''}
             {m.met_by_staff_id && staff.get(m.met_by_staff_id)
               ? ` · met ${staff.get(m.met_by_staff_id)!.name.split(' ')[0]}`

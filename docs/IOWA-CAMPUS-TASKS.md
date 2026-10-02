@@ -571,3 +571,48 @@ Settings card says so.
 ## Phase 3 — Student leaders
 
 Leader logins; see only their own studies' students; claim/update own tasks, offer help.
+
+## Deleted tasks stay deleted (migration 033, 2026-10-02)
+
+App-made tasks (checklists, follow-ups) are made once per `auto_key`. Deleting the row freed the key,
+so the next checklist top-up remade it. `deleteTask` now records the key in `iowa_dismissed_auto_keys`;
+`generateForEvent` and `createAutoTask` skip recorded keys. Before 033 runs, the lookup quietly
+returns nothing (old behavior).
+
+## Feedback queue (2026-10-02, Travis + Keilor) — #2, #3, #4 (partial), #8 BUILT; rest not built
+
+**1. Group health / attendance.** Leaders take attendance per study meeting. Roll it up into a health
+level so we know how safe it is to add a student: Level 1 = flaky, Level 2 = some consistency but not
+full, etc. (levels TBD). Show it wherever we place students.
+
+**2. ✅ Calendar: jump ahead** (📅 date picker beside the arrows). Reaching a Nov 1 event means clicking the arrow five days at a time. Add a
+date picker / month jump / "next event" so far-out events (and their tasks) are one tap away.
+
+**3. ✅ BUG: deleted template task comes back** (see above). Loaded the worship-night template, deleted "Book venue"
+(event at home) twice; it reappeared both times. Had to mark it done. Likely the template re-applies on
+load. Deleting must stick.
+
+**4. ◐ Tap to text / email everywhere.** Done: phone taps open Messages on the Students list and the study roster; Text/Email buttons on any task tied to a student (Reconnect). Left: calendar study popup already had Call/Text. Phone numbers open a text (sms:, not a call); emails open mail.
+Add Text / Email buttons in: Reconnect task, study detail, calendar study popup, student list rows.
+
+**5. Reconnect task: one notes area.** It shows "Add note" under history and a second notes section.
+Pick one. Then rework the layout of task popups in general.
+
+**6. Student names open their profile — everywhere.** Click a name (study, calendar popup, task) →
+popup student profile with history, text/email, Move/Drop. Popup, not a jump to the Students tab.
+
+**7. Keilor gets a Staff tab for himself.** He can change his password and edit his own fall schedule
+(free/busy). He cannot add staff or edit anyone else.
+
+**8. ✅ Student list order.** Active students first (A–Z by first name), then dormant (A–Z).
+
+**9. Save the student's time filter at signup.** The times a student picks while browsing studies get
+saved to their profile. Whoever follows up sees "open in their schedule" and can place them. Later:
+a demand view showing "3 students waiting for a study at Tue 4 PM" so we know when to start one.
+
+**10. Students can be in more than one study.** Today it's one study per student (Move swaps it). Keep
+Move (out of one, into another) but add "Add to another study" so a student can hold several.
+
+**11. Event reminder lists.** Staff build a list per event (Friday Fill Up, Tue prayer call, etc.) of
+students who said yes / no in person. A couple of days before (or on a set day), it becomes a task for
+a student volunteer: "Text these people," with tap-to-text per name. Maybe later a self sign-up instead.

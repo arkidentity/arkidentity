@@ -23,7 +23,7 @@ import {
   type SchoolPeriod,
   type Semester,
 } from '@/lib/campusFormat';
-import { listTasks, type CampusTask } from '@/lib/campusTasks';
+import { dismissedAutoKeys, listTasks, type CampusTask } from '@/lib/campusTasks';
 import { schedulesFor, scheduleHtml, taskLine, type ScheduleLine } from '@/lib/taskDigest';
 import { escapeEmailHtml as esc, sendEmailBatch, siteUrl } from '@/lib/email';
 
@@ -114,6 +114,7 @@ interface AutoTask {
 
 // Insert once per auto_key. Returns the new task id, or null if it already existed.
 async function createAutoTask(t: AutoTask): Promise<string | null> {
+  if ((await dismissedAutoKeys([t.key])).size > 0) return null; // deleted by someone — don't remake
   const db = getSupabaseAdmin();
   const { data, error } = await db
     .from('iowa_tasks')

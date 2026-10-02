@@ -35,6 +35,8 @@ export interface CampusTask {
   event_id: string | null;
   contact_id: string | null;
   contact_name: string | null; // flattened from contacts
+  contact_phone: string | null;
+  contact_email: string | null;
   created_by: string | null;
   created_at: string;
   updated_at: string;
@@ -129,10 +131,10 @@ export async function updateType(id: string, patch: { name?: string; active?: bo
 // Tasks
 // ---------------------------------------------------------------------------
 
-const TASK_SELECT = '*, contact:contacts(name), helpers:iowa_task_helpers(staff_id)';
+const TASK_SELECT = '*, contact:contacts(name, phone, email), helpers:iowa_task_helpers(staff_id)';
 
-interface TaskRow extends Omit<CampusTask, 'contact_name' | 'helper_ids'> {
-  contact: { name: string | null } | null;
+interface TaskRow extends Omit<CampusTask, 'contact_name' | 'contact_phone' | 'contact_email' | 'helper_ids'> {
+  contact: { name: string | null; phone: string | null; email: string | null } | null;
   helpers: { staff_id: string }[] | null;
 }
 
@@ -141,6 +143,8 @@ function flattenTask(r: TaskRow): CampusTask {
   return {
     ...rest,
     contact_name: contact?.name ?? null,
+    contact_phone: contact?.phone ?? null,
+    contact_email: contact?.email ?? null,
     helper_ids: (helpers ?? []).map((h) => h.staff_id),
   };
 }
@@ -308,8 +312,26 @@ export async function updateTask(
 }
 
 export async function deleteTask(id: string): Promise<void> {
-  const { error } = await getSupabaseAdmin().from('iowa_tasks').delete().eq('id', id);
+  const db = getSupabaseAdmin();
+  // An app-made task: remember its key so the generator doesn't make it again.
+  const { data: row } = await db.from('iowa_tasks').select('auto_key').eq('id', id).maybeSingle();
+  if (row?.auto_key) {
+    const { error: dErr } = await db
+      .from('iowa_dismissed_auto_keys')
+      .upsert({ auto_key: row.auto_key }, { onConflict: 'auto_key', ignoreDuplicates: true });
+    if (dErr) console.error('[iowa tasks] could not record dismissed key (migration 033 run?)', dErr);
+  }
+  const { error } = await db.from('iowa_tasks').delete().eq('id', id);
   if (error) throw error;
+}
+
+// Keys of app-made tasks someone deleted (migration 033). Empty if the table
+// isn't there yet, so generators keep working before the migration runs.
+export async function dismissedAutoKeys(keys: string[]): Promise<Set<string>> {
+  if (keys.length === 0) return new Set();
+  const { data, error } = await getSupabaseAdmin().from('iowa_dismissed_auto_keys').select('auto_key').in('auto_key', keys);
+  if (error) return new Set();
+  return new Set((data ?? []).map((r) => r.auto_key as string));
 }
 
 export async function setHelper(taskId: string, staffId: string, helping: boolean): Promise<CampusTask> {

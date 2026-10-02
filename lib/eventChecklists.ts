@@ -1,5 +1,6 @@
 import { getSupabaseAdmin } from '@/lib/supabaseAdmin';
 import type { IowaStaff } from '@/lib/iowaStaff';
+import { dismissedAutoKeys } from '@/lib/campusTasks';
 import { addDays, chicagoToday, eventDatesInRange, formatDate, isValidDate } from '@/lib/campusFormat';
 
 // Event checklists (migration 019): tasks due N days before/after an event.
@@ -165,9 +166,12 @@ export async function generateForEvent(eventId: string, today = chicagoToday()):
   const db = getSupabaseAdmin();
   const typeId = await eventPrepType();
   const goingFirst = e.staff?.[0]?.staff_id ?? null;
+  const keyFor = (occ: string, itemId: string) => `checklist:${e.id}:${occ}:${itemId}`;
+  const dismissed = await dismissedAutoKeys(dates.flatMap((occ) => template.items.map((i) => keyFor(occ, i.id))));
   let made = 0;
   for (const occ of dates) {
     for (const item of template.items) {
+      if (dismissed.has(keyFor(occ, item.id))) continue; // someone deleted it — leave it gone
       const realDue = addDays(occ, item.offset_days);
       if (realDue < addDays(today, -1) && occ < today) continue; // long past — don't backfill
       const due = realDue < today ? today : realDue; // applied late: due now, not already overdue
@@ -189,7 +193,7 @@ export async function generateForEvent(eventId: string, today = chicagoToday()):
           offset_days: item.offset_days,
           checklist_item_id: item.id,
           auto_kind: 'checklist',
-          auto_key: `checklist:${e.id}:${occ}:${item.id}`,
+          auto_key: keyFor(occ, item.id),
         })
         .select('id')
         .single();

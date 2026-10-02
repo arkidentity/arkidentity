@@ -391,7 +391,7 @@ function clipTime(plan, t) {
 
 // ---------- prepare ----------
 
-async function prepare(videoArg) {
+async function prepare(videoArg, { transcriptOnly = false } = {}) {
   let rec;
   if (videoArg) {
     const m = path.basename(videoArg).match(/(\d{4})[ /:-](\d{2})[ /:-](\d{2})/);
@@ -414,6 +414,10 @@ async function prepare(videoArg) {
   const tl = lines(words);
   fs.writeFileSync(path.join(dir, 'transcript.txt'), tl.map((l) => `[${ts(l.t0)}] ${l.text}`).join('\n'));
 
+  if (transcriptOnly) {
+    log(`transcript ready: ${path.join(dir, 'transcript.txt')}`);
+    return dir;
+  }
   const notes = readNotes(rec.date);
   const plan = await planWithClaude(tl, notes);
   const sections = plan?.sections?.length ? plan.sections : [{ start: 0, end: sourceDuration, label: 'whole recording' }];
@@ -441,6 +445,25 @@ async function finish(dir) {
   const { thumbnail_text, thumbnail_time } = JSON.parse(fs.readFileSync(path.join(dir, 'plan.json'), 'utf8'));
   await thumbnail(dir, clip, clipTime(readEditList(dir), thumbnail_time), thumbnail_text);
   log(`done. Review in ${dir}: clip.mp4, thumbnail.jpg, title.txt, description.txt, edit.md`);
+}
+
+// ---------- cut: sections chosen outside the script (e.g. by a Claude session) ----------
+
+// node fillup.mjs cut 2026-10-09 "01:21.0-15:30.6 teaching" "25:09.9-30:25.0 closing"
+async function cut(date, specs) {
+  const dir = workDir(date);
+  const video = path.join(dir, 'source.mp4');
+  const words = JSON.parse(fs.readFileSync(path.join(dir, 'words.json'), 'utf8'));
+  const sections = specs.map((spec) => {
+    const m = spec.match(/^([\d:.]+)\s*-\s*([\d:.]+)\s*(.*)$/);
+    if (!m) throw new Error(`bad section "${spec}" (use "MM:SS.s-MM:SS.s label")`);
+    return { start: parseTs(m[1]), end: parseTs(m[2]), label: m[3] || 'section' };
+  });
+  writeEditList(dir, { sections, cuts: mechanicalCuts(words, video), sourceDuration: duration(video) });
+  const planFile = path.join(dir, 'plan.json');
+  if (!fs.existsSync(planFile)) fs.writeFileSync(planFile, JSON.stringify({ thumbnail_text: `Friday Fill Up`, thumbnail_time: sections[0].start + 60 }, null, 2));
+  for (const f of ['title.txt', 'description.txt']) if (!fs.existsSync(path.join(dir, f))) fs.writeFileSync(path.join(dir, f), '\n');
+  await finish(dir);
 }
 
 // ---------- YouTube ----------
@@ -561,19 +584,23 @@ async function auto() {
   if (!rec) return log('no recording yet');
   const dir = workDir(rec.date);
   if (fs.existsSync(path.join(dir, 'clip.mp4'))) return log(`already prepared ${rec.date}`);
+  // No API key: just transcribe. The Friday Claude scheduled task picks the sections and renders.
+  const keyless = !process.env.ANTHROPIC_API_KEY;
+  if (keyless && fs.existsSync(path.join(dir, 'words.json'))) return log(`already transcribed ${rec.date}`);
   // Drive may still be syncing a fresh file: wait until its size stops changing.
   const s1 = fs.statSync(rec.path).size;
   await new Promise((r) => setTimeout(r, 30_000));
   if (fs.statSync(rec.path).size !== s1) return log('recording still syncing, will try next run');
 
-  await prepare(rec.path);
+  await prepare(rec.path, { transcriptOnly: keyless });
+  if (keyless) return;
   if (fs.existsSync(TOKEN_FILE)) await upload(rec.date);
   else notify(`Teaching clip ready to review in ~/Friday Fill Up/${rec.date}`);
 }
 
 // ---------- main ----------
 
-const [cmd, arg] = process.argv.slice(2);
+const [cmd, arg, ...rest] = process.argv.slice(2);
 try {
   if (cmd === 'prepare') await prepare(arg);
   else if (cmd === 'render') {
@@ -582,6 +609,9 @@ try {
   } else if (cmd === 'upload') {
     if (!arg) throw new Error('usage: upload <YYYY-MM-DD>');
     await upload(arg);
+  } else if (cmd === 'cut') {
+    if (!arg || !rest.length) throw new Error('usage: cut <YYYY-MM-DD> "MM:SS.s-MM:SS.s label" ...');
+    await cut(arg, rest);
   } else if (cmd === 'auth') await auth();
   else if (cmd === 'auto') await auto();
   else console.log('usage: fillup.mjs prepare [video] | render <date> | upload <date> | auth | auto');

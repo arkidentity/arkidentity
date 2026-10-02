@@ -175,10 +175,17 @@ function mechanicalCuts(words, video) {
 const PLAN_SCHEMA = {
   type: 'object',
   additionalProperties: false,
-  required: ['teaching_start', 'teaching_end', 'slow_cuts', 'title', 'description', 'thumbnail_text', 'thumbnail_time'],
+  required: ['sections', 'slow_cuts', 'title', 'description', 'thumbnail_text', 'thumbnail_time'],
   properties: {
-    teaching_start: { type: 'number', description: 'Seconds. First word of the teaching itself, after greetings, logistics, and opening prayer.' },
-    teaching_end: { type: 'number', description: 'Seconds. End of the teaching, before the first discussion question to the group or anyone else speaks.' },
+    sections: {
+      type: 'array',
+      items: {
+        type: 'object',
+        additionalProperties: false,
+        required: ['start', 'end', 'label'],
+        properties: { start: { type: 'number' }, end: { type: 'number' }, label: { type: 'string' } },
+      },
+    },
     slow_cuts: {
       type: 'array',
       items: {
@@ -205,9 +212,12 @@ async function planWithClaude(transcriptLines, notes) {
   const transcript = transcriptLines.map((l) => `[${l.t0.toFixed(1)}] ${l.text}`).join('\n');
   const prompt = `This is a transcript of Friday Fill Up, a 30-minute Google Meet for college students: Travis Gluckler teaches for about 15 minutes, then the group discusses. Times in brackets are seconds from the start of the recording.
 
-We are publishing ONLY Travis's teaching as a lean YouTube clip. The discussion stays private: students share personal stories there.
+We are publishing ONLY Travis's own words (his teaching, plus his closing if he gives one) as a lean YouTube clip. The discussion stays private: students share personal stories there.
 
-1. teaching_start / teaching_end: the teaching section. Start after greetings, waiting for people, tech checks, and the opening prayer. End right before Travis hands it to the group (his first discussion question) or anyone else speaks. If he closes the teaching with a short line right before the question, keep it.
+1. sections: the parts to keep, in order, each with start/end seconds and a label.
+   - "teaching": start after greetings, waiting for people, tech checks, and the opening prayer. End right before Travis hands it to the group (his first discussion question) or anyone else speaks.
+   - "closing": if, after the discussion, Travis gives closing thoughts that pull the teaching together and/or prays the group out, keep that too, from his transition ("I want to close with this...") through his final "amen". This is often the culmination of the teaching. Skip it if the end is only logistics or goodbyes.
+   - Never include a section where anyone other than Travis is speaking. Students' words stay private. Start a section after another person's last word (including their "amen"), and end it before anyone else speaks.
 2. slow_cuts: stretches INSIDE the teaching that slow it down and can go without losing meaning or breaking a sentence: restarts and false starts, saying the same point twice in a row, asides about logistics or tech, rambling setups. Cut whole sentences, start and end on sentence boundaries from the transcript times. Be conservative: never cut Scripture being read, a story's payoff, or the main point. Usually 0-6 cuts. Pauses and "um"s are handled separately; ignore them.
 3. title: a YouTube title, plain words, under 70 characters. ${notes ? 'Base it on the notes title.' : ''}
 4. description: ${notes ? 'Return the notes below exactly as written.' : 'A short blog-style summary of the teaching in Travis\'s voice: 2-4 short paragraphs, plain words, no church jargon, then the main Scripture references on their own line.'}
@@ -236,17 +246,20 @@ function readNotes(date) {
   return fs.existsSync(f) ? fs.readFileSync(f, 'utf8').trim() : '';
 }
 
-function writeEditList(dir, { start, end, cuts, sourceDuration }) {
-  const sorted = cuts.filter((c) => c.end > start && c.start < end).sort((a, b) => a.start - b.start);
+function writeEditList(dir, { sections, cuts, sourceDuration }) {
+  const inside = (c) => sections.some((r) => c.end > r.start && c.start < r.end);
+  const sorted = cuts.filter(inside).sort((a, b) => a.start - b.start);
   const md = `# Edit list
 
-Times are in the ORIGINAL recording. Change a box to [ ] to keep that part,
-or add your own line in the same format. Then run:
+Times are in the ORIGINAL recording. Under "Keep", each line is a section that
+goes in the clip, in order; add, remove, or change lines. Under "Cuts", change
+a box to [ ] to put that part back, or add your own line. Then run:
   node scripts/friday-fill-up/fillup.mjs render ${path.basename(dir)}
 
 Recording length: ${ts(sourceDuration)}
 
-Teaching: ${ts(start)} -> ${ts(end)}
+## Keep
+${sections.map((r) => `- ${ts(r.start)} -> ${ts(r.end)}  ${r.label}`).join('\n')}
 
 ## Cuts
 ${sorted.map((c) => `- [x] ${ts(c.start)} -> ${ts(c.end)}  ${c.reason}`).join('\n')}
@@ -256,16 +269,21 @@ ${sorted.map((c) => `- [x] ${ts(c.start)} -> ${ts(c.end)}  ${c.reason}`).join('\
 
 function readEditList(dir) {
   const md = fs.readFileSync(path.join(dir, 'edit.md'), 'utf8');
-  const t = md.match(/Teaching:\s*([\d:.]+)\s*->\s*([\d:.]+)/);
-  if (!t) throw new Error('edit.md is missing the "Teaching: start -> end" line');
+  const keepBlock = md.split(/^## Keep\s*$/m)[1]?.split(/^## /m)[0] ?? '';
+  const sections = [...keepBlock.matchAll(/^- ([\d:.]+)\s*->\s*([\d:.]+)/gm)].map((m) => ({ start: parseTs(m[1]), end: parseTs(m[2]) }));
+  if (!sections.length) throw new Error('edit.md has no lines under "## Keep"');
   const cuts = [...md.matchAll(/^- \[[xX]\]\s*([\d:.]+)\s*->\s*([\d:.]+)/gm)].map((m) => ({
     start: parseTs(m[1]),
     end: parseTs(m[2]),
   }));
-  return { start: parseTs(t[1]), end: parseTs(t[2]), cuts };
+  return { sections, cuts };
 }
 
-function keepSegments({ start, end, cuts }) {
+function keepSegments({ sections, cuts }) {
+  return sections.flatMap(({ start, end }) => keepRange(start, end, cuts));
+}
+
+function keepRange(start, end, cuts) {
   const merged = [];
   for (const c of cuts.filter((c) => c.end > c.start).sort((a, b) => a.start - b.start)) {
     const last = merged.at(-1);
@@ -307,7 +325,8 @@ function render(dir) {
     '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '20', '-c:a', 'aac', '-b:a', '160k', '-movflags', '+faststart', out,
   ]);
   const kept = segs.reduce((s, [a, b]) => s + b - a, 0);
-  log(`clip.mp4: ${ts(kept)} (teaching was ${ts(plan.end - plan.start)}, cut ${ts(plan.end - plan.start - kept)})`);
+  const total = plan.sections.reduce((s, r) => s + r.end - r.start, 0);
+  log(`clip.mp4: ${ts(kept)} (kept sections were ${ts(total)}, cut ${ts(total - kept)})`);
   return out;
 }
 
@@ -397,13 +416,12 @@ async function prepare(videoArg) {
 
   const notes = readNotes(rec.date);
   const plan = await planWithClaude(tl, notes);
-  const start = plan ? plan.teaching_start : 0;
-  const end = plan ? plan.teaching_end : sourceDuration;
+  const sections = plan?.sections?.length ? plan.sections : [{ start: 0, end: sourceDuration, label: 'whole recording' }];
   const cuts = [
     ...(plan?.slow_cuts ?? []).map((c) => ({ ...c, reason: `slow: ${c.reason}` })),
     ...mechanicalCuts(words, video),
   ];
-  writeEditList(dir, { start, end, cuts, sourceDuration });
+  writeEditList(dir, { sections, cuts, sourceDuration });
 
   const title = plan?.title || notes.match(/^#\s+(.+)$/m)?.[1] || `Friday Fill Up ${rec.date}`;
   const description = notes ? notes.replace(/^#\s+.+\n+/, '') : plan?.description ?? '';
@@ -411,7 +429,7 @@ async function prepare(videoArg) {
   fs.writeFileSync(path.join(dir, 'description.txt'), description.trim() + '\n');
   fs.writeFileSync(
     path.join(dir, 'plan.json'),
-    JSON.stringify({ thumbnail_text: plan?.thumbnail_text || title, thumbnail_time: plan?.thumbnail_time ?? start + 60 }, null, 2),
+    JSON.stringify({ thumbnail_text: plan?.thumbnail_text || title, thumbnail_time: plan?.thumbnail_time ?? sections[0].start + 60 }, null, 2),
   );
 
   await finish(dir);

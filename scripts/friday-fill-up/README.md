@@ -1,7 +1,7 @@
 # Friday Fill Up: recording → teaching clip → YouTube
 
 Runs on Travis's Mac. Every Friday it takes the Meet recording from Google
-Drive, cuts it down to just the teaching, trims pauses / "um"s / slow parts,
+Drive, cuts it down to Travis's teaching (plus his closing thoughts and prayer when he gives them), trims pauses / "um"s / slow parts,
 makes a thumbnail, and uploads the clip **unlisted** to the Friday Fill Up
 playlist. You watch it and flip it to Public. Public videos show up on
 arkidentity.com/friday within the hour.
@@ -20,7 +20,7 @@ The discussion is never published. Students share personal stories there.
 3. **Review:** open `~/Friday Fill Up/YYYY-MM-DD/`:
    - `clip.mp4` — the edited teaching
    - `edit.md` — every cut, one per line. Change `[x]` to `[ ]` to put a part
-     back, or move the `Teaching:` start/end. Then re-render:
+     back, or change the sections under `## Keep`. Then re-render:
      `node scripts/friday-fill-up/fillup.mjs render YYYY-MM-DD`
    - `thumbnail.jpg`, `title.txt`, `description.txt` — edit freely
    - `transcript.txt` — full transcript with times, handy for editing `edit.md`
@@ -43,7 +43,7 @@ node scripts/friday-fill-up/fillup.mjs prepare path.mp4   # a specific file
 | Find recording | Google Drive for desktop (`My Drive/Google Meet`) | free |
 | Transcribe with word timings | whisper.cpp, local | free |
 | Shorten pauses > 0.9s to 0.35s, cut "um"/"uh" | script | free |
-| Find teaching start/end + slow parts, title, description | Claude Opus 5.5 | ~5–15¢ |
+| Find the teaching + closing sections, slow parts, title, description | Claude Opus 5.5 | ~5–15¢ |
 | Cut + join (tiny audio fade at each join) | ffmpeg | free |
 | Thumbnail (video frame + navy/gold overlay) | sharp | free |
 | Upload unlisted, thumbnail, add to playlist | YouTube Data API | free |

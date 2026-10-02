@@ -1,5 +1,7 @@
 'use client';
 
+import { HealthBadge } from '@/components/iowa/campus/StudyAttendance';
+import type { StudyHealth } from '@/lib/studyHealthFormat';
 import { AlsoAddSelect } from '@/components/iowa/campus/AlsoAddSelect';
 import { StudentLink } from '@/components/iowa/campus/StudentLink';
 import { createContext, useContext, useMemo, useState } from 'react';
@@ -28,6 +30,8 @@ const Students = createContext<{ id: string; label: string }[]>([]);
 // This semester's busy blocks, so picking someone for a study can say "Keilor
 // has class then" instead of letting you find out from him later.
 const Busy = createContext<BusyBlock[]>([]);
+// Group health per study from launch attendance (migration 037).
+const Health = createContext<Record<string, StudyHealth>>({});
 
 const STATUSES: StudyStatus[] = ['pending_setup', 'forming', 'full', 'activated', 'paused', 'ended'];
 
@@ -74,7 +78,9 @@ export default function IowaAdmin({
   planning = [],
   students = [],
   busyBlocks = [],
+  health = {},
 }: {
+  health?: Record<string, StudyHealth>;
   busyBlocks?: BusyBlock[];
   students?: { id: string; label: string }[];
   planning?: { name: string; starts_on: string }[];
@@ -143,6 +149,7 @@ export default function IowaAdmin({
   }, [initial]);
 
   return (
+    <Health.Provider value={health}>
     <Busy.Provider value={busyBlocks}>
     <Students.Provider value={students}>
     <StudyTasks.Provider value={tasksByStudy}>
@@ -276,6 +283,7 @@ export default function IowaAdmin({
     </StudyTasks.Provider>
     </Students.Provider>
     </Busy.Provider>
+    </Health.Provider>
   );
 }
 
@@ -320,6 +328,7 @@ function StudyRow({
   call: CallFn;
   flag?: string;
 }) {
+  const health = useContext(Health)[s.id];
   return (
     <div className="rounded-lg border border-gray-200 bg-white">
       <button
@@ -334,6 +343,7 @@ function StudyRow({
         </span>
         <span className="flex items-center gap-2 shrink-0">
           <PlanBadge s={s} />
+          <HealthBadge health={health} compact />
           {s.point_staff_id && staff.get(s.point_staff_id) && (
             <span
               className="text-xs font-semibold px-2 py-0.5 rounded-full"

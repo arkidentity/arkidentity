@@ -579,9 +579,9 @@ so the next checklist top-up remade it. `deleteTask` now records the key in `iow
 `generateForEvent` and `createAutoTask` skip recorded keys. Before 033 runs, the lookup quietly
 returns nothing (old behavior).
 
-## Feedback queue (2026-10-02, Travis + Keilor) — #2–#11 BUILT; #1 not built
+## Feedback queue (2026-10-02, Travis + Keilor) — ALL BUILT (#1 needs migration 037)
 
-**1. Group health / attendance.** Leaders take attendance per study meeting. Roll it up into a health
+**1. ✅ Group health (migration 037).** Launch-only attendance, per Travis: staff/interns (later the group's student leader) take it for a new group's first weeks, not as ongoing upkeep. `iowa_study_attendance` (study, date, contact, present); `lib/studyAttendance.ts` + pure `lib/studyHealthFormat.ts`. Calendar study popup → Attendance: checklist for that date; opens on its own while launching (under 6 meetings taken and not solid), tucked behind "Take/Edit <date>" after. Level from the last 4 recorded meetings: **solid** 80%+ of the roster present, **mid** 50–79%, **flaky** under 50%; fewer than 2 meetings = too early. Badge on the Studies page rows and in the popup. Original ask: Leaders take attendance per study meeting. Roll it up into a health
 level so we know how safe it is to add a student: Level 1 = flaky, Level 2 = some consistency but not
 full, etc. (levels TBD). Show it wherever we place students.
 

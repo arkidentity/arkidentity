@@ -3,6 +3,7 @@ import { can } from '@/lib/iowaPerms';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { blockOf, formatSlot, listCampusStudents, listStudentOptions, listStudies } from '@/lib/bibleStudies';
+import { healthByStudy } from '@/lib/studyAttendance';
 import WaitingBySlot, { type WaitingSlot } from '@/components/iowa/campus/WaitingBySlot';
 import { listBusy } from '@/lib/availability';
 import { semesterContext } from '@/lib/semesters';
@@ -50,7 +51,7 @@ export default async function IowaStudiesPage({ searchParams }: { searchParams: 
   const waiting = [...bySlot.values()].sort((a, b) => b.students.length - a.students.length);
   const unplacedNoTimes = unplaced.filter((p) => p.free_slots_semester !== semester).length;
   // This semester's busy blocks, so the point-person picker can flag a clash.
-  const busyBlocks = await listBusy(semester);
+  const [busyBlocks, health] = await Promise.all([listBusy(semester), healthByStudy(studies.map((st) => st.id))]);
   const nameOf = new Map(staff.map((s) => [s.id, s.name]));
   const tasksByStudy: Record<string, StudyTask[]> = {};
   for (const t of tasks) {
@@ -100,6 +101,7 @@ export default async function IowaStudiesPage({ searchParams }: { searchParams: 
       tasksByStudy={tasksByStudy}
       students={students}
       busyBlocks={busyBlocks}
+      health={health}
     />
       <div style={{ background: '#FAF8F5' }}>
         <WaitingBySlot slots={waiting} unplacedNoTimes={unplacedNoTimes} semester={semester} />

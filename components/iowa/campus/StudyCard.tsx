@@ -1,5 +1,6 @@
 'use client';
 
+import StudyAttendance from '@/components/iowa/campus/StudyAttendance';
 import { AlsoAddSelect } from '@/components/iowa/campus/AlsoAddSelect';
 import { StudentLink } from '@/components/iowa/campus/StudentLink';
 import { useState } from 'react';
@@ -87,6 +88,8 @@ export default function StudyCard({
           </>
         )}
       </dl>
+
+      <StudyAttendance studyId={s.id} date={date} members={active} />
 
       <DetailsEditor s={s} staff={staff} />
 

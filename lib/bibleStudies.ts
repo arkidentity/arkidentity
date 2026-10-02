@@ -726,6 +726,7 @@ export async function addMember(studyId: string, input: AddMemberInput): Promise
     if (error.code === '23505') throw new Error('They already hold an active seat here.');
     throw error;
   }
+  await resyncFullness(studyId); // the new seat may fill it
   return flattenMember(data as unknown as MemberRow);
 }
 

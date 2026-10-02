@@ -579,7 +579,7 @@ so the next checklist top-up remade it. `deleteTask` now records the key in `iow
 `generateForEvent` and `createAutoTask` skip recorded keys. Before 033 runs, the lookup quietly
 returns nothing (old behavior).
 
-## Feedback queue (2026-10-02, Travis + Keilor) — #2–#8 BUILT; rest not built
+## Feedback queue (2026-10-02, Travis + Keilor) — #2–#8, #10 BUILT; rest not built
 
 **1. Group health / attendance.** Leaders take attendance per study meeting. Roll it up into a health
 level so we know how safe it is to add a student: Level 1 = flaky, Level 2 = some consistency but not
@@ -610,7 +610,7 @@ popup student profile with history, text/email, Move/Drop. Popup, not a jump to 
 saved to their profile. Whoever follows up sees "open in their schedule" and can place them. Later:
 a demand view showing "3 students waiting for a study at Tue 4 PM" so we know when to start one.
 
-**10. Students can be in more than one study.** Today it's one study per student (Move swaps it). Keep
+**10. ✅ Students can be in more than one study.** The schema always allowed it (one active seat per study per contact); the UI only offered Move. Now "+ Study" beside Move/Drop (Studies page + calendar study popup, `AlsoAddSelect`) adds a seat in another live study they aren't in; full studies show but can't be picked. `addMember` now resyncs full/forming. Today it's one study per student (Move swaps it). Keep
 Move (out of one, into another) but add "Add to another study" so a student can hold several.
 
 **11. Event reminder lists.** Staff build a list per event (Friday Fill Up, Tue prayer call, etc.) of

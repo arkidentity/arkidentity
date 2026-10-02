@@ -1,5 +1,6 @@
 'use client';
 
+import { AlsoAddSelect } from '@/components/iowa/campus/AlsoAddSelect';
 import { StudentLink } from '@/components/iowa/campus/StudentLink';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -177,7 +178,7 @@ function SeatActions({
   busy: boolean;
   call: CallFn;
 }) {
-  const [mode, setMode] = useState<'none' | 'move' | 'drop'>('none');
+  const [mode, setMode] = useState<'none' | 'move' | 'add' | 'drop'>('none');
   const [reason, setReason] = useState('');
   const [note, setNote] = useState('');
   const btn = 'text-xs font-semibold px-2.5 py-1 rounded border border-gray-300 bg-white disabled:opacity-50';
@@ -189,6 +190,9 @@ function SeatActions({
       <div className="flex gap-2">
         <button disabled={busy} onClick={() => setMode(mode === 'move' ? 'none' : 'move')} className={btn} style={{ color: 'var(--navy)' }}>
           {mode === 'move' ? 'Cancel' : 'Move'}
+        </button>
+        <button disabled={busy} onClick={() => setMode(mode === 'add' ? 'none' : 'add')} className={btn} style={{ color: 'var(--navy)' }} title="Also put them in another study (they stay in this one)">
+          {mode === 'add' ? 'Cancel' : '+ Study'}
         </button>
         <button disabled={busy} onClick={() => setMode(mode === 'drop' ? 'none' : 'drop')} className={btn} style={{ color: '#b91c1c' }}>
           {mode === 'drop' ? 'Cancel' : 'Drop'}
@@ -211,6 +215,9 @@ function SeatActions({
             </option>
           ))}
         </select>
+      )}
+      {mode === 'add' && (
+        <AlsoAddSelect m={m} studyId={studyId} others={others} busy={busy} call={call} onDone={() => setMode('none')} className={`${field} mt-2 w-full`} />
       )}
       {mode === 'drop' && (
         <div className="mt-2 flex flex-wrap gap-2 items-center">

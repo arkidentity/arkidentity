@@ -1,5 +1,6 @@
 'use client';
 
+import { AlsoAddSelect } from '@/components/iowa/campus/AlsoAddSelect';
 import { StudentLink } from '@/components/iowa/campus/StudentLink';
 import { createContext, useContext, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -647,6 +648,7 @@ function MemberRow({
 }) {
   const dropped = m.status === 'dropped';
   const [moving, setMoving] = useState(false);
+  const [adding, setAdding] = useState(false); // a second (third…) study — this seat stays
   const [dropping, setDropping] = useState(false);
   const [reason, setReason] = useState('');
   const [note, setNote] = useState('');
@@ -694,6 +696,17 @@ function MemberRow({
               style={{ borderColor: '#d1d5db', color: '#143348' }}
             >
               {moving ? 'Cancel' : 'Move'}
+            </button>
+          )}
+          {!dropped && (
+            <button
+              onClick={() => setAdding((v) => !v)}
+              disabled={busy}
+              title="Also put them in another study (they stay in this one)"
+              className="text-xs font-semibold px-2 py-1 rounded border transition hover:bg-gray-50 disabled:opacity-50"
+              style={{ borderColor: '#d1d5db', color: '#143348' }}
+            >
+              {adding ? 'Cancel' : '+ Study'}
             </button>
           )}
           <button
@@ -769,6 +782,10 @@ function MemberRow({
               </option>
             ))}
         </select>
+      )}
+
+      {adding && (
+        <AlsoAddSelect m={m} studyId={studyId} others={others} busy={busy} call={call} onDone={() => setAdding(false)} className="mt-2 w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-gray-900 bg-white" />
       )}
     </li>
   );
@@ -1293,3 +1310,4 @@ function NextSemester({ s, staff }: { s: StudyWithMembers; staff: Map<string, St
     </div>
   );
 }
+

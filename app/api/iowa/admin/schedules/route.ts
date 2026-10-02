@@ -2,7 +2,8 @@ import { NextResponse, after } from 'next/server';
 import { ensureScheduleLink, markSent, scheduleUrl } from '@/lib/availability';
 import { sendScheduleLink } from '@/lib/email';
 import { getStaff } from '@/lib/iowaStaff';
-import { requirePermission } from '@/lib/iowaPerms';
+import { can } from '@/lib/iowaPerms';
+import { currentStaff } from '@/lib/iowaStaff';
 
 export const dynamic = 'force-dynamic';
 
@@ -10,8 +11,9 @@ export const dynamic = 'force-dynamic';
 //   { staffId, semester }         — make (or fetch) their link, return it
 //   { staffId, semester, send }   — and email it to them
 export async function POST(req: Request) {
-  const me = await requirePermission('manageStaff');
-  if (me instanceof NextResponse) return me;
+  // Staff: anyone's link. Everyone else: only their own.
+  const me = await currentStaff();
+  if (!me) return NextResponse.json({ error: 'Sign in again.' }, { status: 401 });
 
   const { staffId, semester, send } = (await req.json().catch(() => ({}))) as {
     staffId?: string;
@@ -19,6 +21,9 @@ export async function POST(req: Request) {
     send?: boolean;
   };
   if (!staffId || !semester) return NextResponse.json({ error: 'Who, and which semester?' }, { status: 400 });
+  if (!can(me, 'manageStaff') && staffId !== me.id) {
+    return NextResponse.json({ error: 'You can only open your own schedule.' }, { status: 403 });
+  }
 
   try {
     const link = await ensureScheduleLink(staffId, semester);

@@ -1,5 +1,6 @@
 'use client';
 
+import { StudentLink } from '@/components/iowa/campus/StudentLink';
 import { createContext, useContext, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import type { StudyWithMembers, StudyMember, StudyStatus } from '@/lib/bibleStudies';
@@ -655,7 +656,7 @@ function MemberRow({
     <li className="text-sm">
       <div className="flex items-center justify-between gap-3">
         <span className={dropped ? 'text-[#b0a99e] line-through' : 'text-[#4a4540]'}>
-          {m.name}
+          <StudentLink contactId={m.contact_id} name={m.name} />
           {/* Phone AND email — you can't text someone their email address. */}
           <span className="text-[#8a8378]">
             {m.phone && (

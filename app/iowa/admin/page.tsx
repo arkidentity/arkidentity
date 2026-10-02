@@ -39,13 +39,16 @@ export default async function IowaDashboardPage({
   // 5 days by default; ?span=week opens it out.
   const span: CalendarSpan = sp.span === 'week' ? 'week' : 'short';
   const days = SPAN_DAYS[span];
-  const [ctx, events, held, sync, sem, templates] = await Promise.all([
+  const [ctx, events, held, sync, sem, templates, ahead] = await Promise.all([
     loadCampusContext(),
     listEvents(start, addDays(start, days - 1)),
     listHeld(),
     syncStatus(),
     semesterContext(),
     listTemplates(),
+    // The month picker: one-off events for the next six months (weekly
+    // repeats would dot every week and hide what's actually special).
+    listEvents(thisWeek, addDays(thisWeek, 183)),
   ]);
 
   const [rsvps, songs, taskFiles, pendingEvents, pendingStudies, team] = await Promise.all([
@@ -93,6 +96,15 @@ export default async function IowaDashboardPage({
         songs,
         students,
         team,
+        upcoming: ahead
+          .filter((e) => !e.repeat_weekly && e.event_date >= thisWeek)
+          .map((e) => ({
+            id: e.id,
+            title: e.title,
+            date: e.event_date,
+            start_time: e.start_time,
+            openTasks: ctx.tasks.filter((t) => t.event_id === e.id && t.status !== 'done').length,
+          })),
       }}
       tasks={{
         tasks,

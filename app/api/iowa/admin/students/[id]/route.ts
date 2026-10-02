@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { requirePermission } from '@/lib/iowaPerms';
-import { updateCampusStudent, type StudentStatus } from '@/lib/bibleStudies';
+import { listCampusStudents, updateCampusStudent, type StudentStatus } from '@/lib/bibleStudies';
 import { updateContact } from '@/lib/contacts';
 import { DORMANT_REASONS } from '@/lib/checkinFormat';
 
@@ -64,6 +64,21 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     const contact = Object.keys(person).length ? await updateContact(id, person) : null;
 
     return NextResponse.json({ ok: true, contact });
+  } catch (e) {
+    return NextResponse.json({ error: (e as Error).message }, { status: 400 });
+  }
+}
+
+// GET /api/iowa/admin/students/:contactId — one student's card (the popup that
+// opens when you click a name anywhere in the admin).
+export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const me = await requirePermission('viewStudents');
+  if (me instanceof NextResponse) return me;
+  const { id } = await params;
+  try {
+    const student = (await listCampusStudents()).find((s) => s.contact_id === id);
+    if (!student) return NextResponse.json({ error: 'Student not found.' }, { status: 404 });
+    return NextResponse.json({ student });
   } catch (e) {
     return NextResponse.json({ error: (e as Error).message }, { status: 400 });
   }

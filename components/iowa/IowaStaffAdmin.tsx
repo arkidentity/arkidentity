@@ -10,7 +10,17 @@ const input = 'w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-g
 // Staff logins for the Iowa admin. Everyone here has full access; this page is
 // only for adding people, resetting passwords, and turning a login off when an
 // internship ends (history and study assignments are kept).
-export default function IowaStaffAdmin({ initial, meId }: { initial: IowaStaff[]; meId: string | null }) {
+// selfOnly: an intern's view — just their own row (name, phone, emails,
+// password), no roles, no logins on/off, no adding people.
+export default function IowaStaffAdmin({
+  initial,
+  meId,
+  selfOnly = false,
+}: {
+  initial: IowaStaff[];
+  meId: string | null;
+  selfOnly?: boolean;
+}) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -44,11 +54,13 @@ export default function IowaStaffAdmin({ initial, meId }: { initial: IowaStaff[]
       <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="flex items-baseline justify-between mb-2">
           <h1 className="text-3xl font-bold" style={{ color: 'var(--navy)' }}>
-            Staff
+            {selfOnly ? 'My account' : 'Staff'}
           </h1>
         </div>
         <p className="text-sm text-[#8a8378] mb-8">
-          Everyone here can sign in to the Iowa admin with full access, and can be put on point for a study.
+          {selfOnly
+            ? 'Your details, your password, and your schedule for the semester.'
+            : 'Everyone here can sign in to the Iowa admin, and can be put on point for a study.'}
         </p>
 
         {error && (
@@ -62,10 +74,11 @@ export default function IowaStaffAdmin({ initial, meId }: { initial: IowaStaff[]
 
         <ul className="space-y-2 mb-10">
           {initial.map((p) => (
-            <StaffRow key={p.id} p={p} isMe={p.id === meId} busy={busy} call={call} onNotice={setNotice} />
+            <StaffRow key={p.id} p={p} isMe={p.id === meId} selfOnly={selfOnly} busy={busy} call={call} onNotice={setNotice} />
           ))}
         </ul>
 
+        {!selfOnly && (<>
         <h2 className="text-lg font-bold mb-3" style={{ color: 'var(--navy)' }}>
           Add someone
         </h2>
@@ -96,6 +109,7 @@ export default function IowaStaffAdmin({ initial, meId }: { initial: IowaStaff[]
             </button>
           </div>
         </div>
+        </>)}
       </div>
     </div>
   );
@@ -104,12 +118,14 @@ export default function IowaStaffAdmin({ initial, meId }: { initial: IowaStaff[]
 function StaffRow({
   p,
   isMe,
+  selfOnly,
   busy,
   call,
   onNotice,
 }: {
   p: IowaStaff;
   isMe: boolean;
+  selfOnly: boolean;
   busy: boolean;
   call: (url: string, method: string, body: unknown) => Promise<boolean>;
   onNotice: (s: string) => void;
@@ -159,7 +175,7 @@ function StaffRow({
           >
             {resetting ? 'Cancel' : 'Set password'}
           </button>
-          {!isMe && (
+          {!isMe && !selfOnly && (
             <button
               onClick={() => call(`/api/iowa/admin/staff/${p.id}`, 'PATCH', { active: !p.active })}
               disabled={busy}
@@ -185,7 +201,7 @@ function StaffRow({
             value={details.phone}
             onChange={(e) => setDetails({ ...details, phone: e.target.value })}
           />
-          <RoleSelect value={details.role} onChange={(role) => setDetails({ ...details, role })} />
+          {!selfOnly && <RoleSelect value={details.role} onChange={(role) => setDetails({ ...details, role })} />}
           {/* How task activity reaches them: one 6 PM email (default), each
               thing as it happens, or nothing but the 8 AM checklist. */}
           <select
@@ -202,7 +218,8 @@ function StaffRow({
           <button
             disabled={busy || !details.name.trim()}
             onClick={async () => {
-              if (await call(`/api/iowa/admin/staff/${p.id}`, 'PATCH', details)) {
+              const { role, ...mine } = details;
+              if (await call(`/api/iowa/admin/staff/${p.id}`, 'PATCH', selfOnly ? mine : { ...mine, role })) {
                 setEditing(false);
                 onNotice(`Saved ${details.name.trim()}.`);
               }

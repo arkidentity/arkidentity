@@ -11,13 +11,19 @@ export const dynamic = 'force-dynamic';
 export const metadata: Metadata = { title: 'ARK Iowa — staff' };
 
 export default async function IowaStaffPage() {
-  // The nav hides this tab, but a bookmark shouldn't get past it either.
-  if (!can(await currentStaff(), 'manageStaff')) redirect('/iowa/admin');
-  const [staff, me, semester] = await Promise.all([listStaff(), currentStaff(), currentSemesterName()]);
-  const [links, blocks] = await Promise.all([listScheduleLinks(semester), listBusy(semester)]);
+  const me = await currentStaff();
+  if (!me) redirect('/iowa/admin/login');
+  // Staff see and manage everyone. Anyone else sees only themselves: their
+  // details, password and semester schedule — no adding people, no roles.
+  const admin = can(me, 'manageStaff');
+  const [all, semester] = await Promise.all([listStaff(), currentSemesterName()]);
+  const staff = admin ? all : all.filter((s) => s.id === me.id);
+  const [allLinks, allBlocks] = await Promise.all([listScheduleLinks(semester), listBusy(semester)]);
+  const links = admin ? allLinks : allLinks.filter((l) => l.staff_id === me.id);
+  const blocks = admin ? allBlocks : allBlocks.filter((b) => b.staff_id === me.id);
   return (
     <>
-      <IowaStaffAdmin initial={staff} meId={me?.id ?? null} />
+      <IowaStaffAdmin initial={staff} meId={me.id} selfOnly={!admin} />
       <div style={{ background: '#FAF8F5' }}>
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pb-12">
           <Schedules

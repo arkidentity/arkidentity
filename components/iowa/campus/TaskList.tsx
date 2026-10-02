@@ -1,5 +1,6 @@
 'use client';
 
+import { StudentLink } from '@/components/iowa/campus/StudentLink';
 import { useMemo, useState } from 'react';
 import type { CampusTask, TaskActivity } from '@/lib/campusTasks';
 import type { TaskFile } from '@/lib/taskFiles';
@@ -462,7 +463,14 @@ function TaskDetail(props: TaskListProps & { t: CampusTask; busy: boolean; call:
         <div className="rounded-lg border border-gray-200 bg-[#FAF8F5] p-3">
           <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
             <p className="text-xs font-bold uppercase tracking-wide text-[#8a8378]">
-              {t.contact_name ? `${t.contact_name.split(' ')[0]}'s history` : 'Their history'}
+              {t.contact_name ? (
+                <>
+                  <StudentLink contactId={t.contact_id} name={t.contact_name} className="normal-case tracking-normal" />
+                  {' · history'}
+                </>
+              ) : (
+                'Their history'
+              )}
             </p>
             <ContactButtons phone={t.contact_phone} email={t.contact_email} size="xs" />
           </div>

@@ -579,13 +579,13 @@ so the next checklist top-up remade it. `deleteTask` now records the key in `iow
 `generateForEvent` and `createAutoTask` skip recorded keys. Before 033 runs, the lookup quietly
 returns nothing (old behavior).
 
-## Feedback queue (2026-10-02, Travis + Keilor) — #2, #3, #4 (partial), #8 BUILT; rest not built
+## Feedback queue (2026-10-02, Travis + Keilor) — #2, #3, #4, #6, #7, #8 BUILT; rest not built
 
 **1. Group health / attendance.** Leaders take attendance per study meeting. Roll it up into a health
 level so we know how safe it is to add a student: Level 1 = flaky, Level 2 = some consistency but not
 full, etc. (levels TBD). Show it wherever we place students.
 
-**2. ✅ Calendar: jump ahead** (📅 date picker beside the arrows). Reaching a Nov 1 event means clicking the arrow five days at a time. Add a
+**2. ✅ Calendar: jump ahead.** "Month" button beside the arrows opens `MonthPicker`: month grid with a dot on days that have a one-off event (weekly repeats left out), ← → months, and "Coming up" (next 8 events with open-task counts). Tap a day/event → the grid starts there. Data: dashboard loads one-off events for the next 183 days. Reaching a Nov 1 event means clicking the arrow five days at a time. Add a
 date picker / month jump / "next event" so far-out events (and their tasks) are one tap away.
 
 **3. ✅ BUG: deleted template task comes back** (see above). Loaded the worship-night template, deleted "Book venue"
@@ -598,10 +598,10 @@ Add Text / Email buttons in: Reconnect task, study detail, calendar study popup,
 **5. Reconnect task: one notes area.** It shows "Add note" under history and a second notes section.
 Pick one. Then rework the layout of task popups in general.
 
-**6. Student names open their profile — everywhere.** Click a name (study, calendar popup, task) →
+**6. ✅ Student names open their profile — everywhere.** `StudentLink` (components/iowa/campus) + `GET /api/iowa/admin/students/:id`. Wired: Studies roster, calendar study popup (StudyCard), task history header. Card: status/year, Text/Email, studies, notes, history (+ add note), "Open in Students" (`?q=`). Move/Drop stays beside the name in rosters, not in the card. Click a name (study, calendar popup, task) →
 popup student profile with history, text/email, Move/Drop. Popup, not a jump to the Students tab.
 
-**7. Keilor gets a Staff tab for himself.** He can change his password and edit his own fall schedule
+**7. ✅ Staff tab for everyone.** Non-staff see "My account": own row only (name, phone, emails, password — no role, no login on/off, no Add), own semester schedule. APIs enforce it: staff PATCH and schedules POST allow self only. He can change his password and edit his own fall schedule
 (free/busy). He cannot add staff or edit anyone else.
 
 **8. ✅ Student list order.** Active students first (A–Z by first name), then dormant (A–Z).

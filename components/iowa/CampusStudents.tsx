@@ -88,6 +88,7 @@ export function CampusStudents({
   report = null,
   events = [],
   openReport = false,
+  initialSearch = '',
   dupes = [],
 }: {
   initial: CampusStudent[];
@@ -96,12 +97,13 @@ export function CampusStudents({
   staff?: { id: string; name: string }[];
   report?: CheckinRow[] | null; // null = not staff/intern, no report
   events?: SocialEventOption[];
+  initialSearch?: string; // ?q= — from a student card's "Open in Students"
   openReport?: boolean; // ?report=1 — from the dashboard's follow-up cards
   dupes?: DupeGroup[];
 }) {
   const router = useRouter();
   const [students, setStudents] = useState(initial);
-  const [search, setSearch] = useState('');
+  const [search, setSearch] = useState(initialSearch);
   const [yearFilter, setYearFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState<StudentStatus | ''>('');
   const [placement, setPlacement] = useState<Placement>('all');

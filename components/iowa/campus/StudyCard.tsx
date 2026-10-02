@@ -1,5 +1,6 @@
 'use client';
 
+import { StudentLink } from '@/components/iowa/campus/StudentLink';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import type { StudyMember, StudyStatus, StudyWithMembers } from '@/lib/bibleStudies';
@@ -102,7 +103,7 @@ export default function StudyCard({
               <li key={m.id} className="px-3 py-2.5">
                 <div className="flex flex-wrap items-baseline justify-between gap-x-3">
                   <span className="font-semibold text-[#1f2937]">
-                    {m.name}
+                    <StudentLink contactId={m.contact_id} name={m.name} />
                     {m.first_showed === true && <span className="ml-1.5 text-xs font-semibold text-green-700">✓ came</span>}
                     {m.first_showed === false && <span className="ml-1.5 text-xs font-semibold text-red-700">✗ no-show</span>}
                   </span>

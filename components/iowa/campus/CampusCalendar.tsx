@@ -8,10 +8,12 @@ import type { Rsvp } from '@/lib/eventInvites';
 import type { EventSong } from '@/lib/eventSongs';
 import type { StudyTeamRow } from '@/lib/campusFormat';
 import EventPeople from '@/components/iowa/campus/EventPeople';
+import MonthPicker, { type UpcomingEvent } from '@/components/iowa/campus/MonthPicker';
 import StudyCard from '@/components/iowa/campus/StudyCard';
 import { formatTime } from '@/lib/bibleStudyFormat';
 import {
   addDays,
+  chicagoToday,
   breakDatesForSeries,
   eventDatesInRange,
   formatDate,
@@ -55,7 +57,9 @@ export default function CampusCalendar({
   team = [],
   activity = [],
   onTaskClick,
+  upcoming = [],
 }: {
+  upcoming?: UpcomingEvent[];
   activity?: TaskActivity[];
   onTaskClick?: (taskIds: string[]) => void;
   team?: StudyTeamRow[];
@@ -78,6 +82,7 @@ export default function CampusCalendar({
 }) {
   // Everyone by default (Travis); Mine is one tap away.
   const [mineOnly, setMineOnly] = useState(false);
+  const [monthOpen, setMonthOpen] = useState(false);
   const [editing, setEditing] = useState<string | 'new' | null>(null);
   const [clickedDate, setClickedDate] = useState<string | null>(null); // which week's box was clicked
   const [studyOpen, setStudyOpen] = useState<{ id: string; date: string } | null>(null);
@@ -113,22 +118,24 @@ export default function CampusCalendar({
           <a href={`?week=${addDays(weekStart, SPAN_DAYS[span])}${span === 'week' ? '&span=week' : ''}#week`} className="px-1.5 sm:px-2 py-1 rounded border border-gray-300 bg-white" aria-label="Next week">
             →
           </a>
-          {/* Jump straight to a far-out date instead of arrowing five days at a time. */}
-          <label className="relative px-1.5 sm:px-2 py-1 rounded border border-gray-300 bg-white cursor-pointer" aria-label="Go to date" title="Go to date">
-            📅
-            <input
-              type="date"
-              className="absolute inset-0 opacity-0 cursor-pointer"
-              defaultValue={weekStart}
-              onChange={(e) => {
-                const d = e.target.value;
-                if (d) window.location.href = `?week=${d}${span === 'week' ? '&span=week' : ''}#week`;
-              }}
-            />
-          </label>
+          {/* Look ahead: month grid with event dots + what's coming up. */}
+          <button onClick={() => setMonthOpen(true)} className="px-1.5 sm:px-2 py-1 rounded border border-gray-300 bg-white whitespace-nowrap" aria-label="Pick from a month">
+            Month
+          </button>
         </div>
         <MineToggle mineOnly={mineOnly} onChange={setMineOnly} />
       </div>
+      {monthOpen && (
+        <MonthPicker
+          today={chicagoToday()}
+          weekStart={weekStart}
+          upcoming={upcoming}
+          onClose={() => setMonthOpen(false)}
+          onPick={(d) => {
+            window.location.href = `?week=${d}${span === 'week' ? '&span=week' : ''}#week`;
+          }}
+        />
+      )}
 
       <ErrorBox error={error} />
 

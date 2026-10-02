@@ -11,7 +11,9 @@ const TABS: { href: string; label: string; needs?: Permission }[] = [
   { href: '/iowa/admin', label: 'Dashboard' },
   { href: '/iowa/admin/studies', label: 'Studies', needs: 'viewAllStudies' },
   { href: '/iowa/admin/students', label: 'Students', needs: 'viewStudents' },
-  { href: '/iowa/admin/staff', label: 'Staff', needs: 'manageStaff' },
+  // Everyone: staff manage the team here; anyone else gets just their own
+  // account (details, password, semester schedule).
+  { href: '/iowa/admin/staff', label: 'Staff' },
   // Settings holds per-person things (notifications, install), so everyone
   // gets in; the staff-only lists inside are hidden by the page.
   { href: '/iowa/admin/settings', label: 'Settings' },

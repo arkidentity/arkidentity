@@ -36,6 +36,7 @@ export default async function CampusStudentsPage({
       report={report}
       dupes={findStudentDupes(students)}
       openReport={sp.report === '1'}
+      initialSearch={sp.q ?? ''}
       events={events}
       staff={staff.filter((p) => p.active).map((p) => ({ id: p.id, name: p.name }))}
       initial={students}

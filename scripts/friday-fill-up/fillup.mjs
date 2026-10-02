@@ -9,7 +9,7 @@
 //
 // See README.md in this folder for setup.
 
-import { execFileSync } from 'node:child_process';
+import { execFileSync, spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import http from 'node:http';
 import os from 'node:os';
@@ -148,13 +148,22 @@ function lines(words) {
 
 // ---------- plan the edit ----------
 
-function mechanicalCuts(words) {
+// Pauses come from the audio itself: whisper stretches word timings across silences.
+function mechanicalCuts(words, video) {
   const cuts = [];
-  for (let i = 1; i < words.length; i++) {
-    const gap = words[i].t0 - words[i - 1].t1;
-    if (gap > PAUSE_MIN) {
+  const { stderr } = spawnSync('ffmpeg', ['-hide_banner', '-nostats', '-i', video, '-af', `silencedetect=noise=-35dB:d=${PAUSE_MIN}`, '-vn', '-f', 'null', '-'], {
+    encoding: 'utf8',
+    maxBuffer: 1 << 28,
+  });
+  let start = null;
+  for (const line of stderr.split('\n')) {
+    const a = line.match(/silence_start: ([\d.]+)/);
+    const b = line.match(/silence_end: ([\d.]+) \| silence_duration: ([\d.]+)/);
+    if (a) start = Number(a[1]);
+    if (b && start !== null) {
       const pad = PAUSE_KEEP / 2;
-      cuts.push({ start: words[i - 1].t1 + pad, end: words[i].t0 - pad, reason: `pause ${gap.toFixed(1)}s` });
+      cuts.push({ start: start + pad, end: Number(b[1]) - pad, reason: `pause ${Number(b[2]).toFixed(1)}s` });
+      start = null;
     }
   }
   for (const w of words) {
@@ -392,7 +401,7 @@ async function prepare(videoArg) {
   const end = plan ? plan.teaching_end : sourceDuration;
   const cuts = [
     ...(plan?.slow_cuts ?? []).map((c) => ({ ...c, reason: `slow: ${c.reason}` })),
-    ...mechanicalCuts(words),
+    ...mechanicalCuts(words, video),
   ];
   writeEditList(dir, { start, end, cuts, sourceDuration });
 

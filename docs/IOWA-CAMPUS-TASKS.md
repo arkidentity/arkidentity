@@ -579,7 +579,7 @@ so the next checklist top-up remade it. `deleteTask` now records the key in `iow
 `generateForEvent` and `createAutoTask` skip recorded keys. Before 033 runs, the lookup quietly
 returns nothing (old behavior).
 
-## Feedback queue (2026-10-02, Travis + Keilor) — #2, #3, #4, #6, #7, #8 BUILT; rest not built
+## Feedback queue (2026-10-02, Travis + Keilor) — #2–#8 BUILT; rest not built
 
 **1. Group health / attendance.** Leaders take attendance per study meeting. Roll it up into a health
 level so we know how safe it is to add a student: Level 1 = flaky, Level 2 = some consistency but not
@@ -595,7 +595,7 @@ load. Deleting must stick.
 **4. ◐ Tap to text / email everywhere.** Done: phone taps open Messages on the Students list and the study roster; Text/Email buttons on any task tied to a student (Reconnect). Left: calendar study popup already had Call/Text. Phone numbers open a text (sms:, not a call); emails open mail.
 Add Text / Email buttons in: Reconnect task, study detail, calendar study popup, student list rows.
 
-**5. Reconnect task: one notes area.** It shows "Add note" under history and a second notes section.
+**5. ✅ Reconnect task: one notes area.** On a task tied to a student, the only note box is the one in their history (saved to the student, so it follows them). The task's own Notes box is hidden; older task notes still show read-only as "Earlier task notes". General task-popup layout rework not done. It shows "Add note" under history and a second notes section.
 Pick one. Then rework the layout of task popups in general.
 
 **6. ✅ Student names open their profile — everywhere.** `StudentLink` (components/iowa/campus) + `GET /api/iowa/admin/students/:id`. Wired: Studies roster, calendar study popup (StudyCard), task history header. Card: status/year, Text/Email, studies, notes, history (+ add note), "Open in Students" (`?q=`). Move/Drop stays beside the name in rosters, not in the card. Click a name (study, calendar popup, task) →

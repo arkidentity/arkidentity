@@ -546,7 +546,13 @@ function TaskDetail(props: TaskListProps & { t: CampusTask; busy: boolean; call:
 
       <Files t={t} files={(props.files ?? []).filter((f) => f.task_id === t.id)} />
 
-      <Comments t={t} comments={comments} nameOf={nameOf} />
+      {/* A student task has one note box: the one in their history above, so
+          the note follows the student. Older task notes still show here. */}
+      {t.contact_id ? (
+        comments.length > 0 && <Comments t={t} comments={comments} nameOf={nameOf} readOnly />
+      ) : (
+        <Comments t={t} comments={comments} nameOf={nameOf} />
+      )}
 
       {history && (
         <ul className="text-sm md:text-xs text-[#8a8378] space-y-0.5">
@@ -914,10 +920,12 @@ function Comments({
   t,
   comments,
   nameOf,
+  readOnly = false,
 }: {
   t: CampusTask;
   comments: TaskActivity[];
   nameOf: (id: string | null) => string;
+  readOnly?: boolean;
 }) {
   const { call, busy, error } = useCall();
   const [text, setText] = useState('');
@@ -926,7 +934,7 @@ function Comments({
   return (
     <div className="rounded-md border border-gray-200 bg-white p-3">
       <p className="text-xs font-semibold text-[#8a8378] mb-2">
-        Notes{comments.length > 0 ? ` (${comments.length})` : ''}
+        {readOnly ? 'Earlier task notes' : 'Notes'}{comments.length > 0 ? ` (${comments.length})` : ''}
       </p>
       <ul className="space-y-2 mb-2">
         {comments.map((c) => (
@@ -937,7 +945,7 @@ function Comments({
           </li>
         ))}
       </ul>
-      {open ? (
+      {readOnly ? null : open ? (
         <>
           <textarea
             className={input}

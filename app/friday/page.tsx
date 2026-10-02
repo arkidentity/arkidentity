@@ -6,10 +6,10 @@ import { getEpisodes, formatDate, timeLabel, LENGTH_MINUTES } from '@/lib/friday
 export const revalidate = 3600;
 
 export const metadata: Metadata = {
-  title: 'Friday Fill Up | ARK Iowa',
+  title: 'Friday Fill Up | ARK Identity',
   description: 'Thirty minutes every Friday morning: a 15-minute Bible study and 15 minutes of discussion. Join live on Google Meet or catch up on past teachings.',
   openGraph: {
-    title: 'Friday Fill Up | ARK Iowa',
+    title: 'Friday Fill Up | ARK Identity',
     description: 'Thirty minutes every Friday. Join live or catch up on past teachings.',
     url: 'https://arkidentity.com/friday',
     siteName: 'ARK Identity',
@@ -27,7 +27,7 @@ export default async function FridayFillUpPage() {
       <section className="py-20 md:py-28" style={{ background: 'var(--navy)' }}>
         <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center text-white">
           <p className="uppercase tracking-widest text-sm mb-4" style={{ color: 'var(--gold)' }}>
-            ARK Iowa
+            ARK Identity
           </p>
           <h1 className="text-4xl md:text-6xl font-bold leading-tight mb-4">Friday Fill Up</h1>
           <p className="text-xl md:text-2xl text-gray-200 mb-8">

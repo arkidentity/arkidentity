@@ -17,6 +17,9 @@ const PUBLIC_ROUTES = [
   '/vision-2026',
   '/campus',
   '/iowa',
+  '/friday',
+  '/privacy',
+  '/terms',
 ];
 
 export function BrochureShell({ children }: { children: React.ReactNode }) {

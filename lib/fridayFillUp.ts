@@ -27,33 +27,42 @@ function tag(xml: string, name: string) {
   return m ? decode(m[1]).trim() : '';
 }
 
-// YouTube's public playlist feed: no API key, newest 15 videos.
+// YouTube's public playlist feed: no API key, newest 15 videos. The feed
+// randomly 404s about half the time, so retry; if every try fails, throw so
+// Next keeps serving the last good page instead of caching an empty list.
 export async function getEpisodes(): Promise<Episode[]> {
   if (!PLAYLIST_ID) return [];
-  try {
-    const res = await fetch(`https://www.youtube.com/feeds/videos.xml?playlist_id=${PLAYLIST_ID}`, {
-      next: { revalidate: 3600 },
-    });
-    if (!res.ok) return [];
-    const xml = await res.text();
-    return xml
-      .split('<entry>')
-      .slice(1)
-      .map((entry) => {
-        const id = tag(entry, 'yt:videoId');
-        return {
-          id,
-          title: tag(entry, 'title'),
-          published: tag(entry, 'published'),
-          description: tag(entry, 'media:description'),
-          thumbnail: `https://i.ytimg.com/vi/${id}/hqdefault.jpg`,
-        };
-      })
-      .filter((e) => e.id)
-      .sort((a, b) => b.published.localeCompare(a.published));
-  } catch {
-    return [];
+  for (let attempt = 0; attempt < 6; attempt++) {
+    try {
+      // Distinct URL per attempt so a cached 404 from one try can't block the next.
+      const res = await fetch(`https://www.youtube.com/feeds/videos.xml?playlist_id=${PLAYLIST_ID}&try=${attempt}`, {
+        next: { revalidate: 3600 },
+      });
+      if (res.ok) return parseFeed(await res.text());
+    } catch {}
+    await new Promise((r) => setTimeout(r, 400));
   }
+  // A first build with no previous page to fall back on: render empty rather than fail the deploy.
+  if (process.env.NEXT_PHASE === 'phase-production-build') return [];
+  throw new Error('YouTube playlist feed unavailable');
+}
+
+function parseFeed(xml: string): Episode[] {
+  return xml
+    .split('<entry>')
+    .slice(1)
+    .map((entry) => {
+      const id = tag(entry, 'yt:videoId');
+      return {
+        id,
+        title: tag(entry, 'title'),
+        published: tag(entry, 'published'),
+        description: tag(entry, 'media:description'),
+        thumbnail: `https://i.ytimg.com/vi/${id}/hqdefault.jpg`,
+      };
+    })
+    .filter((e) => e.id)
+    .sort((a, b) => b.published.localeCompare(a.published));
 }
 
 // Teaching notes: data/friday-fill-up/<videoId>.md if it exists, otherwise the

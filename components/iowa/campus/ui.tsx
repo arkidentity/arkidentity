@@ -26,6 +26,7 @@ export interface TypeOption {
   kind: 'task' | 'event';
   name: string;
   active: boolean;
+  uses_songs?: boolean; // event types: show the Songs section (migration 039)
 }
 
 export function PriorityBadge({ priority }: { priority: TaskPriority }) {

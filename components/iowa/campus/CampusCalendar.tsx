@@ -264,6 +264,9 @@ export default function CampusCalendar({
             rsvps={rsvps.filter((r) => r.event_id === editingEvent.id)}
             students={students}
           />
+          {/* Songs only where a setlist makes sense: the event's type says so
+              (Settings → Event types), or it already has songs. */}
+          {(types.find((x) => x.id === editingEvent.type_id)?.uses_songs || songs.some((x) => x.event_id === editingEvent.id)) && (
           <EventSongs
             event={editingEvent}
             occurrence={clickedDate ?? editingEvent.event_date}
@@ -272,6 +275,7 @@ export default function CampusCalendar({
             busy={busy}
             call={call}
           />
+          )}
 
           <EventChecklist
             event={editingEvent}

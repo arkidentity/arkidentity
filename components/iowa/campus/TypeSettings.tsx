@@ -156,6 +156,17 @@ function TypeRow({
           Save
         </button>
       )}
+      {t.kind === 'event' && (
+        <label className="flex items-center gap-1 text-xs text-[#8a8378] shrink-0" title="Events of this type get a Songs section">
+          <input
+            type="checkbox"
+            checked={!!t.uses_songs}
+            disabled={busy}
+            onChange={(e) => call(`/api/iowa/admin/types/${t.id}`, 'PATCH', { uses_songs: e.target.checked })}
+          />
+          Songs
+        </label>
+      )}
       <button
         disabled={busy}
         onClick={() => call(`/api/iowa/admin/types/${t.id}`, 'PATCH', { active: !t.active })}

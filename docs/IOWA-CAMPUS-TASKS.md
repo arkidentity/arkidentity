@@ -342,6 +342,8 @@ tasks. Any event can have songs; the section is quiet until the first one is add
 - Deliberately NOT a song library: no usage history, CCLI, arrangements or SongSelect. These rows
   are the history if that's ever wanted.
 
+- **Only where it fits (migration 039, 2026-10-03, Travis):** `iowa_item_types.uses_songs`, a "Songs" checkbox per event type in Settings. Seeded on for worship / prayer / Gathering types. The event popup hides Songs unless the event's type uses songs or the event already has songs (lunch with an intern doesn't get a setlist).
+
 ## Gotcha: server libs in client components (2026-09-24)
 
 `IowaAdmin.tsx` ('use client') imported `clashAt` from `lib/availability` — which reaches

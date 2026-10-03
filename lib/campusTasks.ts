@@ -20,6 +20,7 @@ export interface ItemType {
   name: string;
   sort: number;
   active: boolean;
+  uses_songs?: boolean; // migration 039
 }
 
 export interface CampusTask {
@@ -92,7 +93,7 @@ const STATUS_KEYS = TASK_STATUSES.map((s) => s.key);
 export async function listTypes(): Promise<ItemType[]> {
   const { data, error } = await getSupabaseAdmin()
     .from('iowa_item_types')
-    .select('id, kind, name, sort, active')
+    .select('*')
     .order('sort', { ascending: true })
     .order('name', { ascending: true });
   if (error) throw error;
@@ -105,7 +106,7 @@ export async function createType(kind: string, name: string): Promise<ItemType> 
   const { data, error } = await getSupabaseAdmin()
     .from('iowa_item_types')
     .insert({ kind, name: name.trim(), sort: 50 })
-    .select('id, kind, name, sort, active')
+    .select('*')
     .single();
   if (error) {
     if (error.code === '23505') throw new Error('That type already exists.');
@@ -114,15 +115,16 @@ export async function createType(kind: string, name: string): Promise<ItemType> 
   return data as ItemType;
 }
 
-export async function updateType(id: string, patch: { name?: string; active?: boolean }): Promise<ItemType> {
+export async function updateType(id: string, patch: { name?: string; active?: boolean; uses_songs?: boolean }): Promise<ItemType> {
   const update: Record<string, unknown> = {};
   if (typeof patch.name === 'string' && patch.name.trim()) update.name = patch.name.trim();
   if (typeof patch.active === 'boolean') update.active = patch.active;
+  if (typeof patch.uses_songs === 'boolean') update.uses_songs = patch.uses_songs;
   const { data, error } = await getSupabaseAdmin()
     .from('iowa_item_types')
     .update(update)
     .eq('id', id)
-    .select('id, kind, name, sort, active')
+    .select('*')
     .single();
   if (error) throw error;
   return data as ItemType;

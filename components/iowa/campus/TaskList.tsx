@@ -534,7 +534,9 @@ function TaskDetail(props: TaskListProps & { t: CampusTask; busy: boolean; call:
           <button onClick={() => { setEditing((v) => !v); setSaved(false); }} className={toggle} style={{ color: 'var(--navy)' }}>
             {editing ? 'Close edit ▴' : 'Edit ▾'}
           </button>
-          {logs.length > 0 && (
+          {/* A student task already has their History box above; the task's own
+              change log would be a second "history". */}
+          {logs.length > 0 && !t.contact_id && (
             <button onClick={() => setHistory((v) => !v)} className={toggle} style={{ color: '#8a8378' }}>
               History ({logs.length}) {history ? '▴' : '▾'}
             </button>
@@ -576,7 +578,7 @@ function TaskDetail(props: TaskListProps & { t: CampusTask; busy: boolean; call:
         <Comments t={t} comments={comments} nameOf={nameOf} />
       )}
 
-      {history && (
+      {history && !t.contact_id && (
         <ul className="text-sm md:text-xs text-[#8a8378] space-y-0.5">
           {logs.map((a) => (
             <li key={a.id}>

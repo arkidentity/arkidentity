@@ -1,17 +1,9 @@
 import { NextResponse } from 'next/server';
-import { planViewForStudy, submitPlan, type PlanInput } from '@/lib/semesterPlan';
+import { submitPlan, type PlanInput } from '@/lib/semesterPlan';
 import { currentStaff } from '@/lib/iowaStaff';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
-
-// GET → { answers } — members' check-in answers for the planner (migration 038).
-export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
-  if (!(await currentStaff())) return NextResponse.json({ error: 'Sign in again.' }, { status: 401 });
-  const { id } = await params;
-  const view = await planViewForStudy(id);
-  return NextResponse.json({ answers: view?.answers ?? {} });
-}
 
 // POST /api/iowa/admin/studies/:id/plan — staff plan a group's next semester:
 // { semester, notContinuing?, groups: [{ day_of_week, start_time, location,

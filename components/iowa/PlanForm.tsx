@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import type { PlanView } from '@/lib/semesterPlan';
-import { PICKER_DAYS, blockOf, slotLabel, sortSlots } from '@/lib/bibleStudyFormat';
+import { PICKER_DAYS } from '@/lib/bibleStudyFormat';
 
 // Plan a group's next semester: continue as one group, multiply into two or
 // three (choose who goes where), or not continuing. Used in the admin (with a
@@ -35,7 +35,6 @@ export default function PlanForm({
   onDone?: () => void;
 }) {
   const { study, members, semesters } = view;
-  const answersFor = (contactId: string) => view.answers?.[semester]?.[contactId];
   const [semester, setSemester] = useState(semesters[0]?.name ?? '');
   const [mode, setMode] = useState<Mode>('continue');
   const blank = (i: number): GroupDraft => ({
@@ -214,10 +213,7 @@ export default function PlanForm({
             <ul className="rounded-lg border border-gray-200 bg-white divide-y divide-gray-100">
               {members.map((m) => (
                 <li key={m.id} className="px-3 py-2 flex flex-wrap items-center justify-between gap-2 text-sm">
-                  <span className="text-[#4a4540]">
-                    {m.name}
-                    <MemberAnswer a={answersFor(m.contact_id)} group={where[m.id] >= 0 ? groups[where[m.id]] : undefined} />
-                  </span>
+                  <span className="text-[#4a4540]">{m.name}</span>
                   <span className="flex gap-1">
                     {[...Array(count).keys()].map((i) => (
                       <Choice key={i} active={where[m.id] === i} onClick={() => setWhere({ ...where, [m.id]: i })}>
@@ -263,36 +259,5 @@ function Choice({ active, onClick, children }: { active: boolean; onClick: () =>
     >
       {children}
     </button>
-  );
-}
-
-// What a member said in their check-in, and whether the time picked for the
-// group they're in fits the times they said they're free.
-function MemberAnswer({
-  a,
-  group,
-}: {
-  a: { response: 'yes' | 'no' | 'unsure' | null; slots: string[] } | undefined;
-  group: GroupDraft | undefined;
-}) {
-  if (!a) return <span className="block text-xs text-[#b0a99e]">No check-in answer yet</span>;
-  if (a.response === 'no') return <span className="block text-xs font-semibold text-[#b91c1c]">Said: not this time</span>;
-  const said = a.response === 'unsure' ? 'Not sure yet' : a.response === 'yes' ? 'In' : null;
-  let fit: React.ReactNode = null;
-  if (group && group.day_of_week !== '' && group.start_time && a.slots.length) {
-    const ok = a.slots.includes(`${group.day_of_week}-${blockOf(group.start_time)}`);
-    fit = ok ? (
-      <span className="font-semibold text-[#15803d]"> · ✓ free then</span>
-    ) : (
-      <span className="font-semibold text-[#b45309]"> · ⚠ not free then</span>
-    );
-  }
-  return (
-    <span className="block text-xs text-[#8a8378]">
-      {said}
-      {said && a.slots.length ? ' · ' : ''}
-      {a.slots.length ? `free ${sortSlots(a.slots).map(slotLabel).join(', ')}` : ''}
-      {fit}
-    </span>
   );
 }

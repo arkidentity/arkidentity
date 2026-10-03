@@ -1,6 +1,5 @@
 'use client';
 
-import { CheckinLinks } from '@/components/iowa/campus/CheckinLinks';
 import { ReminderListTexts } from '@/components/iowa/campus/ReminderList';
 import { StudentLink } from '@/components/iowa/campus/StudentLink';
 import { useMemo, useState } from 'react';
@@ -462,7 +461,6 @@ function TaskDetail(props: TaskListProps & { t: CampusTask; busy: boolean; call:
     <div className="border-t border-gray-100 px-4 py-3 space-y-3">
       {t.description && <p className="text-[15px] md:text-sm text-[#4a4540] whitespace-pre-wrap">{t.description}</p>}
       {t.auto_kind === 'reminder_list' && t.event_id && <ReminderListTexts eventId={t.event_id} />}
-      {t.auto_kind === 'checkin_links' && <CheckinLinks ownerId={t.owner_id} />}
       {t.contact_id && (
         <div className="rounded-lg border border-gray-200 bg-[#FAF8F5] p-3">
           <div className="flex flex-wrap items-center justify-between gap-2 mb-2">

@@ -1,5 +1,4 @@
 import { after } from 'next/server';
-import { runSemesterCheckins } from '@/lib/semesterCheckins';
 import { generateReminderTasks } from '@/lib/eventReminders';
 import { getSupabaseAdmin } from '@/lib/supabaseAdmin';
 import { sendTaskAssignedNow as notifyTaskAssignedNow } from '@/lib/taskNotify';
@@ -351,12 +350,6 @@ export async function runMorning(): Promise<Record<string, number | string>> {
   // plan link (once), and staff see which of their groups haven't planned.
   summary.studiesEnded = await endPastSemesterStudies(ctx);
   summary.planLinksSent = await sendDuePlanLinks(ctx, studies);
-  // Returning students: "in for next semester? when are you free?" (038).
-  try {
-    Object.assign(summary, await runSemesterCheckins(ctx, studies, today));
-  } catch (e) {
-    console.error('[iowa morning] semester check-ins failed (migration 038 run?)', e);
-  }
   const unplannedByStaff = new Map<string, StudyWithMembers[]>();
   for (const s of unplannedStudies(studies, ctx)) {
     if (s.point_staff_id) unplannedByStaff.set(s.point_staff_id, [...(unplannedByStaff.get(s.point_staff_id) ?? []), s]);

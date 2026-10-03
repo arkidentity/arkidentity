@@ -616,27 +616,3 @@ Move (out of one, into another) but add "Add to another study" so a student can 
 **11. ✅ Event reminder lists (migration 036).** `lib/eventReminders.ts`, table `iowa_event_reminder_people` (one list per event; weekly lists carry over), `iowa_events.reminder_days_before` (default 2). Event popup → "Reminder list": add students, Yes/Maybe/No, ✕, lead days. The morning run (every day, Sunday included, catches up) makes an unowned "Text the <event> list" task per date (`auto_kind = reminder_list`, key `reminder:<event>:<date>`; deleting it sticks). The task shows yes + maybe with a Text button each. Editing needs manageEvents; reading is anyone signed in. Original ask: Staff build a list per event (Friday Fill Up, Tue prayer call, etc.) of
 students who said yes / no in person. A couple of days before (or on a set day), it becomes a task for
 a student volunteer: "Text these people," with tap-to-text per name. Maybe later a self sign-up instead.
-
-## Semester check-in (migration 038, 2026-10-02, Travis)
-
-The turnover planner (018) picked a group's next-semester time without asking the students, and
-spring registration (Nov 9–~30) is exactly when schedules change. Now returning students are asked.
-
-- **Who:** active students holding a seat in a live current-semester group. Anyone else (dormant,
-  never placed): "Copy next-semester check-in link" on their student card.
-- **When:** the morning run from next semester's `signup_opens` (Spring 2027: Nov 30) until it
-  starts: makes `iowa_semester_checkins` rows (token per student per semester), emails each link
-  once, and one reminder 7 days later to non-answerers. Each staff member on point gets a
-  "Text <semester> check-in links" task: per student, a Text button with the message + link
-  prefilled (answered ones show In / Not sure / Not this time).
-- **The page** `/iowa/checkin/<token>` (no login): I'm in / Not sure yet / Not this time, the same
-  free-times grid (`components/iowa/SlotGrid.tsx`, now shared with /iowa/studies), optional note.
-  Re-answerable. Times save as `free_slots` for that semester (034/035), so Who's waiting works for
-  next semester with no extra code.
-- **Planner** (admin + leader link): each member shows their answer + free times, and ✓ free then /
-  ⚠ not free then against the day/time picked for the group they're placed in.
-- **Studies page:** "<semester> check-ins · X of Y answered" list while next semester is open.
-- **Deadline:** soft. Aim: groups planned the Friday before finals (Dec 11). The existing unplanned-
-  groups nudge in staff emails covers it; spring signup stays open regardless.
-- Code: `lib/semesterCheckins.ts`, `app/api/iowa/checkin/[token]`, `app/api/iowa/admin/checkins`,
-  `components/iowa/CheckinForm.tsx`, `components/iowa/campus/CheckinLinks.tsx`.

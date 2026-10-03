@@ -57,11 +57,8 @@ export interface PlanView {
     planned_at: string | null;
     plan_note: string | null;
   };
-  members: { id: string; name: string; contact_id: string }[];
+  members: { id: string; name: string }[];
   semesters: { name: string; starts_on: string }[]; // upcoming semesters open for planning
-  // Check-in answers (migration 038) by semester → contact: in / not / unsure
-  // and the times they're free that semester.
-  answers?: Record<string, Record<string, { response: 'yes' | 'no' | 'unsure' | null; slots: string[] }>>;
 }
 
 function toView(s: StudyWithMembers, open: Semester[]): PlanView {
@@ -79,37 +76,14 @@ function toView(s: StudyWithMembers, open: Semester[]): PlanView {
       planned_at: s.planned_at ?? null,
       plan_note: s.plan_note ?? null,
     },
-    members: s.members.filter((m) => m.status === 'active').map((m) => ({ id: m.id, name: m.name, contact_id: m.contact_id })),
+    members: s.members.filter((m) => m.status === 'active').map((m) => ({ id: m.id, name: m.name })),
     semesters: open.filter((x) => x.name !== s.semester).map((x) => ({ name: x.name, starts_on: x.starts_on })),
   };
 }
 
 export async function planViewForStudy(id: string): Promise<PlanView | null> {
   const [s, ctx] = await Promise.all([getStudyWithMembers(id), semesterContext()]);
-  if (!s) return null;
-  const view = toView(s, ctx.open);
-  view.answers = await checkinAnswers(view.members.map((m) => m.contact_id), view.semesters.map((x) => x.name));
-  return view;
-}
-
-// What each member said in their check-in (migration 038). Free times count
-// only if they were given for that semester. Empty if 038 isn't run.
-async function checkinAnswers(contactIds: string[], semesters: string[]): Promise<NonNullable<PlanView['answers']>> {
-  const out: NonNullable<PlanView['answers']> = Object.fromEntries(semesters.map((x) => [x, {}]));
-  if (contactIds.length === 0 || semesters.length === 0) return out;
-  const db = getSupabaseAdmin();
-  const [{ data: checks }, { data: campus }] = await Promise.all([
-    db.from('iowa_semester_checkins').select('contact_id, semester, response').in('contact_id', contactIds).in('semester', semesters),
-    db.from('campus_students').select('contact_id, free_slots, free_slots_semester').in('contact_id', contactIds),
-  ]);
-  for (const sem of semesters) {
-    for (const id of contactIds) {
-      const c = (checks ?? []).find((x) => x.contact_id === id && x.semester === sem);
-      const fs = (campus ?? []).find((x) => x.contact_id === id && x.free_slots_semester === sem);
-      if (c || fs) out[sem][id] = { response: (c?.response as 'yes' | 'no' | 'unsure' | null) ?? null, slots: (fs?.free_slots as string[]) ?? [] };
-    }
-  }
-  return out;
+  return s ? toView(s, ctx.open) : null;
 }
 
 export async function planViewForToken(token: string): Promise<PlanView | null> {

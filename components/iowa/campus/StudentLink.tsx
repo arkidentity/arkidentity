@@ -148,42 +148,12 @@ function StudentCard({ contactId, fallbackName, onClose }: { contactId: string; 
               <StudentHistory contactId={card.contact_id} compact />
             </div>
 
-            <CheckinLinkButton contactId={card.contact_id} />
-
             <a href={`/iowa/admin/students?q=${encodeURIComponent(card.name)}`} className="inline-block text-sm font-semibold" style={{ color: 'var(--navy)' }}>
               Open in Students →
             </a>
           </div>
         )}
       </div>
-    </div>
-  );
-}
-
-// Copy a next-semester check-in link for this student (migration 038) — for
-// anyone the automatic send skips (dormant, never placed).
-function CheckinLinkButton({ contactId }: { contactId: string }) {
-  const [msg, setMsg] = useState('');
-  return (
-    <div>
-      <button
-        onClick={async () => {
-          const r = await fetch('/api/iowa/admin/checkins', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ contactId }),
-          });
-          const j = await r.json().catch(() => ({}));
-          if (!r.ok) return setMsg(j.error ?? 'Couldn’t make a link.');
-          await navigator.clipboard?.writeText(j.url).catch(() => {});
-          setMsg(`Copied their ${j.semester} check-in link: ${j.url}`);
-        }}
-        className="text-sm font-semibold underline"
-        style={{ color: 'var(--navy)' }}
-      >
-        Copy next-semester check-in link
-      </button>
-      {msg && <p className="text-xs text-[#8a8378] mt-1 break-all">{msg}</p>}
     </div>
   );
 }

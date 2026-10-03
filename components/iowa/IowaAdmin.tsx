@@ -1,6 +1,5 @@
 'use client';
 
-import type { PlanView } from '@/lib/semesterPlan';
 import { HealthBadge } from '@/components/iowa/campus/StudyAttendance';
 import type { StudyHealth } from '@/lib/studyHealthFormat';
 import { AlsoAddSelect } from '@/components/iowa/campus/AlsoAddSelect';
@@ -1233,18 +1232,8 @@ function NextSemester({ s, staff }: { s: StudyWithMembers; staff: Map<string, St
   const router = useRouter();
   const planning = useContext(Planning);
   const [open, setOpen] = useState(false);
-  const [answers, setAnswers] = useState<PlanView['answers']>(undefined);
   const [msg, setMsg] = useState('');
   if (planning.length === 0 || !LIVE_STATUSES.includes(s.status)) return null;
-
-  async function openPlanner() {
-    setOpen((v) => !v);
-    if (answers) return;
-    // Members' check-in answers (migration 038), loaded when the planner opens.
-    const res = await fetch(`/api/iowa/admin/studies/${s.id}/plan`).catch(() => null);
-    const data = res?.ok ? await res.json().catch(() => ({})) : {};
-    setAnswers(data.answers ?? {});
-  }
 
   async function link(send: boolean) {
     setMsg('');
@@ -1278,9 +1267,8 @@ function NextSemester({ s, staff }: { s: StudyWithMembers; staff: Map<string, St
       planned_at: s.planned_at,
       plan_note: s.plan_note,
     },
-    members: s.members.filter((m) => m.status === 'active').map((m) => ({ id: m.id, name: m.name, contact_id: m.contact_id })),
+    members: s.members.filter((m) => m.status === 'active').map((m) => ({ id: m.id, name: m.name })),
     semesters: planning,
-    answers,
   };
 
   return (
@@ -1301,7 +1289,7 @@ function NextSemester({ s, staff }: { s: StudyWithMembers; staff: Map<string, St
           </p>
           <div className="flex flex-wrap gap-2">
             <button
-              onClick={openPlanner}
+              onClick={() => setOpen((v) => !v)}
               className="px-3 py-1.5 rounded-md text-sm font-semibold text-white"
               style={{ backgroundColor: 'var(--navy)' }}
             >

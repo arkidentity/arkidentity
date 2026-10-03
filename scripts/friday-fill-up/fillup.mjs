@@ -494,6 +494,7 @@ async function auth() {
     });
     server.listen(port, '127.0.0.1', () => {
       log('opening Google sign-in in your browser');
+      log(url);
       run('open', [url]);
     });
   });

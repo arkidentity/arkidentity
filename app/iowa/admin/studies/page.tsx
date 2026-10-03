@@ -4,6 +4,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { blockOf, formatSlot, listCampusStudents, listStudentOptions, listStudies } from '@/lib/bibleStudies';
 import { healthByStudy } from '@/lib/studyAttendance';
+import { CheckinLinks } from '@/components/iowa/campus/CheckinLinks';
 import WaitingBySlot, { type WaitingSlot } from '@/components/iowa/campus/WaitingBySlot';
 import { listBusy } from '@/lib/availability';
 import { semesterContext } from '@/lib/semesters';
@@ -103,6 +104,17 @@ export default async function IowaStudiesPage({ searchParams }: { searchParams: 
       busyBlocks={busyBlocks}
       health={health}
     />
+      {ctx.next && (
+        <div style={{ background: '#FAF8F5' }}>
+          {/* Returning students' answers (migration 038), once next semester opens. */}
+          <section className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pb-8">
+            <h2 className="text-lg font-bold mb-3" style={{ color: 'var(--navy)' }}>
+              {ctx.next.name} check-ins
+            </h2>
+            <CheckinLinks ownerId={null} />
+          </section>
+        </div>
+      )}
       <div style={{ background: '#FAF8F5' }}>
         <WaitingBySlot slots={waiting} unplacedNoTimes={unplacedNoTimes} semester={semester} />
       </div>

@@ -746,3 +746,30 @@ export async function sendPersonalRsvp(opts: {
     `),
   });
 }
+
+// To a returning student when next semester's signup opens (migration 038):
+// in or out, and when they're free. `reminder` = the one follow-up a week later.
+export async function sendSemesterCheckin(opts: {
+  to: string;
+  name: string;
+  semester: string;
+  group: string | null; // their current group, e.g. "Tuesday 4:00 PM"
+  url: string;
+  reminder?: boolean;
+}) {
+  const { to, name, semester, group, url, reminder } = opts;
+  return getResend().emails.send({
+    from: fromAddress(),
+    to,
+    subject: reminder ? `Quick one: are you in for ${semester}?` : `Are you in for ${semester}?`,
+    html: wrap(`
+      <h1 style="color:#143348; font-size:22px;">${escapeHtml(name)}, are you in for ${escapeHtml(semester)}?</h1>
+      <p>${reminder ? 'Just checking back. ' : ''}You probably know your ${escapeHtml(semester)} classes by now. Tell us if you're in,
+         and tap the times you're free, so we can set ${group ? `your ${escapeHtml(group)} group` : 'groups'} at a time that actually works.</p>
+      <p style="margin:24px 0;">
+        <a href="${url}" style="background:#143348; color:#fff; text-decoration:none; padding:12px 22px; border-radius:8px; font-weight:600; display:inline-block;">Answer in 30 seconds</a>
+      </p>
+      <p style="color:#8a8378; font-size:14px;">This link is just for you.</p>
+    `),
+  });
+}

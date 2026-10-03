@@ -2,7 +2,7 @@ import Link from 'next/link';
 
 export default function Footer() {
   return (
-    <footer className="text-white py-12" style={{ backgroundColor: 'var(--navy)' }}>
+    <footer className="text-white pt-12 pb-28" style={{ backgroundColor: 'var(--navy)' }}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           {/* About Section */}

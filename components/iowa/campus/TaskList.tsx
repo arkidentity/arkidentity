@@ -28,7 +28,6 @@ import {
   Modal,
   OverdueTag,
   PriorityBadge,
-  ContactButtons,
   StatusPill,
   btnPrimary,
   btnSmall,
@@ -381,11 +380,28 @@ function GroupRow({ group, startOpen, children }: { group: Group; startOpen: boo
   );
 }
 
+// What a task is for. A student isn't repeated: the title already names them
+// ("Follow up with Francis Bryan") and the open task leads with their name.
 function linkLabel(t: CampusTask, p: TaskListProps): string | null {
   if (t.study_id) return p.studies.find((s) => s.id === t.study_id)?.label ?? 'a study';
   if (t.event_id) return p.events.find((e) => e.id === t.event_id)?.label ?? 'an event';
-  if (t.contact_id) return t.contact_name ?? 'a student';
+  if (t.contact_id && !(t.contact_name && t.title.includes(t.contact_name))) return t.contact_name ?? 'a student';
   return null;
+}
+
+const YEARS = ['First-year', 'Sophomore', 'Junior', 'Senior', 'Grad', 'Other'];
+
+// App-made student tasks start with a "Name · phone · email · year" line (kept
+// for the notification emails). On screen the student header shows those, so
+// drop the line; pull out the year for the header.
+function splitStudentLine(t: CampusTask): { body: string | null; year: string | null } {
+  if (!t.description || !t.contact_id || !t.contact_name) return { body: t.description, year: null };
+  const lines = t.description.split('\n');
+  const i = lines.findIndex((l) => l.startsWith(`${t.contact_name} · `) || l === t.contact_name);
+  if (i === -1) return { body: t.description, year: null };
+  const year = lines[i].split(' · ').find((part) => YEARS.includes(part)) ?? null;
+  lines.splice(i, 1);
+  return { body: lines.join('\n').trim() || null, year };
 }
 
 function TaskRow(
@@ -454,44 +470,46 @@ function TaskDetail(props: TaskListProps & { t: CampusTask; busy: boolean; call:
   const log = activity.filter((a) => a.task_id === t.id);
   const comments = log.filter((a) => a.kind === 'comment');
   const logs = log.filter((a) => a.kind !== 'comment');
-  const owner = staff.find((s) => s.id === t.owner_id);
-  const link = linkLabel(t, props);
+  const student = splitStudentLine(t);
   const toggle = 'text-xs font-semibold px-2 py-1 rounded border border-gray-300 hover:bg-gray-50';
 
   return (
     <div className="border-t border-gray-100 px-4 py-3 space-y-3">
-      {t.description && <p className="text-[15px] md:text-sm text-[#4a4540] whitespace-pre-wrap">{t.description}</p>}
+      {/* A student task leads with the student: name opens their card, the
+          number texts them, the email emails them. Due date and owner are
+          already on the row above, so they aren't repeated here. */}
+      {t.contact_id && t.contact_name && (
+        <div>
+          <p className="text-[15px] md:text-sm">
+            <StudentLink contactId={t.contact_id} name={t.contact_name} className="font-semibold text-[#1f2937]" />
+            {student.year && <span className="text-[#8a8378]"> · {student.year}</span>}
+          </p>
+          {(t.contact_phone || t.contact_email) && (
+            <p className="text-[15px] md:text-sm break-words">
+              {t.contact_phone && (
+                <a href={`sms:${t.contact_phone.replace(/[^\d+]/g, '')}`} className="underline" style={{ color: 'var(--navy)' }} title="Text">
+                  {t.contact_phone}
+                </a>
+              )}
+              {t.contact_phone && t.contact_email && <span className="text-[#8a8378]"> · </span>}
+              {t.contact_email && (
+                <a href={`mailto:${t.contact_email}`} className="underline" style={{ color: 'var(--navy)' }} title="Email">
+                  {t.contact_email}
+                </a>
+              )}
+            </p>
+          )}
+        </div>
+      )}
+      {student.body && <p className="text-[15px] md:text-sm text-[#4a4540] whitespace-pre-wrap">{student.body}</p>}
       {t.auto_kind === 'reminder_list' && t.event_id && <ReminderListTexts eventId={t.event_id} />}
       {t.auto_kind === 'checkin_links' && <CheckinLinks ownerId={t.owner_id} />}
       {t.contact_id && (
         <div className="rounded-lg border border-gray-200 bg-[#FAF8F5] p-3">
-          <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
-            <p className="text-xs font-bold uppercase tracking-wide text-[#8a8378]">
-              {t.contact_name ? (
-                <>
-                  <StudentLink contactId={t.contact_id} name={t.contact_name} className="normal-case tracking-normal" />
-                  {' · history'}
-                </>
-              ) : (
-                'Their history'
-              )}
-            </p>
-            <ContactButtons phone={t.contact_phone} email={t.contact_email} size="xs" />
-          </div>
+          <p className="text-xs font-bold uppercase tracking-wide text-[#8a8378] mb-2">History</p>
           <StudentHistory contactId={t.contact_id} compact />
         </div>
       )}
-      <p className="text-sm md:text-xs text-[#8a8378]">
-        {[
-          t.due_date ? `Due ${formatDate(t.due_date)}` : 'No due date',
-          owner ? `Owner: ${owner.name}` : 'Unowned',
-          t.helper_ids.length ? `Also on it: ${t.helper_ids.map((id) => nameOf(id)).join(', ')}` : null,
-          link ? `For ${link}` : null,
-        ]
-          .filter(Boolean)
-          .join(' · ')}
-      </p>
-
       <div className="flex flex-wrap items-center gap-2">
         {t.status !== 'done' ? (
           <button disabled={busy} onClick={() => setFinishing((v) => !v)} className={btnPrimary} style={{ backgroundColor: '#15803d' }}>

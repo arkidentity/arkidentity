@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react';
 import { StudentHistory } from '@/components/iowa/StudentHistory';
-import { ContactButtons } from '@/components/iowa/campus/ui';
 import { slotLabel, sortSlots } from '@/lib/bibleStudyFormat';
 
 // A student's name, anywhere in the admin, that opens their card: Text/Email,
@@ -110,10 +109,19 @@ function StudentCard({ contactId, fallbackName, onClose }: { contactId: string; 
               {card.year ? ` · ${card.year}` : ''}
             </p>
             {(card.phone || card.email) && (
-              <div className="space-y-2">
-                <ContactButtons phone={card.phone} email={card.email} />
-                <p className="text-sm text-[#6b6459] break-words">{[card.phone, card.email].filter(Boolean).join(' · ')}</p>
-              </div>
+              <p className="text-sm break-words">
+                {card.phone && (
+                  <a href={`sms:${card.phone.replace(/[^\d+]/g, '')}`} className="underline" style={{ color: 'var(--navy)' }} title="Text">
+                    {card.phone}
+                  </a>
+                )}
+                {card.phone && card.email && <span className="text-[#8a8378]"> · </span>}
+                {card.email && (
+                  <a href={`mailto:${card.email}`} className="underline" style={{ color: 'var(--navy)' }} title="Email">
+                    {card.email}
+                  </a>
+                )}
+              </p>
             )}
 
             <div>

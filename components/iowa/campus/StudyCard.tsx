@@ -4,7 +4,7 @@ import { LeaderPicker } from '@/components/iowa/LeaderPicker';
 import StudyAttendance from '@/components/iowa/campus/StudyAttendance';
 import { AlsoAddSelect } from '@/components/iowa/campus/AlsoAddSelect';
 import { StudentLink } from '@/components/iowa/campus/StudentLink';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import type { StudyMember, StudyStatus, StudyWithMembers } from '@/lib/bibleStudies';
 import { DAY_NAMES, formatTime } from '@/lib/bibleStudyFormat';
@@ -134,6 +134,9 @@ export default function StudyCard({
           })}
         </ul>
       )}
+
+      <AddStudent studyId={s.id} seatedIds={active.map((m) => m.contact_id).sort().join(',')}
+        full={active.length >= s.capacity} busy={busy} call={call} />
 
       {dropped.length > 0 && (
         <details className="mb-4">
@@ -487,6 +490,65 @@ function DetailsEditor({ s, staff }: { s: StudyWithMembers; staff: StaffOption[]
               Save
             </button>
           </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Add someone already in the system to this study: search students, tap one.
+// (New people still come in through signup or the Studies page.)
+function AddStudent({ studyId, seatedIds, full, busy, call }: { studyId: string; seatedIds: string; full: boolean; busy: boolean; call: CallFn }) {
+  const [open, setOpen] = useState(false);
+  const [q, setQ] = useState('');
+  const [results, setResults] = useState<{ key: string; name: string; phone: string | null; kind: string }[]>([]);
+
+  // Same rails as the leader search: one request at a time, 5s max, errors = no results
+  useEffect(() => {
+    if (q.trim().length < 2) return;
+    const seated = new Set(seatedIds.split(','));
+    const ctrl = new AbortController();
+    const t = setTimeout(async () => {
+      const giveUp = setTimeout(() => ctrl.abort(), 5000);
+      try {
+        const res = await fetch(`/api/iowa/admin/people?q=${encodeURIComponent(q.trim())}`, { signal: ctrl.signal });
+        const body = res.ok ? await res.json() : { people: [] };
+        const list: { key: string; name: string; phone: string | null; kind: string }[] = Array.isArray(body.people) ? body.people : [];
+        setResults(list.filter((p) => p.key.startsWith('student:') && !seated.has(p.key.slice(8))));
+      } catch {
+        if (!ctrl.signal.aborted) setResults([]);
+      } finally {
+        clearTimeout(giveUp);
+      }
+    }, 300);
+    return () => { clearTimeout(t); ctrl.abort(); };
+  }, [q, seatedIds]);
+
+  if (!open) {
+    return (
+      <button onClick={() => setOpen(true)} className="text-sm font-semibold mb-4" style={{ color: 'var(--navy)' }}>
+        + Add a student
+      </button>
+    );
+  }
+  return (
+    <div className="mb-4 space-y-2">
+      {full && <p className="text-xs text-[#9d855a]">This study is at capacity. You can still add someone.</p>}
+      <div className="flex gap-2">
+        <input autoFocus value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search students"
+          className="flex-1 px-3 py-2 border border-gray-300 rounded-md text-sm text-gray-900 bg-white placeholder:text-gray-400" />
+        <button onClick={() => { setOpen(false); setQ(''); setResults([]); }} className="text-sm text-[#8a8378]">Cancel</button>
+      </div>
+      {q.trim().length >= 2 && (
+        <div className="rounded-md border border-gray-200 bg-white divide-y divide-gray-100">
+          {results.length === 0 && <p className="px-3 py-2 text-sm text-gray-500">No student by that name who isn’t already here.</p>}
+          {results.map((p) => (
+            <button key={p.key} disabled={busy}
+              onClick={async () => { await call('/api/iowa/admin/members', 'POST', { studyId, contactId: p.key.slice(8) }); setOpen(false); setQ(''); setResults([]); }}
+              className="w-full text-left px-3 py-2 text-sm text-gray-900 hover:bg-[#FAF8F5] disabled:opacity-50">
+              <strong>{p.name}</strong>{p.phone && <span className="text-gray-500"> · {p.phone}</span>}
+            </button>
+          ))}
         </div>
       )}
     </div>

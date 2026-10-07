@@ -816,6 +816,8 @@ export interface CampusStudent {
   free_slots: string[]; // migration 034 — "When are you free?" boxes from signup
   free_slots_at: string | null;
   free_slots_semester: string | null; // migration 035 — which semester those times were for
+  daily_dna_account_id: string | null; // migration 040 — linked Daily DNA account
+  daily_dna_name: string | null;
   // Derived, never stored: the studies they currently hold an active seat in.
   // Empty means unplaced — met, but not in a study yet.
   studies: { id: string; label: string; member_id: string }[];
@@ -885,6 +887,8 @@ export async function listCampusStudents(): Promise<CampusStudent[]> {
       free_slots?: string[] | null;
       free_slots_at?: string | null;
       free_slots_semester?: string | null;
+      daily_dna_account_id?: string | null;
+      daily_dna_name?: string | null;
     }[])
       .map((r) => [r.contact_id, r])
   );
@@ -924,6 +928,8 @@ export async function listCampusStudents(): Promise<CampusStudent[]> {
         free_slots: c?.free_slots ?? [],
         free_slots_at: c?.free_slots_at ?? null,
         free_slots_semester: c?.free_slots_semester ?? null,
+        daily_dna_account_id: c?.daily_dna_account_id ?? null,
+        daily_dna_name: c?.daily_dna_name ?? null,
         studies: seatsByContact.get(p.contact_id) ?? [],
       };
     })

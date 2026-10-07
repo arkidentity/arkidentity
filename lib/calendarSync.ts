@@ -8,6 +8,7 @@ import { formatSlot, formatTime, DAY_NAMES } from '@/lib/bibleStudyFormat';
 import { addDays, chicagoToday, dayOfWeek, eventDatesInRange, nextMeetingOnOrAfter, studyPausedBy, type SchoolPeriod, type Semester } from '@/lib/campusFormat';
 import { songLines, songsFor } from '@/lib/eventSongs';
 import { siteUrl } from '@/lib/email';
+import { dailyDnaConfigured, queueDailyDnaSync, syncStudiesToDailyDna } from '@/lib/dailyDnaLink';
 import {
   calendarConfigured,
   deleteCalendarEvent,
@@ -214,13 +215,24 @@ export async function syncAllStudies(): Promise<void> {
 // School calendar changed → every study's break weeks may have moved.
 export function queueAllStudiesSync() {
   if (calendarConfigured()) after(() => syncAllStudies());
+  queueAllDailyDna();
 }
 
 // Fire-and-forget from route handlers (after the response is sent).
 export function queueStudySync(...studyIds: (string | null | undefined)[]) {
+  // Daily DNA mirrors every study change too (Bible study tables, lib/dailyDnaLink.ts)
+  queueDailyDnaSync(...studyIds);
   if (!calendarConfigured()) return;
   const ids = studyIds.filter((x): x is string => !!x);
   if (ids.length) after(() => syncStudies(ids));
+}
+
+function queueAllDailyDna() {
+  if (!dailyDnaConfigured()) return;
+  after(async () => {
+    const studies = await listStudies();
+    await syncStudiesToDailyDna(studies.map((s) => s.id));
+  });
 }
 
 // ---------------------------------------------------------------------------

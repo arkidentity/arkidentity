@@ -8,6 +8,7 @@ import { DORMANT_REASONS, type CheckinRow, type SocialEventOption } from '@/lib/
 import type { DupeGroup } from '@/lib/studentDupes';
 import { CheckinReport } from '@/components/iowa/CheckinReport';
 import { StudentHistory } from '@/components/iowa/StudentHistory';
+import { DailyDnaLink } from '@/components/iowa/DailyDnaLink';
 
 // Managing students as people rather than as roster lines. Every student here
 // is also a contact in the main database — this view just adds the campus facts
@@ -497,6 +498,7 @@ export function CampusStudents({
                   <StudentHistory contactId={s.contact_id} />
                 </div>
               )}
+              <DailyDnaLink contactId={s.contact_id} linked={!!s.daily_dna_account_id} linkedName={s.daily_dna_name} studentName={s.name} />
             </div>
           ))}
 

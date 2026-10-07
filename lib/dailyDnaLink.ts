@@ -10,7 +10,7 @@ import { DAY_NAMES, formatTime } from '@/lib/bibleStudyFormat';
 // Daily DNA accounts of its linked students; Daily DNA makes it a "Bible study" table (with
 // chat) and puts the weekly meetings on those students' calendars. One way only: nothing a
 // student does in Daily DNA changes a roster.
-// Needs DAILY_DNA_URL (default https://dailydna.app) and PARTNER_SYNC_SECRET (same value in both apps).
+// Needs DAILY_DNA_URL (default https://arkiowa.dailydna.app — not the bare dailydna.app, which redirects to www and the redirect drops the Authorization header) and PARTNER_SYNC_SECRET (same value in both apps).
 
 const CHURCH = 'arkiowa';
 const LIVE = ['forming', 'full', 'activated', 'paused'];
@@ -18,7 +18,7 @@ const WEEKS_AHEAD = 10;
 const TZ = 'America/Chicago';
 
 export const dailyDnaConfigured = () => !!process.env.PARTNER_SYNC_SECRET;
-const base = () => (process.env.DAILY_DNA_URL || 'https://dailydna.app').replace(/\/$/, '');
+const base = () => (process.env.DAILY_DNA_URL || 'https://arkiowa.dailydna.app').replace(/\/$/, '');
 const headers = () => ({ Authorization: `Bearer ${process.env.PARTNER_SYNC_SECRET}`, 'Content-Type': 'application/json' });
 
 /** 'YYYY-MM-DD' + 'HH:MM[:SS]' in Chicago → ISO (handles daylight saving) */

@@ -53,14 +53,14 @@ export function DailyDnaLink({ contactId, linkedName, linked, studentName }: { c
         <div className="mt-2 space-y-2">
           <div className="flex gap-2">
             <input value={q} onChange={(e) => setQ(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && void search()}
-              placeholder="Name or email" className="flex-1 rounded-lg border px-3 py-2" style={{ borderColor: '#e4dfd6' }} />
+              placeholder="Name or email" className="flex-1 rounded-lg border px-3 py-2 text-sm text-gray-900 bg-white placeholder:text-gray-400" style={{ borderColor: '#e4dfd6' }} />
             <button disabled={busy || q.trim().length < 2} onClick={() => void search()} className="rounded-lg px-3 py-2 font-semibold text-white" style={{ background: 'var(--navy)' }}>Search</button>
           </div>
           {results && results.length === 0 && <p style={{ color: '#8a8378' }}>No ARK Iowa Daily DNA account by that name. Have them sign in at arkiowa.dailydna.app first.</p>}
           {results?.map((a) => (
             <button key={a.id} disabled={busy} onClick={() => void save(a)}
-              className="w-full text-left rounded-lg border px-3 py-2 hover:bg-[#faf7f2]" style={{ borderColor: '#e4dfd6' }}>
-              <strong>{a.name}</strong> <span style={{ color: '#8a8378' }}>· {a.email}{a.lastSeen ? ` · active ${new Date(a.lastSeen).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}` : ''}</span>
+              className="w-full text-left rounded-lg border px-3 py-2 bg-white hover:bg-[#faf7f2]" style={{ borderColor: '#e4dfd6', color: '#4a4540' }}>
+              <strong style={{ color: 'var(--navy)' }}>{a.name}</strong> <span style={{ color: '#8a8378' }}>· {a.email}{a.lastSeen ? ` · active ${new Date(a.lastSeen).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}` : ''}</span>
             </button>
           ))}
         </div>

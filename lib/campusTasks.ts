@@ -77,6 +77,7 @@ export interface CampusEvent {
   rsvp_token: string | null; // public RSVP link open
   source: 'app' | 'google'; // 'google' = owned by Google Calendar, read-only here (migration 014)
   skip_dates: string[]; // weeks a repeating event doesn't happen (migration 016)
+  show_in_daily_dna?: boolean; // migration 041 — sent to Daily DNA as an ARK Iowa church event
   checklist_template_id: string | null; // migration 019
   reminder_days_before?: number; // migration 036 — "text the list" task lead time
   google_event_id: string | null;
@@ -440,6 +441,7 @@ export interface EventInput {
   repeat_until?: string | null;
   skip_dates?: string[];
   staff_ids?: string[];
+  show_in_daily_dna?: boolean;
 }
 
 function cleanEventInput(input: EventInput, creating: boolean): Record<string, unknown> {
@@ -467,6 +469,7 @@ function cleanEventInput(input: EventInput, creating: boolean): Record<string, u
     out.meeting_link = `https://${out.meeting_link}`;
   }
   if ('type_id' in input) out.type_id = input.type_id || null;
+  if ('show_in_daily_dna' in input) out.show_in_daily_dna = !!input.show_in_daily_dna;
   if ('repeat_weekly' in input) out.repeat_weekly = !!input.repeat_weekly;
   if ('repeat_until' in input) {
     if (input.repeat_until && !isValidDate(input.repeat_until)) throw new Error('Repeat-until must be a date.');
@@ -518,9 +521,12 @@ export async function updateEvent(
   actor: IowaStaff | null = null
 ): Promise<{ event: CampusEvent; invited: string[] }> {
   const google = (await eventSource(id)) === 'google';
-  const fields = Object.keys(input).filter((k) => k !== 'staff_ids');
+  // Who's invited and "Show in Daily DNA" can change on Google-owned events too
+  const fields = Object.keys(input).filter((k) => k !== 'staff_ids' && k !== 'show_in_daily_dna');
   if (google && fields.length > 0) throw new Error('This event comes from Google Calendar. Edit it there.');
-  const update = google ? {} : cleanEventInput(input, false);
+  const update = google
+    ? ('show_in_daily_dna' in input ? { show_in_daily_dna: !!input.show_in_daily_dna } : {})
+    : cleanEventInput(input, false);
   if (Object.keys(update).length > 0) {
     const { error } = await getSupabaseAdmin().from('iowa_events').update(update).eq('id', id);
     if (error) throw error;

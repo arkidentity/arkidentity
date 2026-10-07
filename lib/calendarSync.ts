@@ -8,7 +8,7 @@ import { formatSlot, formatTime, DAY_NAMES } from '@/lib/bibleStudyFormat';
 import { addDays, chicagoToday, dayOfWeek, eventDatesInRange, nextMeetingOnOrAfter, studyPausedBy, type SchoolPeriod, type Semester } from '@/lib/campusFormat';
 import { songLines, songsFor } from '@/lib/eventSongs';
 import { siteUrl } from '@/lib/email';
-import { dailyDnaConfigured, queueDailyDnaSync, syncStudiesToDailyDna } from '@/lib/dailyDnaLink';
+import { dailyDnaConfigured, queueDailyDnaSync, syncShownEventsToDailyDna, syncStudiesToDailyDna } from '@/lib/dailyDnaLink';
 import {
   calendarConfigured,
   deleteCalendarEvent,
@@ -616,6 +616,8 @@ export async function pullIfStale(): Promise<void> {
     const last = data?.last_pulled_at ? new Date(data.last_pulled_at).getTime() : 0;
     if (Date.now() - last < PULL_EVERY_MS) return;
     await pullFromGoogle();
+    // Google edits to shown events (time, link, skipped week) + keep the 10-week window rolling
+    await syncShownEventsToDailyDna();
   } catch (e) {
     await logError('pull', e);
   }
@@ -626,7 +628,9 @@ export async function fullSync(): Promise<{ imported: number; held: number; remo
   if (!calendarConfigured()) return { imported: 0, held: 0, removed: 0 };
   await syncAllStudies();
   await syncAllAppEvents();
-  return pullFromGoogle();
+  const pulled = await pullFromGoogle();
+  await syncShownEventsToDailyDna();
+  return pulled;
 }
 
 // ---------------------------------------------------------------------------

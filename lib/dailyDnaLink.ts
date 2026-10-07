@@ -2,7 +2,7 @@ import { after } from 'next/server';
 import { getSupabaseAdmin } from '@/lib/supabaseAdmin';
 import { getStudyWithMembers, type StudyWithMembers } from '@/lib/bibleStudies';
 import { semesterContext } from '@/lib/semesters';
-import { addDays, chicagoToday, nextMeetingOnOrAfter, studyMeetsOn } from '@/lib/campusFormat';
+import { addDays, chicagoToday, eventDatesInRange, nextMeetingOnOrAfter, studyMeetsOn } from '@/lib/campusFormat';
 import { DAY_NAMES, formatTime } from '@/lib/bibleStudyFormat';
 
 // ARK Iowa → Daily DNA (docs/IOWA-DAILY-DNA-LINK.md, Daily DNA Mig 255).
@@ -111,4 +111,60 @@ export async function linkDailyDna(contactId: string, account: { id: string; nam
   ).eq('contact_id', contactId);
   if (error) throw new Error(error.code === '23505' ? 'That Daily DNA account is already linked to another student.' : error.message);
   queueDailyDnaSync(...(await studyIdsForStudent(contactId)));
+}
+
+// ---------------------------------------------------------------------------
+// Campus events → Daily DNA church events (migration 041, "Show in Daily DNA")
+// ---------------------------------------------------------------------------
+
+type EventLike = {
+  id: string; title: string; event_date: string; start_time: string | null; end_time: string | null;
+  location: string | null; meeting_link: string | null; repeat_weekly: boolean; repeat_until: string | null;
+  skip_dates?: string[] | null; show_in_daily_dna?: boolean;
+};
+
+function eventPayload(e: EventLike) {
+  const today = chicagoToday();
+  const dates = eventDatesInRange(e, today, addDays(today, WEEKS_AHEAD * 7));
+  const start = e.start_time ?? '00:00:00';
+  const [sh, sm] = start.split(':').map(Number);
+  const [eh, em] = (e.end_time ?? '').split(':').map(Number);
+  const minutes = e.start_time && e.end_time && !Number.isNaN(eh) ? Math.max(15, eh * 60 + em - (sh * 60 + sm)) : e.start_time ? 60 : 24 * 60 - 1;
+  return {
+    key: e.id,
+    churchSubdomain: CHURCH,
+    title: e.title,
+    live: !!e.show_in_daily_dna,
+    weekly: e.repeat_weekly,
+    starts: dates.map((d) => chicagoToIso(d, start)),
+    minutes,
+    location: isUrl(e.location) ? null : e.location,
+    meetingUrl: e.meeting_link || (isUrl(e.location) ? e.location!.trim() : null),
+  };
+}
+
+/** Send one event now (awaited, so a "3 weekly church events" refusal can reach the person saving). */
+export async function syncEventToDailyDna(e: EventLike): Promise<{ ok: boolean; reason?: string }> {
+  if (!dailyDnaConfigured()) return { ok: true };
+  try {
+    const res = await fetch(`${base()}/api/partner/event`, { method: 'POST', headers: headers(), body: JSON.stringify({ events: [eventPayload(e)] }), signal: AbortSignal.timeout(8000) });
+    const body = (await res.json().catch(() => ({}))) as { results?: { ok: boolean; reason?: string }[] };
+    return body.results?.[0] ?? { ok: res.ok };
+  } catch (err) {
+    console.error('[DailyDNA] event sync error', err);
+    return { ok: false, reason: 'unreachable' };
+  }
+}
+
+/** Take an event off Daily DNA (deleted, or unchecked) */
+export async function removeEventFromDailyDna(id: string) {
+  if (!dailyDnaConfigured()) return;
+  await fetch(`${base()}/api/partner/event`, { method: 'POST', headers: headers(), body: JSON.stringify({ events: [{ key: id, churchSubdomain: CHURCH, live: false, starts: [] }] }), signal: AbortSignal.timeout(8000) }).catch(() => {});
+}
+
+/** Re-send every shown event (keeps the 10-week window rolling; picks up Google edits) */
+export async function syncShownEventsToDailyDna() {
+  if (!dailyDnaConfigured()) return;
+  const { data } = await getSupabaseAdmin().from('iowa_events').select('*').eq('show_in_daily_dna', true);
+  for (const e of (data ?? []) as EventLike[]) await syncEventToDailyDna(e);
 }

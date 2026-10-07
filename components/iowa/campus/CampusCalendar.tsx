@@ -1,5 +1,6 @@
 'use client';
 
+import { DailyDnaToggle } from '@/components/iowa/campus/DailyDnaToggle';
 import { useMemo, useState } from 'react';
 import type { StudyWithMembers } from '@/lib/bibleStudies';
 import type { CampusEvent, CampusTask, TaskActivity } from '@/lib/campusTasks';
@@ -253,6 +254,7 @@ export default function CampusCalendar({
               Join meeting ↗
             </a>
           )}
+          <DailyDnaToggle key={editingEvent.id} eventId={editingEvent.id} on={!!editingEvent.show_in_daily_dna} />
           {editingEvent.notes && editingEvent.source !== 'google' && <p className="text-[15px] md:text-sm text-[#4a4540] whitespace-pre-wrap mb-3">{editingEvent.notes}</p>}
           {editingEvent.source === 'google' && <GoogleEventDetails event={editingEvent} />}
 
@@ -351,6 +353,7 @@ function EventForm({
     repeat_until: event?.repeat_until ?? '',
     staff_ids: event?.staff_ids ?? (meId ? [meId] : []),
     skip_dates: event?.skip_dates ?? ([] as string[]),
+    show_in_daily_dna: event?.show_in_daily_dna ?? false,
   });
   const set = (patch: Partial<typeof f>) => setF((cur) => ({ ...cur, ...patch }));
   const eventTypes = types.filter((t) => t.kind === 'event' && (t.active || t.id === f.type_id));
@@ -398,6 +401,12 @@ function EventForm({
         <label className="flex items-center gap-2 text-sm py-2 text-gray-700">
           <input type="checkbox" checked={f.repeat_weekly} onChange={(e) => set({ repeat_weekly: e.target.checked })} />
           Every week
+        </label>
+      </Field>
+      <Field label="Daily DNA">
+        <label className="flex items-center gap-2 text-sm py-2 text-gray-700">
+          <input type="checkbox" checked={f.show_in_daily_dna} onChange={(e) => set({ show_in_daily_dna: e.target.checked })} />
+          Show to everyone at ARK Iowa
         </label>
       </Field>
       {f.repeat_weekly && (

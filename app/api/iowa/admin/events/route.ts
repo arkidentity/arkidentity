@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { afterEventSaved } from '@/lib/dailyDnaEvents';
 import { requirePermission } from '@/lib/iowaPerms';
 import { createEvent, type EventInput } from '@/lib/campusTasks';
 import { currentStaff } from '@/lib/iowaStaff';
@@ -20,7 +21,8 @@ export async function POST(req: Request) {
     queueEventSync(event.id);
     queueInviteEmails(event.id, invited, me);
     await autoApplyForType(event.id, event.type_id); // e.g. every new Taco Night gets its checklist
-    return NextResponse.json({ event }, { status: 201 });
+    const warning = await afterEventSaved(event, body);
+    return NextResponse.json({ event, warning }, { status: 201 });
   } catch (e) {
     return NextResponse.json({ error: (e as Error).message }, { status: 400 });
   }

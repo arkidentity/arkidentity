@@ -1,4 +1,6 @@
 import { NextResponse } from 'next/server';
+import { afterEventSaved } from '@/lib/dailyDnaEvents';
+import { removeEventFromDailyDna } from '@/lib/dailyDnaLink';
 import { requirePermission } from '@/lib/iowaPerms';
 import { deleteEvent, updateEvent, type EventInput } from '@/lib/campusTasks';
 import { queueEventDelete, queueEventSync } from '@/lib/calendarSync';
@@ -21,7 +23,8 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     queueEventSync(event.id);
     queueInviteEmails(event.id, invited, me);
     await realignEvent(event.id); // moved / skipped weeks → checklist due dates follow
-    return NextResponse.json({ event });
+    const warning = await afterEventSaved(event, body);
+    return NextResponse.json({ event, warning });
   } catch (e) {
     return NextResponse.json({ error: (e as Error).message }, { status: 400 });
   }
@@ -33,6 +36,7 @@ export async function DELETE(_req: Request, { params }: { params: Promise<{ id: 
   if (me instanceof NextResponse) return me;
   const { id } = await params;
   try {
+    await removeEventFromDailyDna(id);
     queueEventDelete(await deleteEvent(id));
     return NextResponse.json({ ok: true });
   } catch (e) {

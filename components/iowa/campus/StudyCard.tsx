@@ -1,6 +1,5 @@
 'use client';
 
-import { LeaderPicker } from '@/components/iowa/LeaderPicker';
 import StudyAttendance from '@/components/iowa/campus/StudyAttendance';
 import { AlsoAddSelect } from '@/components/iowa/campus/AlsoAddSelect';
 import { StudentLink } from '@/components/iowa/campus/StudentLink';
@@ -441,10 +440,11 @@ function DetailsEditor({ s, staff }: { s: StudyWithMembers; staff: StaffOption[]
           </div>
           <div className="col-span-2">
             <span className={label}>Student leader</span>
-            <LeaderPicker
-              value={{ leader_name: f.leader_name, leader_phone: f.leader_phone, leader_email: f.leader_email }}
-              onChange={(v) => set(v)}
-            />
+            <div className="grid sm:grid-cols-3 gap-2">
+              <input className={field} placeholder="Name" value={f.leader_name} onChange={(e) => set({ leader_name: e.target.value })} />
+              <input className={field} placeholder="Phone" value={f.leader_phone} onChange={(e) => set({ leader_phone: e.target.value })} />
+              <input className={field} placeholder="Email" value={f.leader_email} onChange={(e) => set({ leader_email: e.target.value })} />
+            </div>
           </div>
           <div>
             <span className={label}>Day</span>

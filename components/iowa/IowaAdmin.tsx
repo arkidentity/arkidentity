@@ -1,6 +1,5 @@
 'use client';
 
-import { LeaderPicker } from '@/components/iowa/LeaderPicker';
 import type { PlanView } from '@/lib/semesterPlan';
 import { HealthBadge } from '@/components/iowa/campus/StudyAttendance';
 import type { StudyHealth } from '@/lib/studyHealthFormat';
@@ -514,10 +513,25 @@ function StudyEditor({
             time={draft.start_time}
           />
         </Field>
-        <Field label="Leader">
-          <LeaderPicker
-            value={{ leader_name: draft.leader_name, leader_phone: draft.leader_phone, leader_email: draft.leader_email }}
-            onChange={(v) => setDraft({ ...draft, ...v })}
+        <Field label="Leader name">
+          <input
+            className={input}
+            value={draft.leader_name}
+            onChange={(e) => setDraft({ ...draft, leader_name: e.target.value })}
+          />
+        </Field>
+        <Field label="Leader phone">
+          <input
+            className={input}
+            value={draft.leader_phone}
+            onChange={(e) => setDraft({ ...draft, leader_phone: e.target.value })}
+          />
+        </Field>
+        <Field label="Leader email">
+          <input
+            className={input}
+            value={draft.leader_email}
+            onChange={(e) => setDraft({ ...draft, leader_email: e.target.value })}
           />
         </Field>
       </div>
@@ -1012,10 +1026,25 @@ function NewStudyForm({
           time={f.startTime}
         />
       </Field>
-      <Field label="Leader">
-        <LeaderPicker
-          value={{ leader_name: f.leaderName, leader_phone: f.leaderPhone, leader_email: f.leaderEmail }}
-          onChange={(v) => setF({ ...f, leaderName: v.leader_name, leaderPhone: v.leader_phone, leaderEmail: v.leader_email })}
+      <Field label="Leader name">
+        <input
+          className={input}
+          value={f.leaderName}
+          onChange={(e) => setF({ ...f, leaderName: e.target.value })}
+        />
+      </Field>
+      <Field label="Leader phone">
+        <input
+          className={input}
+          value={f.leaderPhone}
+          onChange={(e) => setF({ ...f, leaderPhone: e.target.value })}
+        />
+      </Field>
+      <Field label="Leader email">
+        <input
+          className={input}
+          value={f.leaderEmail}
+          onChange={(e) => setF({ ...f, leaderEmail: e.target.value })}
         />
       </Field>
       <div className="sm:col-span-2">

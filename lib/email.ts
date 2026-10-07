@@ -281,8 +281,10 @@ export async function sendStudyRosterAlerts(opts: {
   newMemberPhone: string;
   existing: { email: string }[];
   leaderEmail?: string | null;
+  /** 'signup' = they signed up themselves; 'staff' = staff added or moved them in */
+  how?: 'signup' | 'staff';
 }) {
-  const { study, newMemberName, newMemberPhone, existing, leaderEmail } = opts;
+  const { study, newMemberName, newMemberPhone, existing, leaderEmail, how = 'signup' } = opts;
   const tel = newMemberPhone.replace(/[^\d+]/g, '');
   const sends: Promise<unknown>[] = [];
 
@@ -310,7 +312,7 @@ export async function sendStudyRosterAlerts(opts: {
         to: leaderEmail,
         subject: `New student in your ${study.slot} study — send a welcome text`,
         html: wrap(`
-          <p><strong>${escapeHtml(newMemberName)}</strong> just signed up for your ${escapeHtml(
+          <p><strong>${escapeHtml(newMemberName)}</strong> ${how === 'staff' ? 'was just added to' : 'just signed up for'} your ${escapeHtml(
             study.slot
           )} Bible study.</p>
           <p><a href="tel:${tel}" style="color:#143348;">${escapeHtml(newMemberPhone)}</a></p>

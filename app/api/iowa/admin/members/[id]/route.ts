@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { queueLeaderNewMember } from '@/lib/leaderAlerts';
 import { requirePermission } from '@/lib/iowaPerms';
 import { setMemberStatus, moveMember } from '@/lib/bibleStudies';
 import { getSupabaseAdmin } from '@/lib/supabaseAdmin';
@@ -35,6 +36,7 @@ export async function PATCH(
     if (body.studyId) {
       const member = await moveMember(id, body.studyId);
       queueStudySync(before?.study_id, member.study_id);
+      if (before?.study_id !== member.study_id) queueLeaderNewMember(member.id);
       return NextResponse.json({ member });
     }
     if (body.status !== 'active' && body.status !== 'dropped') {

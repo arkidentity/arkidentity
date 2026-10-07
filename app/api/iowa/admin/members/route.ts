@@ -3,6 +3,7 @@ import { requirePermission } from '@/lib/iowaPerms';
 import { addMember } from '@/lib/bibleStudies';
 import { queueStudySync } from '@/lib/calendarSync';
 import { queueSeated } from '@/lib/campusAutomation';
+import { queueLeaderNewMember } from '@/lib/leaderAlerts';
 
 export const dynamic = 'force-dynamic';
 
@@ -44,6 +45,7 @@ export async function POST(req: Request) {
     });
     queueStudySync(member.study_id);
     queueSeated(member.id);
+    queueLeaderNewMember(member.id);
     return NextResponse.json({ member }, { status: 201 });
   } catch (e) {
     return NextResponse.json({ error: (e as Error).message }, { status: 400 });

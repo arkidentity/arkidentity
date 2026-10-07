@@ -139,3 +139,26 @@ export async function generateReminderTasks(today = chicagoToday()): Promise<num
   }
   return made;
 }
+
+/** Guest list pop-up: make the list exactly these people. New ones come in as "yes"; anyone already on
+ *  the list keeps their answer and note; anyone unchecked comes off. */
+export async function setGuestList(eventId: string, contactIds: string[], actor: IowaStaff | null): Promise<void> {
+  const db = getSupabaseAdmin();
+  const want = new Set(contactIds);
+  const { data: have, error } = await db.from('iowa_event_reminder_people').select('contact_id').eq('event_id', eventId);
+  if (error) throw error;
+  const current = new Set((have ?? []).map((r) => r.contact_id as string));
+  const drop = [...current].filter((id) => !want.has(id));
+  const add = [...want].filter((id) => !current.has(id));
+  if (drop.length) {
+    const { error: e } = await db.from('iowa_event_reminder_people').delete().eq('event_id', eventId).in('contact_id', drop);
+    if (e) throw e;
+  }
+  if (add.length) {
+    const now = new Date().toISOString();
+    const { error: e } = await db.from('iowa_event_reminder_people').insert(
+      add.map((contact_id) => ({ event_id: eventId, contact_id, response: 'yes', added_by: actor?.id ?? null, updated_at: now }))
+    );
+    if (e) throw e;
+  }
+}

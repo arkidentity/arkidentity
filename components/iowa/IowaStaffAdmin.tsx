@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import type { IowaStaff } from '@/lib/iowaStaff';
+import { StaffDailyDnaLink } from '@/components/iowa/StaffDailyDnaLink';
 import { NOTIFY_MODES } from '@/lib/campusFormat';
 
 const input = 'w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-gray-900 bg-white';
@@ -187,6 +188,7 @@ function StaffRow({
           )}
         </span>
       </div>
+      {(!selfOnly || isMe) && <StaffDailyDnaLink staffId={p.id} name={p.name} />}
       {editing && (
         <div className="mt-2 grid sm:grid-cols-[1fr_1fr_8rem_auto] gap-2">
           <input

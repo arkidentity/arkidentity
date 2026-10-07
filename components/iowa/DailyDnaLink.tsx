@@ -9,7 +9,12 @@ import { useRouter } from 'next/navigation';
 
 type Account = { id: string; name: string; email: string; lastSeen: string | null };
 
-export function DailyDnaLink({ contactId, linkedName, linked, studentName }: { contactId: string; linkedName: string | null; linked: boolean; studentName: string }) {
+/** Students by default. Staff pass `saveUrl` (and `onSaved` to reload), plus `suggestion`: the account
+ *  their student record already uses, offered as one tap. */
+export function DailyDnaLink({ contactId, linkedName, linked, studentName, saveUrl, suggestion, onSaved, unlinkNote }: {
+  contactId?: string; linkedName: string | null; linked: boolean; studentName: string;
+  saveUrl?: string; suggestion?: { id: string; name: string } | null; onSaved?: () => void; unlinkNote?: string;
+}) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [q, setQ] = useState(studentName.split(' ')[0] ?? '');
@@ -28,7 +33,7 @@ export function DailyDnaLink({ contactId, linkedName, linked, studentName }: { c
 
   async function save(account: Account | null) {
     setErr(null); setBusy(true);
-    const res = await fetch(`/api/iowa/admin/students/${contactId}/daily-dna`, {
+    const res = await fetch(saveUrl ?? `/api/iowa/admin/students/${contactId}/daily-dna`, {
       method: 'PUT', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ account: account ? { id: account.id, name: account.name } : null }),
     });
@@ -36,7 +41,7 @@ export function DailyDnaLink({ contactId, linkedName, linked, studentName }: { c
     setBusy(false);
     if (!res.ok) { setErr(body.error ?? 'That didn’t save.'); return; }
     setOpen(false); setResults(null);
-    router.refresh();
+    if (onSaved) onSaved(); else router.refresh();
   }
 
   return (
@@ -46,9 +51,15 @@ export function DailyDnaLink({ contactId, linkedName, linked, studentName }: { c
           Daily DNA: {linked ? <strong style={{ color: '#2D6A4F' }}>✓ {linkedName || 'linked'}</strong> : <span style={{ color: '#9d855a' }}>not linked</span>}
         </span>
         {linked
-          ? <button disabled={busy} onClick={() => { if (confirm(`Unlink ${studentName} from Daily DNA? Their Bible study table leaves their app.`)) void save(null); }} className="font-semibold" style={{ color: '#8a8378' }}>Unlink</button>
+          ? <button disabled={busy} onClick={() => { if (confirm(unlinkNote ?? `Unlink ${studentName} from Daily DNA? Their Bible study table leaves their app.`)) void save(null); }} className="font-semibold" style={{ color: '#8a8378' }}>Unlink</button>
           : <button disabled={busy} onClick={() => { setOpen((v) => !v); if (!results && !open) void search(); }} className="font-semibold" style={{ color: 'var(--navy)' }}>{open ? 'Cancel' : 'Link Daily DNA'}</button>}
       </div>
+      {!linked && suggestion && (
+        <button disabled={busy} onClick={() => void save({ id: suggestion.id, name: suggestion.name, email: '', lastSeen: null })}
+          className="mt-2 w-full text-left rounded-lg border px-3 py-2 bg-white hover:bg-[#faf7f2]" style={{ borderColor: '#e4dfd6', color: '#4a4540' }}>
+          Use the same Daily DNA account as their student record: <strong style={{ color: 'var(--navy)' }}>{suggestion.name}</strong>
+        </button>
+      )}
       {open && !linked && (
         <div className="mt-2 space-y-2">
           <div className="flex gap-2">

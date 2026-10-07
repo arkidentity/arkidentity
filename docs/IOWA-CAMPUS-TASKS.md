@@ -642,3 +642,19 @@ spring registration (Nov 9–~30) is exactly when schedules change. Now returnin
   groups nudge in staff emails covers it; spring signup stays open regardless.
 - Code: `lib/semesterCheckins.ts`, `app/api/iowa/checkin/[token]`, `app/api/iowa/admin/checkins`,
   `components/iowa/CheckinForm.tsx`, `components/iowa/campus/CheckinLinks.tsx`.
+
+## Guest lists + staff in Daily DNA (migration 042, 2026-10-07, Travis)
+
+- **Guest list** replaces the event's "Reminder list" (same table, `iowa_event_reminder_people`, migration 036).
+  The **Guest list** button opens every student with a search and a checkbox; Save makes the list exactly
+  the checked people (new = yes; existing keep their yes/maybe/no). The "Text the list" task is unchanged.
+- **Who sees it in Daily DNA** (when Show in Daily DNA is on): no guest list → everyone at ARK Iowa (a
+  church event, counts toward the 3 weekly). Guest list → only guests (not "no") + the event's team (not
+  declined) + whoever made it, linked to Daily DNA; a hand-picked event, no 3-weekly cap. Same every week
+  for weekly events. Guest-list changes re-send right away; team changes on save, or by the hourly sync.
+- **Staff link** (migration 042, `iowa_staff.daily_dna_*`): "Link Daily DNA" on each staff row. A student
+  who became an intern/leader is offered their student record's account (same email, else same unique
+  name) as one tap. Both records may point at the same account; duplicates are removed before sending.
+- Code: `components/iowa/campus/ReminderList.tsx` (GuestPicker), `lib/eventReminders.ts` (`setGuestList`),
+  `lib/dailyDnaLink.ts` (`eventAccounts`, `staffDailyDna`, `linkStaffDailyDna`), `components/iowa/StaffDailyDnaLink.tsx`.
+  Daily DNA: `lib/server/partnerStudySync.ts` (`invitees` on partner events).

@@ -1,7 +1,7 @@
 'use client';
 
 import { Suspense, useState } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 
 export default function IowaAdminLoginPage() {
   return (
@@ -12,7 +12,6 @@ export default function IowaAdminLoginPage() {
 }
 
 function LoginForm() {
-  const router = useRouter();
   const params = useSearchParams();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -32,8 +31,9 @@ function LoginForm() {
     if (res.ok) {
       // Only same-site paths — never bounce to another origin ('//evil.com').
       const from = params.get('from');
-      router.push(from && from.startsWith('/') && !from.startsWith('//') ? from : '/iowa/admin');
-      router.refresh();
+      // Full page load, not router.push: the client router can replay a cached
+      // "not signed in → login" redirect from before the session existed.
+      window.location.assign(from && from.startsWith('/') && !from.startsWith('//') ? from : '/iowa/admin');
     } else {
       const data = await res.json().catch(() => ({}));
       setError(data.error || 'Login failed.');

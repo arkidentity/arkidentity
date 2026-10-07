@@ -41,6 +41,12 @@ export default function StudyCard({
   const { call, busy, error } = useCall();
   const nameOf = (id: string | null) => (id ? staff.find((p) => p.id === id)?.name ?? null : null);
   const active = s.members.filter((m) => m.status === 'active');
+  // The study's leader, matched to a roster seat by phone (or email). "Make leader" fills leader_*
+  // from that seat, so they get the roster emails and staff get the check-in tasks.
+  const digits = (p: string | null | undefined) => (p ?? '').replace(/\D/g, '').slice(-10);
+  const isLeader = (m: { phone: string; email: string }) =>
+    (!!s.leader_phone && digits(m.phone) !== '' && digits(m.phone) === digits(s.leader_phone)) ||
+    (!!s.leader_email && !!m.email && m.email.trim().toLowerCase() === s.leader_email.trim().toLowerCase());
   const dropped = s.members.filter((m) => m.status === 'dropped');
   const onPoint = nameOf(s.point_staff_id);
   const link = 'font-semibold underline';
@@ -109,6 +115,7 @@ export default function StudyCard({
                 <div className="flex flex-wrap items-baseline justify-between gap-x-3">
                   <span className="font-semibold text-[#1f2937]">
                     <StudentLink contactId={m.contact_id} name={m.name} />
+                    {isLeader(m) && <span className="ml-1.5 text-xs font-semibold" style={{ color: 'var(--navy)' }}>★ Leader</span>}
                     {m.first_showed === true && <span className="ml-1.5 text-xs font-semibold text-green-700">✓ came</span>}
                     {m.first_showed === false && <span className="ml-1.5 text-xs font-semibold text-red-700">✗ no-show</span>}
                   </span>
@@ -128,6 +135,12 @@ export default function StudyCard({
                     <a href={`mailto:${m.email}`} className="underline text-[#4a4540] break-all">{m.email}</a>
                   )}
                 </div>
+                {!isLeader(m) && (
+                  <button disabled={busy} className="mt-1.5 text-sm font-semibold disabled:opacity-50" style={{ color: 'var(--navy)' }}
+                    onClick={() => call(`/api/iowa/admin/studies/${s.id}`, 'PATCH', { leader_name: m.name, leader_phone: m.phone || null, leader_email: m.email || null })}>
+                    Make leader
+                  </button>
+                )}
                 <SeatActions m={m} studyId={s.id} others={others} busy={busy} call={call} />
               </li>
             );

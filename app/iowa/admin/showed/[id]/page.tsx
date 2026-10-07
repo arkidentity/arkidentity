@@ -2,6 +2,9 @@ import type { Metadata } from 'next';
 import { recordFirstShow } from '@/lib/campusAutomation';
 import { currentStaff } from '@/lib/iowaStaff';
 import { PageShell } from '@/components/iowa/campus/ui';
+import { DailyDnaLink } from '@/components/iowa/DailyDnaLink';
+import { dailyDnaConfigured } from '@/lib/dailyDnaLink';
+import { getSupabaseAdmin } from '@/lib/supabaseAdmin';
 
 export const dynamic = 'force-dynamic';
 export const metadata: Metadata = { title: 'ARK Iowa — first study' };
@@ -19,6 +22,10 @@ export default async function ShowedPage({
   const [{ id }, { v }] = await Promise.all([params, searchParams]);
   const showed = v === 'yes' ? true : v === 'no' ? false : null;
   const result = showed === null ? null : await recordFirstShow(id, showed, await currentStaff());
+  // They came, so they likely got the app at the study: offer to link Daily DNA right here
+  const link = result && showed && dailyDnaConfigured()
+    ? (await getSupabaseAdmin().from('campus_students').select('daily_dna_account_id, daily_dna_name').eq('contact_id', result.contactId).maybeSingle()).data
+    : null;
 
   return (
     <PageShell>
@@ -31,6 +38,12 @@ export default async function ShowedPage({
               🙌 Great, {result.name} made it.
             </p>
             <p className="text-[#8a8378] mt-1">Recorded for the {result.slot} study.</p>
+            {dailyDnaConfigured() && (<>
+              {!link?.daily_dna_account_id && (
+                <p className="text-[#4a4540] mt-4 text-sm">Did they get Daily DNA at the study? Link them and their Bible study shows up in their app.</p>
+              )}
+              <DailyDnaLink contactId={result.contactId} linked={!!link?.daily_dna_account_id} linkedName={link?.daily_dna_name ?? null} studentName={result.name} />
+            </>)}
           </>
         ) : (
           <>

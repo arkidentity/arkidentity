@@ -622,7 +622,7 @@ export async function recordFirstShow(
   memberId: string,
   showed: boolean,
   by: IowaStaff | null
-): Promise<{ name: string; slot: string } | null> {
+): Promise<{ name: string; slot: string; contactId: string } | null> {
   const db = getSupabaseAdmin();
   const { data: seat } = await db.from('bible_study_members').select('study_id').eq('id', memberId).maybeSingle();
   if (!seat) return null;
@@ -648,7 +648,7 @@ export async function recordFirstShow(
       priority: 'urgent',
     });
   }
-  return { name: m.name, slot: formatSlot(study) };
+  return { name: m.name, slot: formatSlot(study), contactId: m.contact_id as string };
 }
 
 // Route-handler hook: after a seat is created, make the welcome task and email

@@ -24,25 +24,13 @@ export default async function FridayFillUpPage() {
 
   return (
     <>
-      <section className="py-20 md:py-28" style={{ background: 'var(--navy)' }}>
+      <section className="py-10 md:py-14" style={{ background: 'var(--navy)' }}>
         <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center text-white">
-          <p className="uppercase tracking-widest text-sm mb-4" style={{ color: 'var(--gold)' }}>
-            ARK Identity
+          <h1 className="text-3xl md:text-5xl font-bold leading-tight mb-2">Friday Fill Up</h1>
+          <p className="text-lg md:text-xl text-gray-200 mb-1">
+            Every Friday · {timeLabel()} Central
           </p>
-          <h1 className="text-4xl md:text-6xl font-bold leading-tight mb-4">Friday Fill Up</h1>
-          <p className="text-xl md:text-2xl text-gray-200 mb-8">
-            Every Friday · {timeLabel()} Central · {LENGTH_MINUTES} minutes
-          </p>
-          <div className="grid grid-cols-2 gap-4 max-w-md mx-auto mb-10">
-            <div className="rounded-xl bg-white/10 p-4">
-              <p className="text-3xl font-bold" style={{ color: 'var(--gold)' }}>15</p>
-              <p className="text-gray-200">min Bible study</p>
-            </div>
-            <div className="rounded-xl bg-white/10 p-4">
-              <p className="text-3xl font-bold" style={{ color: 'var(--gold)' }}>15</p>
-              <p className="text-gray-200">min discussion</p>
-            </div>
-          </div>
+          <p className="text-gray-300 mb-6">{LENGTH_MINUTES} minutes: a 15-minute Bible study, then discussion</p>
           <JoinButton />
         </div>
       </section>

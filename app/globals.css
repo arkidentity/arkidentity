@@ -7958,3 +7958,10 @@ html, body {
   letter-spacing: 0.05em;
   margin-top: 1.5rem;
 }
+
+/* Embedded in another app (see the data-embed script in app/layout.tsx): no site chrome. */
+html[data-embed] header,
+html[data-embed] footer,
+html[data-embed] .bottom-tab-bar {
+  display: none !important;
+}

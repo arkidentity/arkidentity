@@ -266,8 +266,23 @@ export default function StudiesBrowser({
 }
 
 // Name, number, and anything they want us to know — no day, no time, no study.
-function InterestForm({ freeSlots, semester }: { freeSlots: string[]; semester?: string }) {
+// `source` and `invites` let an outreach page (e.g. /iowa/truth) tag the
+// follow-up task and ask which events they'd like an invite to.
+export function InterestForm({
+  freeSlots,
+  semester,
+  source,
+  invites = [],
+  submitLabel = 'Have someone reach out',
+}: {
+  freeSlots: string[];
+  semester?: string;
+  source?: string;
+  invites?: string[];
+  submitLabel?: string;
+}) {
   const [form, setForm] = useState({ name: '', phone: '', email: '', year: '', metBy: '', note: '', hpField: '' });
+  const [picked, setPicked] = useState<Set<string>>(new Set());
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [message, setMessage] = useState('');
 
@@ -279,7 +294,18 @@ function InterestForm({ freeSlots, semester }: { freeSlots: string[]; semester?:
       const res = await fetch('/api/iowa/studies/interest', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...form, freeSlots, semester }),
+        body: JSON.stringify({
+          ...form,
+          note: [
+            source ? `From ${source}.` : '',
+            picked.size ? `Invite me to: ${invites.filter((i) => picked.has(i)).join(', ')}.` : '',
+            form.note.trim(),
+          ]
+            .filter(Boolean)
+            .join(' '),
+          freeSlots,
+          semester,
+        }),
       });
       const data = await res.json().catch(() => ({}));
       if (res.ok) setStatus('success');
@@ -359,6 +385,41 @@ function InterestForm({ freeSlots, semester }: { freeSlots: string[]; semester?:
         className={inputClass}
       />
 
+      {invites.length > 0 && (
+        <div>
+          <span className="block text-sm font-semibold mb-2" style={{ color: 'var(--navy)' }}>
+            Invite me to
+          </span>
+          <div className="flex flex-wrap gap-2">
+            {invites.map((label) => {
+              const on = picked.has(label);
+              return (
+                <button
+                  key={label}
+                  type="button"
+                  onClick={() =>
+                    setPicked((prev) => {
+                      const next = new Set(prev);
+                      if (on) next.delete(label);
+                      else next.add(label);
+                      return next;
+                    })
+                  }
+                  className="px-3 py-1.5 rounded-md text-sm font-semibold transition"
+                  style={{
+                    backgroundColor: on ? 'var(--gold)' : '#f1ede7',
+                    color: on ? 'var(--navy)' : '#8a8378',
+                    border: on ? '1px solid var(--gold)' : '1px solid #e2ddd5',
+                  }}
+                >
+                  {label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       <MetByPicker value={form.metBy} onChange={(metBy) => setForm({ ...form, metBy })} />
 
       {/* honeypot — see JoinForm for why it's named this way */}
@@ -381,7 +442,7 @@ function InterestForm({ freeSlots, semester }: { freeSlots: string[]; semester?:
         className="w-full px-6 py-3 rounded-lg font-semibold transition hover:opacity-90 disabled:opacity-50"
         style={{ backgroundColor: 'var(--gold)', color: 'var(--navy)' }}
       >
-        {status === 'loading' ? 'Sending…' : 'Have someone reach out'}
+        {status === 'loading' ? 'Sending…' : submitLabel}
       </button>
 
       {status === 'error' && <p className="text-red-800 text-sm text-center">{message}</p>}

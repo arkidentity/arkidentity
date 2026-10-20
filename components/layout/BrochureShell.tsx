@@ -27,7 +27,8 @@ export function BrochureShell({ children }: { children: React.ReactNode }) {
 
   // The Iowa Bible-study admin is a tool, not a brochure page — render it bare
   // like the feed admin, even though it lives under /iowa.
-  const isAdminTool = pathname.startsWith('/iowa/admin');
+  // Trick or Truth is a standalone campaign page with its own look.
+  const isAdminTool = pathname.startsWith('/iowa/admin') || pathname === '/iowa/trick-or-truth';
 
   const isPublicPage =
     !isAdminTool &&

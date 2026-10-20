@@ -4,9 +4,9 @@ import { useState } from 'react';
 import { EXPERIENCE, OUTREACH_DAYS, OUTREACH_TIMES } from '@/lib/outreachFormat';
 
 const chip = (on: boolean) => ({
-  backgroundColor: on ? 'var(--gold)' : '#f1ede7',
-  color: on ? 'var(--navy)' : '#8a8378',
-  border: on ? '1px solid var(--gold)' : '1px solid #e2ddd5',
+  backgroundColor: on ? '#FF5A1F' : '#17171a',
+  color: on ? '#0A0A0B' : '#c9c9cf',
+  border: on ? '1px solid #FF5A1F' : '1px solid #2a2a2f',
 });
 
 export default function OutreachSignup({ initialCounts }: { initialCounts: Record<string, number> }) {
@@ -59,11 +59,11 @@ export default function OutreachSignup({ initialCounts }: { initialCounts: Recor
 
   if (status === 'success') {
     return (
-      <div className="bg-white rounded-xl border border-gray-200 p-6">
-        <p className="font-bold text-lg" style={{ color: 'var(--navy)' }}>
+      <div className="rounded-xl border border-[#2a2a2f] bg-[#111113] p-6">
+        <p className="font-bold text-lg" style={{ color: '#FAF8F5' }}>
           You’re on the team.
         </p>
-        <p className="text-[#4a4540] mt-1">
+        <p className="text-[#c9c9cf] mt-1">
           Check your email for your times. We’ll text you where to go before you head out.
         </p>
       </div>
@@ -71,18 +71,18 @@ export default function OutreachSignup({ initialCounts }: { initialCounts: Recor
   }
 
   return (
-    <form onSubmit={handleSubmit} className="bg-white rounded-xl border border-gray-200 p-5 sm:p-6 space-y-6">
+    <form onSubmit={handleSubmit} className="rounded-xl border border-[#2a2a2f] bg-[#111113] p-5 sm:p-6 space-y-6">
       <div>
-        <span className="block text-sm font-semibold mb-3" style={{ color: 'var(--navy)' }}>
+        <span className="block text-sm font-semibold mb-3" style={{ color: '#FAF8F5' }}>
           Pick your times
         </span>
         <div className="grid grid-cols-3 gap-2">
           {OUTREACH_DAYS.map((d) => (
             <div key={d.key} className="text-center">
-              <p className="font-semibold text-sm" style={{ color: 'var(--navy)' }}>
+              <p className="font-semibold text-sm" style={{ color: '#FAF8F5' }}>
                 {d.label}
               </p>
-              <p className="text-xs text-[#8a8378] mb-2">{d.date}</p>
+              <p className="text-xs text-[#8a8a8f] mb-2">{d.date}</p>
               <div className="space-y-2">
                 {OUTREACH_TIMES.map((t) => {
                   const key = `${d.key}-${t.key}`;
@@ -115,7 +115,7 @@ export default function OutreachSignup({ initialCounts }: { initialCounts: Recor
       </div>
 
       <div>
-        <span className="block text-sm font-semibold mb-2" style={{ color: 'var(--navy)' }}>
+        <span className="block text-sm font-semibold mb-2" style={{ color: '#FAF8F5' }}>
           Have you talked about Jesus with a stranger before?
         </span>
         <div className="flex flex-wrap gap-2">
@@ -134,12 +134,12 @@ export default function OutreachSignup({ initialCounts }: { initialCounts: Recor
       </div>
 
       <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
-        <label className="flex items-center gap-2 text-[#4a4540]">
+        <label className="flex items-center gap-2 text-[#c9c9cf]">
           Bringing anyone?
           <select
             value={form.bringing}
             onChange={(e) => setForm({ ...form, bringing: Number(e.target.value) })}
-            className="border border-gray-300 rounded-md px-2 py-1 bg-white text-gray-900"
+            className="border border-[#2a2a2f] rounded-md px-2 py-1 bg-[#17171a] text-[#FAF8F5]"
           >
             {[0, 1, 2, 3, 4, 5].map((n) => (
               <option key={n} value={n}>
@@ -148,8 +148,8 @@ export default function OutreachSignup({ initialCounts }: { initialCounts: Recor
             ))}
           </select>
         </label>
-        <label className="flex items-center gap-2 text-[#4a4540]">
-          <input type="checkbox" checked={form.under18} onChange={(e) => setForm({ ...form, under18: e.target.checked })} />
+        <label className="flex items-center gap-2 text-[#c9c9cf]">
+          <input type="checkbox" className="accent-[#FF5A1F]" checked={form.under18} onChange={(e) => setForm({ ...form, under18: e.target.checked })} />
           I’m under 18
         </label>
       </div>
@@ -166,16 +166,16 @@ export default function OutreachSignup({ initialCounts }: { initialCounts: Recor
         <button
           type="submit"
           disabled={status === 'loading'}
-          className="px-6 py-3 rounded-lg font-semibold transition hover:opacity-90 disabled:opacity-50"
-          style={{ backgroundColor: 'var(--gold)', color: 'var(--navy)' }}
+          className="px-6 py-3 rounded-lg font-bold uppercase tracking-wide transition hover:opacity-90 disabled:opacity-50"
+          style={{ backgroundColor: '#FF5A1F', color: '#0A0A0B' }}
         >
           {status === 'loading' ? 'Saving…' : 'Save my spot'}
         </button>
       </div>
-      {status === 'error' && <p className="text-red-800 text-sm text-right">{message}</p>}
+      {status === 'error' && <p className="text-[#ff8a65] text-sm text-right">{message}</p>}
     </form>
   );
 }
 
 const inputClass =
-  'w-full px-4 py-3 border border-gray-300 rounded-lg text-gray-900 bg-white focus:ring-2 focus:ring-offset-0 focus:border-transparent';
+  'w-full px-4 py-3 border border-[#2a2a2f] rounded-lg text-[#FAF8F5] placeholder:text-[#6b6b72] bg-[#17171a] focus:outline-none focus:border-[#FF5A1F]';

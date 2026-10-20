@@ -775,3 +775,60 @@ export async function sendSemesterCheckin(opts: {
     `),
   });
 }
+
+// ---------------------------------------------------------------------------
+// Outreach volunteer sign-ups (Trick or Truth). Volunteer gets a confirmation;
+// the campus inbox gets the details. Locations go out later by text.
+// ---------------------------------------------------------------------------
+
+export async function sendOutreachConfirmation(opts: { to: string; name: string; slots: string[] }) {
+  const first = opts.name.split(' ')[0];
+  const html = wrap(`
+    <h1 style="color:#143348; font-size:22px;">You’re on the outreach team</h1>
+    <p>Hey ${escapeHtml(first)}, thanks for jumping in on Trick or Truth.</p>
+    <p><strong style="color:#143348;">Your times:</strong></p>
+    <ul>${opts.slots.map((s) => `<li>${escapeHtml(s)}</li>`).join('')}</ul>
+    <p>We’ll text you before your time with where to go. There will usually be a team already running, so you can watch it once and then jump in.</p>
+    <p>Can’t make it anymore? Just reply to this email.</p>
+  `);
+  return getResend().emails.send({
+    from: fromAddress(),
+    to: opts.to,
+    replyTo: IOWA_INBOX(),
+    subject: 'You’re in: Trick or Truth',
+    html,
+  });
+}
+
+export async function sendOutreachAdminAlert(opts: {
+  name: string;
+  phone: string;
+  email: string;
+  slots: string[];
+  bringing: number;
+  under18: boolean;
+  experience: string;
+  note: string | null;
+}) {
+  const row = (label: string, value: string) =>
+    `<p style="margin:0 0 6px;"><strong style="color:#143348;">${label}:</strong> ${escapeHtml(value)}</p>`;
+  const html = wrap(`
+    <h1 style="color:#143348; font-size:22px;">Trick or Truth sign-up</h1>
+    ${row('Name', opts.name)}
+    ${row('Phone', opts.phone)}
+    ${row('Email', opts.email)}
+    ${row('Times', opts.slots.join('; '))}
+    ${row('Bringing', String(opts.bringing))}
+    ${opts.under18 ? row('Under 18', 'Yes') : ''}
+    ${row('Experience', opts.experience)}
+    ${opts.note ? row('Note', opts.note) : ''}
+    <p style="margin:20px 0 0;"><a href="${siteUrl()}/iowa/admin/outreach">See everyone signed up</a></p>
+  `);
+  return getResend().emails.send({
+    from: fromAddress(),
+    to: IOWA_INBOX(),
+    replyTo: opts.email,
+    subject: `Trick or Truth — ${opts.name}`,
+    html,
+  });
+}

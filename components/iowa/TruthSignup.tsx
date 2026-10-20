@@ -4,9 +4,6 @@ import { useState } from 'react';
 import SlotGrid from '@/components/iowa/SlotGrid';
 import { InterestForm } from '@/components/iowa/StudiesBrowser';
 
-// Events to offer an invite to. Update after each one passes.
-const INVITES = ['Worship night', 'Barbecue'];
-
 export default function TruthSignup() {
   const [cells, setCells] = useState<Set<string>>(new Set());
 
@@ -28,7 +25,7 @@ export default function TruthSignup() {
         </span>
         <SlotGrid cells={cells} onToggle={toggleCell} />
       </div>
-      <InterestForm freeSlots={[...cells]} source="Trick or Truth" invites={INVITES} submitLabel="Count me in" />
+      <InterestForm freeSlots={[...cells]} source="Trick or Truth" submitLabel="Count me in" typedMetBy />
     </div>
   );
 }

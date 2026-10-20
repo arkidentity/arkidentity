@@ -274,14 +274,18 @@ export function InterestForm({
   source,
   invites = [],
   submitLabel = 'Have someone reach out',
+  typedMetBy = false,
 }: {
   freeSlots: string[];
   semester?: string;
   source?: string;
   invites?: string[];
   submitLabel?: string;
+  // Outreach volunteers aren't staff, so ask for a typed name instead of the picker.
+  typedMetBy?: boolean;
 }) {
   const [form, setForm] = useState({ name: '', phone: '', email: '', year: '', metBy: '', note: '', hpField: '' });
+  const [metName, setMetName] = useState('');
   const [picked, setPicked] = useState<Set<string>>(new Set());
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [message, setMessage] = useState('');
@@ -298,6 +302,7 @@ export function InterestForm({
           ...form,
           note: [
             source ? `From ${source}.` : '',
+            metName.trim() ? `Talked with ${metName.trim()}.` : '',
             picked.size ? `Invite me to: ${invites.filter((i) => picked.has(i)).join(', ')}.` : '',
             form.note.trim(),
           ]
@@ -420,7 +425,17 @@ export function InterestForm({
         </div>
       )}
 
-      <MetByPicker value={form.metBy} onChange={(metBy) => setForm({ ...form, metBy })} />
+      {typedMetBy ? (
+        <input
+          type="text"
+          placeholder="Who did you talk to? (optional)"
+          value={metName}
+          onChange={(e) => setMetName(e.target.value)}
+          className={inputClass}
+        />
+      ) : (
+        <MetByPicker value={form.metBy} onChange={(metBy) => setForm({ ...form, metBy })} />
+      )}
 
       {/* honeypot — see JoinForm for why it's named this way */}
       <div aria-hidden="true" style={{ position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0 0 0 0)', whiteSpace: 'nowrap' }}>

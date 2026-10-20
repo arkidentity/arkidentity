@@ -1,8 +1,8 @@
 import { redirect } from 'next/navigation';
 import type { Metadata } from 'next';
 import { currentStaff } from '@/lib/iowaStaff';
-import { listOutreachSignups } from '@/lib/outreach';
-import { OUTREACH_SLOTS, TRICK_OR_TRUTH, experienceLabel } from '@/lib/outreachFormat';
+import { listOutreachDebriefs, listOutreachSignups } from '@/lib/outreach';
+import { OUTREACH_SLOTS, TRICK_OR_TRUTH, experienceLabel, slotLabel } from '@/lib/outreachFormat';
 
 export const dynamic = 'force-dynamic';
 export const metadata: Metadata = { title: 'ARK Iowa — Trick or Truth' };
@@ -11,7 +11,11 @@ export const metadata: Metadata = { title: 'ARK Iowa — Trick or Truth' };
 export default async function OutreachAdminPage() {
   const me = await currentStaff();
   if (!me) redirect('/iowa/admin/login');
-  const signups = await listOutreachSignups(TRICK_OR_TRUTH).catch(() => []);
+  const [signups, debriefs] = await Promise.all([
+    listOutreachSignups(TRICK_OR_TRUTH).catch(() => []),
+    listOutreachDebriefs(TRICK_OR_TRUTH).catch(() => []),
+  ]);
+  const sum = (k: 'conversations' | 'read_verse' | 'signed_up' | 'prayed') => debriefs.reduce((n, d) => n + (d[k] ?? 0), 0);
   const navy = { color: 'var(--navy)' };
 
   return (
@@ -22,7 +26,8 @@ export default async function OutreachAdminPage() {
             Trick or Truth
           </h1>
           <p className="text-[#8a8378]">
-            {signups.length} signed up · <a className="underline" href="/iowa/trick-or-truth">sign-up page</a>
+            {signups.length} signed up · <a className="underline" href="/iowa/trick-or-truth">sign-up page</a> ·{' '}
+            <a className="underline" href="/iowa/trick-or-truth/debrief">debrief link</a>
           </p>
         </div>
 
@@ -62,6 +67,48 @@ export default async function OutreachAdminPage() {
             </section>
           );
         })}
+
+        <section className="bg-white rounded-xl border border-gray-200 p-5">
+          <h2 className="font-bold mb-3" style={navy}>
+            Debriefs ({debriefs.length})
+          </h2>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4 text-center">
+            {(
+              [
+                ['Conversations', sum('conversations')],
+                ['Read a verse', sum('read_verse')],
+                ['Scanned / gave info', sum('signed_up')],
+                ['Prayed with', sum('prayed')],
+              ] as const
+            ).map(([label, n]) => (
+              <div key={label} className="rounded-lg bg-[#f1ede7] py-3">
+                <p className="text-2xl font-bold" style={navy}>
+                  {n}
+                </p>
+                <p className="text-xs text-[#8a8378]">{label}</p>
+              </div>
+            ))}
+          </div>
+          {debriefs.length === 0 ? (
+            <p className="text-sm text-[#8a8378]">None yet. Text volunteers the debrief link each evening.</p>
+          ) : (
+            <ul className="divide-y divide-gray-100">
+              {debriefs.map((d) => (
+                <li key={d.id} className="py-3 text-sm">
+                  <p>
+                    <strong style={navy}>{d.name}</strong>
+                    {d.slot ? ` · ${slotLabel(d.slot)}` : ''}
+                    {d.location ? ` · ${d.location}` : ''}
+                    {d.again ? ` · again: ${d.again}` : ''}
+                    {!d.ok_to_share ? ' · private' : ''}
+                  </p>
+                  {d.story && <p className="mt-1 whitespace-pre-line text-[#4a4540]">{d.story}</p>}
+                  {d.learned && <p className="mt-1 text-[#8a8378]">Tip: {d.learned}</p>}
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
       </div>
     </div>
   );

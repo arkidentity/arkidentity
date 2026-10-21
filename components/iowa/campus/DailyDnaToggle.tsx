@@ -5,9 +5,12 @@ import { useRouter } from 'next/navigation';
 
 // "Show in Daily DNA" on one campus event (migration 041). On = everyone at ARK Iowa (or just the guest list) on
 // Daily DNA sees it, with the Join card and reminders. Works on Google-owned events too.
-export function DailyDnaToggle({ eventId, on: initial }: { eventId: string; on: boolean }) {
+// Migration 045: an optional sign-up link goes with it ("Sign up" in Daily DNA, opened inside the app).
+export function DailyDnaToggle({ eventId, on: initial, signupUrl }: { eventId: string; on: boolean; signupUrl?: string | null }) {
   const router = useRouter();
   const [on, setOn] = useState(initial);
+  const [signup, setSignup] = useState(signupUrl ?? '');
+  const [savedSignup, setSavedSignup] = useState(signupUrl ?? '');
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState<string | null>(null);
 
@@ -24,12 +27,38 @@ export function DailyDnaToggle({ eventId, on: initial }: { eventId: string; on: 
     router.refresh();
   }
 
+  async function saveSignup() {
+    if (signup.trim() === savedSignup.trim()) return;
+    setBusy(true); setNote(null);
+    const res = await fetch(`/api/iowa/admin/events/${eventId}`, {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ signup_url: signup }),
+    });
+    const body = await res.json().catch(() => ({}));
+    setBusy(false);
+    if (!res.ok) { setNote(body.error ?? 'That didn’t save.'); return; }
+    const url = body.event?.signup_url ?? '';
+    setSignup(url); setSavedSignup(url);
+    setNote(body.warning ?? (url ? 'Sign-up link saved.' : 'Sign-up link removed.'));
+    router.refresh();
+  }
+
   return (
     <div className="mb-3 rounded-md border border-gray-200 bg-white px-3 py-2">
       <label className="flex items-center gap-2 text-sm text-gray-800">
         <input type="checkbox" checked={on} disabled={busy} onChange={() => void flip()} />
         <span><strong>Show in Daily DNA</strong> <span className="text-gray-500">· with a Join button. Everyone at ARK Iowa sees it, or only the guest list if it has one</span></span>
       </label>
+      {on && (
+        <label className="mt-2 block text-xs text-gray-600">
+          Sign-up link <span className="text-gray-400">(optional · shows a Sign up button that opens inside Daily DNA)</span>
+          <input
+            className="mt-1 w-full rounded border border-gray-300 px-2 py-1 text-sm text-gray-800"
+            value={signup} disabled={busy} inputMode="url" placeholder="https://arkidentity.com/iowa/trick-or-truth"
+            onChange={(e) => setSignup(e.target.value)} onBlur={() => void saveSignup()}
+            onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }}
+          />
+        </label>
+      )}
       {note && <p className="mt-1 text-xs" style={{ color: '#9d5a1e' }}>{note}</p>}
     </div>
   );

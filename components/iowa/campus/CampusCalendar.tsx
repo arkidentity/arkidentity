@@ -254,7 +254,7 @@ export default function CampusCalendar({
               Join meeting ↗
             </a>
           )}
-          <DailyDnaToggle key={editingEvent.id} eventId={editingEvent.id} on={!!editingEvent.show_in_daily_dna} />
+          <DailyDnaToggle key={editingEvent.id} eventId={editingEvent.id} on={!!editingEvent.show_in_daily_dna} signupUrl={editingEvent.signup_url} />
           {editingEvent.notes && editingEvent.source !== 'google' && <p className="text-[15px] md:text-sm text-[#4a4540] whitespace-pre-wrap mb-3">{editingEvent.notes}</p>}
           {editingEvent.source === 'google' && <GoogleEventDetails event={editingEvent} />}
 

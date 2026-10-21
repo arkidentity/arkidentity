@@ -79,6 +79,7 @@ export interface CampusEvent {
   skip_dates: string[]; // weeks a repeating event doesn't happen (migration 016)
   show_in_daily_dna?: boolean; // migration 041 — sent to Daily DNA as an ARK Iowa church event
   signup_url?: string | null; // migration 045 — "Sign up" button in Daily DNA
+  daily_dna_description?: string | null; // migration 046 — what students read in Daily DNA
   checklist_template_id: string | null; // migration 019
   reminder_days_before?: number; // migration 036 — "text the list" task lead time
   google_event_id: string | null;
@@ -444,6 +445,14 @@ export interface EventInput {
   staff_ids?: string[];
   show_in_daily_dna?: boolean;
   signup_url?: string | null;
+  daily_dna_description?: string | null;
+}
+
+/** Migration 046: plain text, a few lines */
+function cleanDescription(v: string | null | undefined): string | null {
+  const t = (v ?? '').trim();
+  if (t.length > 600) throw new Error('Keep the description under 600 characters.');
+  return t || null;
 }
 
 /** Migration 045: https link or nothing */
@@ -482,6 +491,7 @@ function cleanEventInput(input: EventInput, creating: boolean): Record<string, u
   if ('type_id' in input) out.type_id = input.type_id || null;
   if ('show_in_daily_dna' in input) out.show_in_daily_dna = !!input.show_in_daily_dna;
   if ('signup_url' in input) out.signup_url = cleanSignup(input.signup_url);
+  if ('daily_dna_description' in input) out.daily_dna_description = cleanDescription(input.daily_dna_description);
   if ('repeat_weekly' in input) out.repeat_weekly = !!input.repeat_weekly;
   if ('repeat_until' in input) {
     if (input.repeat_until && !isValidDate(input.repeat_until)) throw new Error('Repeat-until must be a date.');
@@ -533,13 +543,14 @@ export async function updateEvent(
   actor: IowaStaff | null = null
 ): Promise<{ event: CampusEvent; invited: string[] }> {
   const google = (await eventSource(id)) === 'google';
-  // Who's invited, "Show in Daily DNA" and its sign-up link can change on Google-owned events too
-  const fields = Object.keys(input).filter((k) => k !== 'staff_ids' && k !== 'show_in_daily_dna' && k !== 'signup_url');
+  // Who's invited, "Show in Daily DNA", its sign-up link and description can change on Google-owned events too
+  const fields = Object.keys(input).filter((k) => !['staff_ids', 'show_in_daily_dna', 'signup_url', 'daily_dna_description'].includes(k));
   if (google && fields.length > 0) throw new Error('This event comes from Google Calendar. Edit it there.');
   const update = google
     ? {
         ...('show_in_daily_dna' in input ? { show_in_daily_dna: !!input.show_in_daily_dna } : {}),
         ...('signup_url' in input ? { signup_url: cleanSignup(input.signup_url) } : {}),
+        ...('daily_dna_description' in input ? { daily_dna_description: cleanDescription(input.daily_dna_description) } : {}),
       }
     : cleanEventInput(input, false);
   if (Object.keys(update).length > 0) {

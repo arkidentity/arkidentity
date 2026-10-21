@@ -789,6 +789,7 @@ export async function sendOutreachConfirmation(opts: { to: string; name: string;
     <p><strong style="color:#143348;">Your times:</strong></p>
     <ul>${opts.slots.map((s) => `<li>${escapeHtml(s)}</li>`).join('')}</ul>
     <p>We’ll text you before your time with where to go. There will usually be a team already running, so you can watch it once and then jump in.</p>
+    <p>Before you go, take ten minutes with the training: <a href="${siteUrl()}/iowa/trick-or-truth/training" style="color:#143348; font-weight:600;">Trick or Truth training</a></p>
     <p>Can’t make it anymore? Just reply to this email.</p>
   `);
   return getResend().emails.send({

@@ -36,6 +36,8 @@ export default function TrainingPage() {
         </header>
 
         <section className="pt-10 pb-8">
+          {/* eslint-disable-next-line @next/next/no-img-element -- static logo */}
+          <img src="/iowa/trick-or-truth/logo.png" alt="Trick or Truth" width={180} height={180} className="w-36 sm:w-44 h-auto mb-6 -ml-2" />
           <h1 className={`${display.className} text-5xl uppercase leading-none`}>
             Here’s how <span style={{ color: FIRE }}>it works</span>
           </h1>

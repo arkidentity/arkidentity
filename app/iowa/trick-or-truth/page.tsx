@@ -42,8 +42,10 @@ export default async function TrickOrTruthPage() {
         </header>
 
         {/* Hero */}
-        <section className="pt-12 pb-16 text-center">
-          <Boxes />
+        <section className="pt-8 pb-16 text-center">
+          {/* eslint-disable-next-line @next/next/no-img-element -- static logo */}
+          <img src="/iowa/trick-or-truth/logo.png" alt="Trick or Truth" width={280} height={280} className="mx-auto w-56 sm:w-64 h-auto" />
+          <div className="mt-6"><Boxes /></div>
           <h1 className={`${display.className} mt-10 text-[2.6rem] sm:text-6xl leading-[1.05] uppercase`}>
             What’s your plan to talk about <span style={{ color: FIRE }}>Jesus</span> this Halloween?
           </h1>

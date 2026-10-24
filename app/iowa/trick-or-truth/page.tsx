@@ -43,9 +43,7 @@ export default async function TrickOrTruthPage() {
 
         {/* Hero */}
         <section className="pt-8 pb-16 text-center">
-          {/* eslint-disable-next-line @next/next/no-img-element -- static logo */}
-          <img src="/iowa/trick-or-truth/logo.png" alt="Trick or Truth" width={280} height={280} className="mx-auto w-56 sm:w-64 h-auto" />
-          <div className="mt-6"><Boxes /></div>
+          <StampedBox />
           <h1 className={`${display.className} mt-10 text-[2.6rem] sm:text-6xl leading-[1.05] uppercase`}>
             What’s your plan to talk about <span style={{ color: FIRE }}>Jesus</span> this Halloween?
           </h1>
@@ -134,24 +132,18 @@ export default async function TrickOrTruthPage() {
 }
 
 // Stand-in for the real box photos until Travis sends them.
-function Boxes() {
-  const box = (label: string, tilt: string, accent: boolean) => (
-    <div
-      className={`${display.className} w-32 h-32 sm:w-40 sm:h-40 rounded-md flex items-center justify-center text-3xl sm:text-4xl uppercase shadow-2xl`}
-      style={{
-        transform: `rotate(${tilt})`,
-        background: 'linear-gradient(160deg, #c89a68, #a8794a)',
-        color: INK,
-        boxShadow: `0 20px 40px #000a${accent ? `, 0 0 40px ${FIRE}44` : ''}`,
-      }}
-    >
-      {label}
-    </div>
-  );
+/** Travis's box with the Trick or Truth logo stamped on its front face (10/24: the logo as a rubber stamp, no labels) */
+function StampedBox() {
   return (
-    <div className="flex justify-center gap-5 sm:gap-8">
-      {box('Trick', '-5deg', false)}
-      {box('Truth', '4deg', true)}
+    <div className="relative mx-auto w-72 sm:w-96" style={{ filter: `drop-shadow(0 24px 40px #000c) drop-shadow(0 0 50px ${FIRE}33)` }}>
+      {/* eslint-disable-next-line @next/next/no-img-element -- static art */}
+      <img src="/iowa/trick-or-truth/box.png" alt="" width={640} height={505} className="block w-full h-auto" />
+      {/* the stamp, centered on the front face and inked into the cardboard */}
+      <div className="absolute" style={{ left: '58.5%', top: '58%', width: '52%', transform: 'translate(-50%, -50%) rotate(-7deg)' }}>
+        {/* eslint-disable-next-line @next/next/no-img-element -- static logo */}
+        <img src="/iowa/trick-or-truth/logo.png" alt="Trick or Truth" width={240} height={240} className="block w-full h-auto"
+          style={{ mixBlendMode: 'multiply', opacity: 0.95 }} />
+      </div>
     </div>
   );
 }

@@ -157,6 +157,88 @@ function InterestForm() {
   );
 }
 
+
+/** "I'm in" (Mig 047, Travis 10/24): for students already committed. Reserves a spot; the $200 deposit comes next. */
+function RegisterToGo() {
+  const [open, setOpen] = useState(false);
+  const [state, setState] = useState<'idle' | 'sending' | 'done'>('idle');
+  const [error, setError] = useState('');
+  const input = 'w-full rounded-lg border border-gray-300 px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-[var(--gold)]';
+  const label = 'block text-sm font-semibold mb-1';
+
+  async function submit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setError(''); setState('sending');
+    const data = Object.fromEntries(new FormData(e.currentTarget)) as Record<string, string>;
+    try {
+      const res = await fetch('/api/iowa-baja/register', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(json.error || 'Something went wrong. Try again.');
+      setState('done');
+    } catch (err) { setError((err as Error).message); setState('idle'); }
+  }
+
+  if (!open) {
+    return (
+      <p className="mt-6 text-[#4a4540]">
+        Already know you’re going?{' '}
+        <button type="button" onClick={() => setOpen(true)} className="font-semibold underline" style={navy}>Register to go →</button>
+      </p>
+    );
+  }
+  if (state === 'done') {
+    return (
+      <div className="mt-6 bg-white rounded-xl border border-gray-100 shadow-sm p-6">
+        <p className="text-xl font-semibold mb-2" style={navy}>You’re in. Let’s go.</p>
+        <p className={body}>Your spot is saved. Next is the $200 deposit, which is your first fundraising goal. We’ll text you how to give it and how to start raising support.</p>
+      </div>
+    );
+  }
+  return (
+    <form onSubmit={submit} className="mt-6 bg-white rounded-xl border border-gray-100 shadow-sm p-6 space-y-4">
+      <input type="text" name="company" tabIndex={-1} autoComplete="off" className="hidden" aria-hidden="true" />
+      <p className="text-xl font-semibold" style={navy}>I’m in: register to go</p>
+      <p className={`${body} text-sm`}>A $200 deposit holds your spot. Dates and final cost are confirmed at the interest meeting.</p>
+      <div><label className={label} style={navy} htmlFor="r-name">Name</label><input id="r-name" name="name" required className={input} autoComplete="name" /></div>
+      <div className="grid sm:grid-cols-2 gap-4">
+        <div><label className={label} style={navy} htmlFor="r-phone">Phone</label><input id="r-phone" name="phone" type="tel" required className={input} autoComplete="tel" /></div>
+        <div><label className={label} style={navy} htmlFor="r-email">Email</label><input id="r-email" name="email" type="email" required className={input} autoComplete="email" /></div>
+      </div>
+      <div className="grid sm:grid-cols-3 gap-4">
+        <div><label className={label} style={navy} htmlFor="r-school">School</label><input id="r-school" name="school" className={input} /></div>
+        <div><label className={label} style={navy} htmlFor="r-year">Year</label>
+          <select id="r-year" name="year" className={input} defaultValue=""><option value="">—</option><option value="first-year">First-year</option><option value="sophomore">Sophomore</option><option value="junior">Junior</option><option value="senior">Senior</option><option value="grad">Grad</option><option value="other">Other</option></select>
+        </div>
+        <div><label className={label} style={navy} htmlFor="r-bday">Birthday</label><input id="r-bday" name="birthday" type="date" className={input} /></div>
+      </div>
+      <div className="grid sm:grid-cols-2 gap-4">
+        <div><label className={label} style={navy} htmlFor="r-pass">Passport</label>
+          <select id="r-pass" name="passport" className={input} defaultValue="need"><option value="have">I have one</option><option value="applied">I applied</option><option value="need">I need one</option></select>
+        </div>
+        <div><label className={label} style={navy} htmlFor="r-exp">Passport expires (if you have one)</label><input id="r-exp" name="passport_expires" type="date" className={input} /></div>
+      </div>
+      <div className="grid sm:grid-cols-2 gap-4">
+        <div><label className={label} style={navy} htmlFor="r-ename">Emergency contact</label><input id="r-ename" name="emergency_name" required className={input} /></div>
+        <div><label className={label} style={navy} htmlFor="r-ephone">Their phone</label><input id="r-ephone" name="emergency_phone" type="tel" required className={input} /></div>
+      </div>
+      <div><label className={label} style={navy} htmlFor="r-med">Allergies, medical needs or diet (optional)</label><textarea id="r-med" name="medical" rows={2} className={input} /></div>
+      <div className="grid sm:grid-cols-2 gap-4">
+        <div><label className={label} style={navy} htmlFor="r-shirt">Shirt size</label>
+          <select id="r-shirt" name="shirt" className={input} defaultValue=""><option value="">—</option>{['XS', 'S', 'M', 'L', 'XL', '2XL'].map(x => <option key={x}>{x}</option>)}</select>
+        </div>
+        <div><label className={label} style={navy} htmlFor="r-note">Questions (optional)</label><input id="r-note" name="note" className={input} /></div>
+      </div>
+      <label className="flex items-start gap-3 text-[#4a4540]">
+        <input type="checkbox" name="commit" required className="mt-1 h-5 w-5" />
+        <span>I’m committing to go to Baja and to raise my support, starting with the $200 deposit.</span>
+      </label>
+      {error && <p className="text-red-700">{error}</p>}
+      <button type="submit" disabled={state === 'sending'} className="w-full sm:w-auto px-8 py-4 rounded-lg font-semibold text-lg transition hover:opacity-90 disabled:opacity-60"
+        style={{ backgroundColor: 'var(--navy)', color: '#fff' }}>{state === 'sending' ? 'Sending…' : 'I’m in'}</button>
+    </form>
+  );
+}
+
 export default function BajaPageContent() {
   return (
     <>
@@ -350,6 +432,7 @@ export default function BajaPageContent() {
           starts with a seat at the interest meeting.
         </p>
         <InterestForm />
+        <RegisterToGo />
         <p className="mt-6 text-[#4a4540]">
           Rather talk? Call or text{' '}
           <a href={PHONE_HREF} className="font-semibold underline" style={navy}>{PHONE_DISPLAY}</a>.

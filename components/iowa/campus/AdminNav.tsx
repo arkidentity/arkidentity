@@ -11,6 +11,8 @@ const TABS: { href: string; label: string; needs?: Permission }[] = [
   { href: '/iowa/admin', label: 'Dashboard' },
   { href: '/iowa/admin/studies', label: 'Studies', needs: 'viewAllStudies' },
   { href: '/iowa/admin/students', label: 'Students', needs: 'viewStudents' },
+  // Special events with sign-ups: Trick or Truth, Baja 2027, … (Travis 10/24)
+  { href: '/iowa/admin/events', label: 'Events' },
   // Everyone: staff manage the team here; anyone else gets just their own
   // account (details, password, semester schedule).
   { href: '/iowa/admin/staff', label: 'Staff' },

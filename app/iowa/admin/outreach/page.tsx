@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation';
 import type { Metadata } from 'next';
 import { currentStaff } from '@/lib/iowaStaff';
 import { listOutreachDebriefs, listOutreachSignups } from '@/lib/outreach';
+import { RemoveSignup } from './RemoveSignup';
 import { OUTREACH_SLOTS, TRICK_OR_TRUTH, experienceLabel, slotLabel } from '@/lib/outreachFormat';
 
 export const dynamic = 'force-dynamic';
@@ -50,7 +51,8 @@ export default async function OutreachAdminPage() {
               ) : (
                 <ul className="divide-y divide-gray-100">
                   {people.map((p) => (
-                    <li key={p.id} className="py-2 text-sm">
+                    <li key={p.id} className="py-2 text-sm flex items-start justify-between gap-3">
+                      <div>
                       <p>
                         <strong style={navy}>{p.name}</strong>
                         {p.bringing ? ` +${p.bringing}` : ''}
@@ -60,6 +62,8 @@ export default async function OutreachAdminPage() {
                         {experienceLabel(p.experience)}
                         {p.note ? ` · “${p.note}”` : ''}
                       </p>
+                      </div>
+                      <RemoveSignup id={p.id} name={p.name} />
                     </li>
                   ))}
                 </ul>

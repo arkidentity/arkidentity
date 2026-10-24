@@ -72,3 +72,9 @@ export async function addOutreachDebrief(row: Omit<OutreachDebrief, 'id' | 'crea
   const { error } = await getSupabaseAdmin().from('iowa_outreach_debriefs').insert(row);
   if (error) throw error;
 }
+
+/** Staff remove a sign-up (test rows, someone who dropped out) so the slot counts are right */
+export async function removeOutreachSignup(id: string) {
+  const { error } = await getSupabaseAdmin().from('iowa_outreach_signups').delete().eq('id', id);
+  if (error) throw error;
+}

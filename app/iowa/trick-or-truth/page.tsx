@@ -142,7 +142,7 @@ function StampedBox() {
       <div className="absolute" style={{ left: '58.5%', top: '58%', width: '52%', transform: 'translate(-50%, -50%) rotate(-7deg)' }}>
         {/* eslint-disable-next-line @next/next/no-img-element -- static logo */}
         <img src="/iowa/trick-or-truth/logo.png" alt="Trick or Truth" width={240} height={240} className="block w-full h-auto"
-          style={{ mixBlendMode: 'multiply', opacity: 0.95 }} />
+          style={{ mixBlendMode: 'multiply', filter: 'brightness(0.82) saturate(1.35)' }} />
       </div>
     </div>
   );

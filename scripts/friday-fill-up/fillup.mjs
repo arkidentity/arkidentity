@@ -204,7 +204,7 @@ const PLAN_SCHEMA = {
 
 async function planWithClaude(transcriptLines, notes) {
   if (!process.env.ANTHROPIC_API_KEY) {
-    log('no ANTHROPIC_API_KEY: keeping the whole recording, no slow-part cuts');
+    log('no ANTHROPIC_API_KEY: transcript only');
     return null;
   }
   log('asking Claude to find the teaching and the slow parts');
@@ -357,11 +357,14 @@ async function thumbnail(dir, video, time, text) {
   const lines = wrap(text.toUpperCase(), 14).slice(0, 3);
   const size = lines.length > 2 ? 92 : 108;
   const y0 = H / 2 - ((lines.length - 1) * size * 1.05) / 2 + size * 0.35;
+  // The video frame slides right by SHIFT so Travis sits beside the text, not under it;
+  // a solid navy block fills the left and fades into the frame.
+  const SHIFT = 360;
   const svg = `<svg width="${W}" height="${H}" xmlns="http://www.w3.org/2000/svg">
   <defs><linearGradient id="g" x1="0" x2="1">
-    <stop offset="0" stop-color="${NAVY}" stop-opacity="0.96"/>
-    <stop offset="0.55" stop-color="${NAVY}" stop-opacity="0.8"/>
-    <stop offset="1" stop-color="${NAVY}" stop-opacity="0"/>
+    <stop offset="0" stop-color="${NAVY}" stop-opacity="1"/>
+    <stop offset="${(SHIFT + 30) / W}" stop-color="${NAVY}" stop-opacity="1"/>
+    <stop offset="${(SHIFT + 380) / W}" stop-color="${NAVY}" stop-opacity="0"/>
   </linearGradient></defs>
   <rect width="${W}" height="${H}" fill="url(#g)"/>
   <rect x="64" y="70" width="8" height="${H - 140}" fill="${GOLD}"/>
@@ -370,9 +373,14 @@ async function thumbnail(dir, video, time, text) {
   <text x="100" y="${H - 84}" font-family="Helvetica Neue, Helvetica, Arial" font-weight="600" font-size="28" letter-spacing="4" fill="#ffffff" fill-opacity="0.85">ARK IDENTITY</text>
 </svg>`;
   const out = path.join(dir, 'thumbnail.jpg');
-  await sharp(frame)
-    .resize(W, H, { fit: 'cover', position: 'right' })
-    .composite([{ input: Buffer.from(svg) }])
+  // Zoom 12% and crop from the top so Meet's name tag (bottom left) falls off the frame.
+  const Z = 1.12;
+  const shifted = await sharp(frame)
+    .resize(Math.round(W * Z), Math.round(H * Z), { fit: 'cover' })
+    .extract({ left: 120, top: 0, width: W - SHIFT, height: H })
+    .toBuffer();
+  await sharp({ create: { width: W, height: H, channels: 3, background: NAVY } })
+    .composite([{ input: shifted, left: SHIFT, top: 0 }, { input: Buffer.from(svg) }])
     .jpeg({ quality: 88 })
     .toFile(out);
   fs.rmSync(frame, { force: true });
@@ -394,8 +402,11 @@ function clipTime(plan, t) {
 async function prepare(videoArg, { transcriptOnly = false } = {}) {
   let rec;
   if (videoArg) {
-    const m = path.basename(videoArg).match(/(\d{4})[ /:-](\d{2})[ /:-](\d{2})/);
-    rec = { path: path.resolve(videoArg), date: m ? `${m[1]}-${m[2]}-${m[3]}` : new Date().toISOString().slice(0, 10) };
+    // Date from the file name, else its folder (e.g. ~/Friday Fill Up/2026-10-23/source.mp4).
+    const m = path.basename(videoArg).match(/(\d{4})[ /:-](\d{2})[ /:-](\d{2})/)
+      || path.basename(path.dirname(path.resolve(videoArg))).match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (!m) throw new Error(`can't tell the date of ${videoArg}: put a YYYY-MM-DD in its name or folder`);
+    rec = { path: path.resolve(videoArg), date: `${m[1]}-${m[2]}-${m[3]}` };
   } else {
     rec = findRecordings()[0];
     if (!rec) throw new Error(`No Friday Fill Up recording found under ${RECORDINGS_DIR}`);
@@ -407,20 +418,31 @@ async function prepare(videoArg, { transcriptOnly = false } = {}) {
   const video = path.join(dir, 'source.mp4');
   if (!fs.existsSync(video)) {
     log('copying recording from Drive');
-    fs.copyFileSync(rec.path, video);
+    try {
+      fs.copyFileSync(rec.path, video);
+    } catch (e) {
+      // Drive's File Provider files can refuse copyfile (error -11); a plain read works.
+      log(`copyfile failed (${e.message}), streaming instead`);
+      fs.rmSync(video, { force: true });
+      await new Promise((resolve, reject) =>
+        fs.createReadStream(rec.path).on('error', reject).pipe(fs.createWriteStream(video)).on('error', reject).on('finish', resolve));
+    }
   }
   const sourceDuration = duration(video);
   const words = transcribe(dir, video);
   const tl = lines(words);
   fs.writeFileSync(path.join(dir, 'transcript.txt'), tl.map((l) => `[${ts(l.t0)}] ${l.text}`).join('\n'));
 
-  if (transcriptOnly) {
+  // Without a Claude key nothing can pick out the teaching, and the whole meeting
+  // (students' stories included) must never become a clip. Stop at the transcript.
+  if (transcriptOnly || !process.env.ANTHROPIC_API_KEY) {
     log(`transcript ready: ${path.join(dir, 'transcript.txt')}`);
     return dir;
   }
   const notes = readNotes(rec.date);
   const plan = await planWithClaude(tl, notes);
-  const sections = plan?.sections?.length ? plan.sections : [{ start: 0, end: sourceDuration, label: 'whole recording' }];
+  if (!plan?.sections?.length) throw new Error('Claude returned no sections to keep; pick them with `cut` (the whole meeting is never kept)');
+  const sections = plan.sections;
   const cuts = [
     ...(plan?.slow_cuts ?? []).map((c) => ({ ...c, reason: `slow: ${c.reason}` })),
     ...mechanicalCuts(words, video),
@@ -576,6 +598,27 @@ async function upload(date) {
   fs.writeFileSync(done, JSON.stringify({ id: video.id, url }, null, 2));
   log(`uploaded unlisted: ${url}  (set it to Public in YouTube Studio when it looks right)`);
   notify(`Teaching clip is up (unlisted). Review it: ${url}`);
+  clean(date);
+}
+
+// ---------- clean ----------
+
+// Moves the videos of every already-uploaded week except `keep` to the Trash (recoverable).
+// Titles, transcripts, notes, thumbnails and uploaded.json stay, so a cleaned week is never redone.
+function clean(keep) {
+  const trash = path.join(HOME, '.Trash');
+  let freed = 0;
+  for (const date of fs.readdirSync(WORK_ROOT)) {
+    const dir = path.join(WORK_ROOT, date);
+    if (date === keep || !/^\d{4}-\d{2}-\d{2}$/.test(date) || !fs.existsSync(path.join(dir, 'uploaded.json'))) continue;
+    for (const f of fs.readdirSync(dir)) {
+      if (!/\.(mp4|mov|webm|bak)$/i.test(f)) continue;
+      const p = path.join(dir, f);
+      freed += fs.statSync(p).size;
+      fs.renameSync(p, path.join(trash, `fillup-${date}-${f}`));
+    }
+  }
+  log(`clean: moved ${(freed / 1e9).toFixed(1)} GB of old videos to the Trash`);
 }
 
 // ---------- auto (launchd) ----------
@@ -584,7 +627,8 @@ async function auto() {
   const rec = findRecordings()[0];
   if (!rec) return log('no recording yet');
   const dir = workDir(rec.date);
-  if (fs.existsSync(path.join(dir, 'clip.mp4'))) return log(`already prepared ${rec.date}`);
+  // uploaded.json stays after the videos are cleaned out, so a finished week is never pulled down again.
+  if (fs.existsSync(path.join(dir, 'clip.mp4')) || fs.existsSync(path.join(dir, 'uploaded.json'))) return log(`already prepared ${rec.date}`);
   // No API key: just transcribe. The Friday Claude scheduled task picks the sections and renders.
   const keyless = !process.env.ANTHROPIC_API_KEY;
   if (keyless && fs.existsSync(path.join(dir, 'words.json'))) return log(`already transcribed ${rec.date}`);
@@ -613,9 +657,10 @@ try {
   } else if (cmd === 'cut') {
     if (!arg || !rest.length) throw new Error('usage: cut <YYYY-MM-DD> "MM:SS.s-MM:SS.s label" ...');
     await cut(arg, rest);
-  } else if (cmd === 'auth') await auth();
+  } else if (cmd === 'clean') clean(arg);
+  else if (cmd === 'auth') await auth();
   else if (cmd === 'auto') await auto();
-  else console.log('usage: fillup.mjs prepare [video] | render <date> | upload <date> | auth | auto');
+  else console.log('usage: fillup.mjs prepare [video] | render <date> | upload <date> | clean [keep-date] | auth | auto');
 } catch (e) {
   console.error(`✗ ${e.message}`);
   if (cmd === 'auto') notify(`Friday Fill Up automation failed: ${e.message.slice(0, 120)}`);

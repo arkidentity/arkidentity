@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation';
 import type { Metadata } from 'next';
 import { currentStaff } from '@/lib/iowaStaff';
+import { can } from '@/lib/iowaPerms';
 import { listOutreachDebriefs, listOutreachSignups } from '@/lib/outreach';
 import { RemoveSignup } from './RemoveSignup';
 import { OUTREACH_SLOTS, TRICK_OR_TRUTH, experienceLabel, slotLabel } from '@/lib/outreachFormat';
@@ -12,6 +13,8 @@ export const metadata: Metadata = { title: 'ARK Iowa — Trick or Truth' };
 export default async function OutreachAdminPage() {
   const me = await currentStaff();
   if (!me) redirect('/iowa/admin/login');
+  // Contact details are for staff and interns; a student leader sees names and slots only (Travis 10/31)
+  const showContact = can(me, 'viewStudents');
   const [signups, debriefs] = await Promise.all([
     listOutreachSignups(TRICK_OR_TRUTH).catch(() => []),
     listOutreachDebriefs(TRICK_OR_TRUTH).catch(() => []),
@@ -56,8 +59,16 @@ export default async function OutreachAdminPage() {
                       <p>
                         <strong style={navy}>{p.name}</strong>
                         {p.bringing ? ` +${p.bringing}` : ''}
-                        {p.under_18 ? ' · under 18' : ''} · <a href={`sms:${p.phone}`} className="underline">{p.phone}</a>
+                        {p.under_18 ? ' · under 18' : ''}
                       </p>
+                      {showContact && (
+                        <p className="flex flex-wrap gap-x-3 gap-y-1 my-1">
+                          <a href={`sms:${p.phone}`} className="font-semibold underline" style={navy}>Text</a>
+                          <a href={`tel:${p.phone}`} className="font-semibold underline" style={navy}>Call</a>
+                          <a href={`mailto:${p.email}`} className="font-semibold underline" style={navy}>Email</a>
+                          <span className="text-[#8a8378]">{p.phone} · {p.email}</span>
+                        </p>
+                      )}
                       <p className="text-[#8a8378]">
                         {experienceLabel(p.experience)}
                         {p.note ? ` · “${p.note}”` : ''}

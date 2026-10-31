@@ -1,15 +1,16 @@
 import { NextResponse } from 'next/server';
-import { currentStaff } from '@/lib/iowaStaff';
+import { requirePermission } from '@/lib/iowaPerms';
 import { getContact } from '@/lib/contacts';
 import { TRIPS, upsertRegistration, updateRegistration, type TripKey } from '@/lib/trips';
 
 export const dynamic = 'force-dynamic';
 
-// POST /api/iowa/admin/trip — staff only (Admin → Events → a trip)
+// POST /api/iowa/admin/trip — staff and interns (Admin → Events → a trip)
 //   { action: 'move', trip, contact_id }                 Interested → Going
 //   { action: 'update', id, checks?, raised?, status? }  tick a check, set amount raised, withdraw
 export async function POST(req: Request) {
-  if (!(await currentStaff())) return NextResponse.json({ error: 'Sign in first' }, { status: 401 });
+  const me = await requirePermission('viewStudents');
+  if (me instanceof NextResponse) return me;
   const b = (await req.json().catch(() => ({}))) as {
     action?: string; trip?: string; contact_id?: string; id?: string; checks?: Record<string, boolean>; raised?: number; status?: string;
   };

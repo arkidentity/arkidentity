@@ -25,7 +25,7 @@ export default async function EventsPage() {
   ];
   const navy = { color: 'var(--navy)' };
   return (
-    <div style={{ background: '#FAF8F5', minHeight: '100vh' }}>
+    <div style={{ background: '#FAF8F5', color: '#4a4540', minHeight: '100vh' }}>
       <div className="max-w-3xl mx-auto px-4 sm:px-6 py-10 space-y-4">
         <h1 className="text-2xl font-bold" style={navy}>Events</h1>
         <p className="text-[#8a8378]">Special events with sign-ups. Scheduling stays on the calendar.</p>

@@ -40,7 +40,7 @@ export default function TripBoard({ trip, title, page, deposit, goal, interested
   };
 
   return (
-    <div style={{ background: '#FAF8F5', minHeight: '100vh' }}>
+    <div style={{ background: '#FAF8F5', color: '#4a4540', minHeight: '100vh' }}>
       <div className="max-w-3xl mx-auto px-4 sm:px-6 py-10 space-y-6">
         <div>
           <a href="/iowa/admin/events" className={`text-sm ${muted} underline`}>Events</a>

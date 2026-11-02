@@ -13,9 +13,6 @@ export default async function PrayerAdminPage() {
           <h1 className="text-3xl font-bold" style={{ color: 'var(--navy)' }}>
             Prayer
           </h1>
-          <a href="/admin" className="text-sm font-semibold hover:underline" style={{ color: 'var(--navy)' }}>
-            ← Feed admin
-          </a>
         </div>
         <p className="mb-8" style={{ color: '#8a8378' }}>
           From the &ldquo;How can we pray for you?&rdquo; link in every update. Public link: /pray

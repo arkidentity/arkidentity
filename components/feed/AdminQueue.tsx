@@ -284,6 +284,19 @@ function AdminCard({
       next.splice(to, 0, item);
       return next;
     });
+  // Spots a photo can go: top, or after each paragraph of the text being edited.
+  const paragraphs = text.split(/\n\s*\n/).filter((p) => p.trim());
+  const spotLabel = (n: number) =>
+    n === 0 ? 'Top' : `After ¶${n}: ${paragraphs[n - 1].replace(/\s+/g, ' ').slice(0, 28)}…`;
+  const setSpot = (i: number, value: string) =>
+    setEditMedia((arr) =>
+      arr.map((m, j) => {
+        if (j !== i) return m;
+        const { after: _drop, ...rest } = m;
+        void _drop;
+        return value === 'auto' ? rest : { ...rest, after: Number(value) };
+      })
+    );
   const [newLink, setNewLink] = useState('');
   const [uploading, setUploading] = useState('');
   const [copied, setCopied] = useState(false);
@@ -451,6 +464,22 @@ function AdminCard({
                   >
                     ×
                   </button>
+                  {m.type === 'photo' && paragraphs.length > 0 && (
+                    <select
+                      value={typeof m.after === 'number' ? String(Math.min(m.after, paragraphs.length)) : 'auto'}
+                      onChange={(e) => setSpot(i, e.target.value)}
+                      aria-label="Where this photo goes"
+                      className="mt-1 block w-20 text-[11px] rounded border bg-white"
+                      style={{ borderColor: '#d1d5db', color: 'var(--navy)' }}
+                    >
+                      <option value="auto">Auto</option>
+                      {Array.from({ length: paragraphs.length + 1 }, (_, n) => (
+                        <option key={n} value={n}>
+                          {spotLabel(n)}
+                        </option>
+                      ))}
+                    </select>
+                  )}
                   {editMedia.length > 1 && (
                     <div className="mt-1 flex justify-between">
                       <button

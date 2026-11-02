@@ -12,6 +12,7 @@ function cleanMedia(media: unknown): MediaItem[] {
       url: m.url,
       type: m.type,
       ...(m.provider === 'youtube' || m.provider === 'vimeo' ? { provider: m.provider } : {}),
+      ...(m.type === 'photo' && Number.isInteger(m.after) && (m.after as number) >= 0 && (m.after as number) <= 100 ? { after: m.after } : {}),
     }));
 }
 

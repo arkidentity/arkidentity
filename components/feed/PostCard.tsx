@@ -130,6 +130,63 @@ function EditorialLayout({
   );
 }
 
+// Placed layout: Travis chose a spot for each photo in the editor (MediaItem.after).
+// Spot 0 is the top, full width; spot N sits after paragraph N. Two or more photos in
+// one spot share a row; a single photo between paragraphs floats, alternating sides.
+function PlacedLayout({ photos, videos, paragraphs }: { photos: MediaItem[]; videos: MediaItem[]; paragraphs: string[] }) {
+  // Photos left on automatic keep their automatic spot (first at the top, then one per gap).
+  const spotOf = (m: MediaItem, i: number) => Math.min(typeof m.after === 'number' ? m.after : i, paragraphs.length);
+  const bySpot = new Map<number, MediaItem[]>();
+  photos.forEach((m, i) => bySpot.set(spotOf(m, i), [...(bySpot.get(spotOf(m, i)) ?? []), m]));
+  let floats = 0;
+
+  const block = (spot: number) => {
+    const here = bySpot.get(spot);
+    if (!here) return null;
+    const last = spot === paragraphs.length;
+    if (spot === 0 || last || here.length > 1) {
+      return (
+        <div className={`clear-both grid gap-3 mb-5 ${here.length > 1 ? 'sm:grid-cols-2' : ''}`}>
+          {here.map((m) => (
+            <Photo key={m.url} item={m} className={`w-full ${here.length === 1 ? 'max-h-[26rem]' : ''}`} />
+          ))}
+        </div>
+      );
+    }
+    const side = floats++ % 2 === 0 ? 'right' : 'left';
+    return (
+      <div className={`w-full mb-3 sm:w-2/5 sm:mb-2 ${side === 'right' ? 'sm:float-right sm:ml-5' : 'sm:float-left sm:mr-5'}`}>
+        <Photo item={here[0]} className="w-full" />
+      </div>
+    );
+  };
+
+  return (
+    <>
+      {block(0)}
+      <div>
+        {paragraphs.map((p, i) => (
+          <div key={i}>
+            {i > 0 && block(i)}
+            <p className="text-lg leading-relaxed mb-4" style={{ color: '#4a4540' }}>
+              {p}
+            </p>
+          </div>
+        ))}
+        {paragraphs.length > 0 && block(paragraphs.length)}
+        <div className="clear-both" />
+      </div>
+      {videos.length > 0 && (
+        <div className="space-y-4 mt-2">
+          {videos.map((item, i) => (
+            <VideoBlock key={i} item={item} />
+          ))}
+        </div>
+      )}
+    </>
+  );
+}
+
 export function PostCard({ post }: { post: Post }) {
   const body = post.final_text || post.draft_text || '';
   const paragraphs = body.split(/\n\s*\n/).filter((p) => p.trim());
@@ -163,7 +220,9 @@ export function PostCard({ post }: { post: Post }) {
         </h2>
       )}
 
-      {useEditorial ? (
+      {photos.some((m) => typeof m.after === 'number') ? (
+        <PlacedLayout photos={photos} videos={videos} paragraphs={paragraphs} />
+      ) : useEditorial ? (
         <EditorialLayout photos={photos} videos={videos} paragraphs={paragraphs} />
       ) : (
         <GalleryLayout items={items} paragraphs={paragraphs} />

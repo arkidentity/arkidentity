@@ -12,6 +12,9 @@ export interface MediaItem {
   // Set for embedded video links (YouTube/Vimeo). When absent, a `video` item is
   // an uploaded file served by <video>. When present, it's an embedded player.
   provider?: 'youtube' | 'vimeo';
+  // Photos only: where it sits in the post. 0 = top, N = after paragraph N.
+  // Unset on every photo = the automatic layout (lead photo, then one between paragraphs).
+  after?: number;
 }
 
 export interface Post {

@@ -2,7 +2,7 @@ import { redirect } from 'next/navigation';
 import type { Metadata } from 'next';
 import { currentStaff } from '@/lib/iowaStaff';
 import { can } from '@/lib/iowaPerms';
-import { listOutreachDebriefs, listOutreachSignups } from '@/lib/outreach';
+import { listOutreachDebriefs, listOutreachSignups, signedDebriefPhotoUrls } from '@/lib/outreach';
 import { RemoveSignup } from './RemoveSignup';
 import { OUTREACH_SLOTS, TRICK_OR_TRUTH, experienceLabel, slotLabel } from '@/lib/outreachFormat';
 
@@ -19,6 +19,7 @@ export default async function OutreachAdminPage() {
     listOutreachSignups(TRICK_OR_TRUTH).catch(() => []),
     listOutreachDebriefs(TRICK_OR_TRUTH).catch(() => []),
   ]);
+  const photoUrls = await signedDebriefPhotoUrls(debriefs.flatMap((d) => d.photos ?? []));
   const sum = (k: 'conversations' | 'read_verse' | 'signed_up' | 'prayed') => debriefs.reduce((n, d) => n + (d[k] ?? 0), 0);
   const navy = { color: 'var(--navy)' };
 
@@ -117,8 +118,35 @@ export default async function OutreachAdminPage() {
                     {d.again ? ` · again: ${d.again}` : ''}
                     {!d.ok_to_share ? ' · private' : ''}
                   </p>
-                  {d.story && <p className="mt-1 whitespace-pre-line text-[#4a4540]">{d.story}</p>}
+                  {(showContact && (d.email || d.phone || d.city || d.group_name)) && (
+                    <p className="text-xs text-[#8a8378]">
+                      {[d.group_name, d.city, d.email, d.phone].filter(Boolean).join(' · ')}
+                      {d.interview_ok ? ' · OK to call' : ''}
+                    </p>
+                  )}
+                  {d.nervous && <p className="mt-1 text-[#8a8378]">Nervous about: {d.nervous}</p>}
+                  {(d.stories?.length ? d.stories : d.story ? [d.story] : []).map((story, i) => (
+                    <p key={i} className="mt-1 whitespace-pre-line text-[#4a4540]">
+                      {story}
+                    </p>
+                  ))}
+                  {d.in_me && <p className="mt-1 text-[#4a4540]">In me: {d.in_me}</p>}
+                  {d.follow_up && <p className="mt-1 font-semibold text-[#4a4540]">Follow up: {d.follow_up}</p>}
+                  {d.stuck && <p className="mt-1 text-[#8a8378]">Stuck: {d.stuck}</p>}
                   {d.learned && <p className="mt-1 text-[#8a8378]">Tip: {d.learned}</p>}
+                  {d.photos?.length > 0 && (
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {d.photos.map((p) =>
+                        photoUrls[p] ? (
+                          <a key={p} href={photoUrls[p]} target="_blank" rel="noreferrer">
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img src={photoUrls[p]} alt="" className="h-20 w-20 rounded-md object-cover" />
+                          </a>
+                        ) : null
+                      )}
+                      {!d.photos_ok && <span className="text-xs text-[#8a8378]">not cleared to share</span>}
+                    </div>
+                  )}
                 </li>
               ))}
             </ul>

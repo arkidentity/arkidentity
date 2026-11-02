@@ -10,7 +10,7 @@ export const metadata: Metadata = {
 };
 export const viewport: Viewport = { themeColor: '#0A0A0B' };
 
-// Texted to volunteers each evening. Two minutes, phone-first.
+// Texted to volunteers each evening. About five minutes, phone-first.
 export default function DebriefPage() {
   return (
     <div style={{ background: '#0A0A0B', color: '#FAF8F5', minHeight: '100vh' }}>
@@ -20,7 +20,7 @@ export default function DebriefPage() {
         </p>
         <h1 className={`${display.className} mt-3 text-4xl uppercase leading-tight`}>What did God do tonight?</h1>
         <p className="mt-3 mb-8" style={{ color: '#c9c9cf' }}>
-          Two minutes. Rough numbers are fine. The stories matter most.
+          About five minutes. Rough numbers are fine. The stories matter most.
         </p>
         <OutreachDebriefForm />
       </div>

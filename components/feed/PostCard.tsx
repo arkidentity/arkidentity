@@ -230,13 +230,22 @@ export function PostCard({ post }: { post: Post }) {
 
       <div className="mt-6 pt-5 flex items-center justify-between gap-3 flex-wrap" style={{ borderTop: '1px solid #f0ede8' }}>
         <span className="text-sm" style={{ color: '#8a8378' }}>Your partnership empowers us to make more disciples.</span>
-        <a
-          href="/giving"
-          className="inline-block px-5 py-2.5 rounded-lg font-semibold text-sm transition hover:opacity-90"
-          style={{ backgroundColor: 'var(--gold)', color: 'var(--navy)' }}
-        >
-          Support the mission
-        </a>
+        <div className="flex items-center gap-2">
+          <a
+            href="/pray"
+            className="inline-block px-5 py-2.5 rounded-lg font-semibold text-sm border transition hover:opacity-80"
+            style={{ borderColor: 'var(--navy)', color: 'var(--navy)' }}
+          >
+            Ask for prayer
+          </a>
+          <a
+            href="/giving"
+            className="inline-block px-5 py-2.5 rounded-lg font-semibold text-sm transition hover:opacity-90"
+            style={{ backgroundColor: 'var(--gold)', color: 'var(--navy)' }}
+          >
+            Support the mission
+          </a>
+        </div>
       </div>
     </article>
   );

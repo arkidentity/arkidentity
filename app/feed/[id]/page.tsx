@@ -65,12 +65,6 @@ export default async function PostPage({
             >
               Get these updates by email
             </a>
-            <p className="mt-4" style={{ color: '#5a5247' }}>
-              How can we pray for you?{' '}
-              <a href="/pray" className="font-semibold underline" style={{ color: 'var(--navy)' }}>
-                Tell us here
-              </a>
-            </p>
           </div>
         </div>
       </section>

@@ -1,6 +1,7 @@
-import { randomUUID, timingSafeEqual } from 'crypto';
+import { randomUUID } from 'crypto';
 import { NextResponse } from 'next/server';
 import type { MediaItem } from '@/lib/feed';
+import { automationAuthorized } from '@/lib/automationToken';
 import { getSupabaseAdmin } from '@/lib/supabaseAdmin';
 
 export const dynamic = 'force-dynamic';
@@ -15,17 +16,10 @@ export const dynamic = 'force-dynamic';
 const BUCKET = process.env.FEED_MEDIA_BUCKET || 'feed-media';
 const PHOTO_EXT = ['jpg', 'jpeg', 'png', 'webp', 'heic'];
 
-function authorized(req: Request): boolean {
-  const token = process.env.FEED_DRAFT_TOKEN;
-  const given = (req.headers.get('authorization') || '').replace(/^Bearer /, '');
-  if (!token || token.length < 32 || given.length !== token.length) return false;
-  return timingSafeEqual(Buffer.from(given), Buffer.from(token));
-}
-
 const isOurPath = (p: unknown): p is string => typeof p === 'string' && /^updates\/[0-9a-f-]{36}\.[a-z]{3,4}$/.test(p);
 
 export async function POST(req: Request) {
-  if (!authorized(req)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  if (!automationAuthorized(req)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   const b = (await req.json().catch(() => ({}))) as {
     sign?: { filename?: unknown };
     create?: { headline?: unknown; body?: unknown; photos?: unknown };

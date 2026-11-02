@@ -853,3 +853,18 @@ export async function sendPrayedEmail(to: string, name: string, note: string) {
   `);
   return getResend().emails.send({ from: fromAddress(), to, subject: 'We prayed for you today', html });
 }
+
+// A partner sent a prayer request: tell Travis (PRAYER_INBOX can list several, comma-separated).
+export async function sendPrayerRequestNotice(r: { name: string; email: string | null; request: string; partner: boolean; wantsUpdate: boolean }) {
+  const to = (process.env.PRAYER_INBOX || 'travis@arkidentity.com').split(',').map((s) => s.trim()).filter(Boolean);
+  const html = wrap(`
+    <p style="font-size:12px; letter-spacing:0.08em; text-transform:uppercase; color:#9d855a; margin:0 0 4px;">Prayer request</p>
+    <h1 style="color:#143348; font-size:22px; margin:0 0 16px;">${escapeHtml(r.name)}${r.partner ? ' (partner)' : ''}</h1>
+    <p style="white-space:pre-line; padding:16px; background:#faf6ee; border-radius:10px;">${escapeHtml(r.request)}</p>
+    <p style="color:#8a8378; font-size:14px;">${r.wantsUpdate ? 'They asked to hear back when you\'ve prayed.' : 'They didn\'t ask for a reply.'}${r.email ? ` · ${escapeHtml(r.email)}` : ''}</p>
+    <p style="margin:24px 0;">
+      <a href="${siteUrl()}/admin/prayer" style="background:#143348; color:#fff; text-decoration:none; padding:12px 24px; border-radius:8px; font-weight:600;">Open the prayer list</a>
+    </p>
+  `);
+  return getResend().emails.send({ from: fromAddress(), to, subject: `Prayer request from ${r.name}`, html });
+}

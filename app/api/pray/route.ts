@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { sendPrayerRequestNotice } from '@/lib/email';
 import { addPrayerRequest, contactForToken } from '@/lib/prayer';
 
 export const dynamic = 'force-dynamic';
@@ -26,6 +27,10 @@ export async function POST(req: Request) {
       ok_to_share: !!b.okToShare,
       wants_update: !!b.wantsUpdate && !!email,
     });
+    // The request is saved either way; a failed notice shouldn't fail the form.
+    await sendPrayerRequestNotice({ name, email, request, partner: !!contact, wantsUpdate: !!b.wantsUpdate && !!email }).catch((e) =>
+      console.error('[pray notice]', e)
+    );
     return NextResponse.json({ ok: true });
   } catch (e) {
     console.error('[pray]', e);

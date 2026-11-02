@@ -275,6 +275,15 @@ function AdminCard({
   const [headline, setHeadline] = useState(post.headline ?? '');
   const [text, setText] = useState(post.final_text ?? post.draft_text ?? '');
   const [editMedia, setEditMedia] = useState<MediaItem[]>(post.media ?? []);
+  const [dragFrom, setDragFrom] = useState<number | null>(null);
+  const moveMedia = (from: number, to: number) =>
+    setEditMedia((arr) => {
+      if (to < 0 || to >= arr.length || from === to) return arr;
+      const next = [...arr];
+      const [item] = next.splice(from, 1);
+      next.splice(to, 0, item);
+      return next;
+    });
   const [newLink, setNewLink] = useState('');
   const [uploading, setUploading] = useState('');
   const [copied, setCopied] = useState(false);
@@ -404,17 +413,34 @@ function AdminCard({
             style={{ borderColor: '#d1d5db', color: '#111827' }}
           />
 
-          {/* Editable media */}
+          {/* Editable media: drag to reorder (desktop) or use the arrows (phone). First one leads the post. */}
           {editMedia.length > 0 && (
-            <div className="flex flex-wrap gap-2 mb-3">
+            <div className="flex flex-wrap gap-3 mb-3">
               {editMedia.map((m, i) => (
-                <div key={i} className="relative">
+                <div
+                  key={m.url}
+                  draggable
+                  onDragStart={() => setDragFrom(i)}
+                  onDragOver={(e) => e.preventDefault()}
+                  onDrop={() => {
+                    if (dragFrom !== null) moveMedia(dragFrom, i);
+                    setDragFrom(null);
+                  }}
+                  onDragEnd={() => setDragFrom(null)}
+                  className="relative cursor-grab"
+                  style={{ opacity: dragFrom === i ? 0.4 : 1 }}
+                >
                   {m.type === 'photo' ? (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img src={m.url} alt="" className="h-20 w-20 object-cover rounded-lg" />
+                    <img src={m.url} alt="" draggable={false} className="h-20 w-20 object-cover rounded-lg" />
                   ) : (
                     <span className="h-20 w-20 flex items-center justify-center rounded-lg text-xs font-semibold" style={{ backgroundColor: '#f0ede8', color: '#8a8378' }}>
                       {m.provider ? '▶ ' + m.provider : m.type}
+                    </span>
+                  )}
+                  {i === 0 && editMedia.length > 1 && (
+                    <span className="absolute bottom-1 left-1 rounded px-1 text-[10px] font-bold" style={{ backgroundColor: 'var(--navy)', color: 'white' }}>
+                      First
                     </span>
                   )}
                   <button
@@ -425,6 +451,30 @@ function AdminCard({
                   >
                     ×
                   </button>
+                  {editMedia.length > 1 && (
+                    <div className="mt-1 flex justify-between">
+                      <button
+                        type="button"
+                        onClick={() => moveMedia(i, i - 1)}
+                        disabled={i === 0}
+                        aria-label="Move earlier"
+                        className="h-6 w-8 rounded text-sm font-bold disabled:opacity-25"
+                        style={{ backgroundColor: '#f0ede8', color: 'var(--navy)' }}
+                      >
+                        ‹
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => moveMedia(i, i + 1)}
+                        disabled={i === editMedia.length - 1}
+                        aria-label="Move later"
+                        className="h-6 w-8 rounded text-sm font-bold disabled:opacity-25"
+                        style={{ backgroundColor: '#f0ede8', color: 'var(--navy)' }}
+                      >
+                        ›
+                      </button>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>

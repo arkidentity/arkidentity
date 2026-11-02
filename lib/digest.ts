@@ -109,7 +109,8 @@ export async function runDigests(): Promise<DigestSummary> {
     const unsubscribeUrl = `${siteUrl()}/unsubscribe?token=${person.unsubscribe_token}`;
 
     try {
-      await sendDigestEmail(person.email, person.name, digestPosts, unsubscribeUrl);
+      const prayUrl = `${siteUrl()}/pray?t=${person.unsubscribe_token}`;
+      await sendDigestEmail(person.email, person.name, digestPosts, unsubscribeUrl, prayUrl);
       await supabase.from('sends').insert({
         contact_id: person.id,
         post_ids: posts.map((p) => p.id),

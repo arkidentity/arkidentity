@@ -17,6 +17,9 @@ export default async function AdminPage() {
             <a href="/admin/quick-add" className="text-sm font-semibold hover:underline" style={{ color: 'var(--navy)' }}>
               Quick Add →
             </a>
+            <a href="/admin/prayer" className="text-sm font-semibold hover:underline" style={{ color: 'var(--navy)' }}>
+              Prayer →
+            </a>
             <a href="/admin/contacts" className="text-sm font-semibold hover:underline" style={{ color: 'var(--navy)' }}>
               Contacts →
             </a>

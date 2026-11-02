@@ -184,3 +184,9 @@ Yes. Google's People API can write, so: edit a phone, address, birthday, or labe
 
 ## Merging what's already in ARK admin
 ARK admin already has contacts (32 as of 2026-08-31, some imported partners). The cleanup screen handles duplicates: every Google contact is matched to an ARK contact by email → phone → name; matches merge into one row (ARK keeps its tags, invites, history; Google's values fill in the details), "Maybe" pairs wait for a tap, and ARK-only people get pushed into Google with their labels. Nothing is deleted.
+
+## Decisions (Travis, 2026-11-02)
+- **Donors stay in ARK admin, not GoHighLevel.** GHL stays DNA marketing.
+- **"ARK Info" label: dropped.** Travis doesn't know where it came from; the newsletter has its own subscribe switch.
+- **Bulk tagging must be easy:** select many in ARK (filter, check all, add tag), and the two-way sync relabels them in Google. Nobody labels one by one.
+- **GSA monthly reports:** two separate monthly reports (Travis Gluckler personal account, ARK Identity ministry account). Goal: no manual upload. Open: do they arrive by email, and as PDF or spreadsheet? If emailed, a nightly job can read them from the Gmail inbox; also ask GSA about DonorView API or scheduled export.

@@ -63,7 +63,8 @@ export async function sendDigestEmail(
   to: string,
   name: string,
   posts: DigestPost[],
-  unsubscribeUrl: string
+  unsubscribeUrl: string,
+  prayUrl?: string
 ) {
   const feedUrl = `${siteUrl()}/feed`;
 
@@ -109,6 +110,11 @@ export async function sendDigestEmail(
       <p style="margin:0 0 12px; color:#4a4540; font-size:15px;">Your partnership empowers us to make more disciples.</p>
       <a href="${siteUrl()}/giving" style="background:#e8b562; color:#143348; text-decoration:none; padding:11px 22px; border-radius:8px; font-weight:700; display:inline-block;">Support the mission</a>
     </div>
+    ${
+      prayUrl
+        ? `<p style="margin:20px 0; text-align:center; color:#4a4540;">How can we pray for you? <a href="${prayUrl}" style="color:#143348; font-weight:600;">Tell us here</a>. We'd love to pray for you by name.</p>`
+        : ''
+    }
     <p style="color:#8a8378; font-size:13px; margin-top:32px;">
       You're receiving this because you partner with ARK Identity.
       <a href="${unsubscribeUrl}" style="color:#8a8378;">Unsubscribe</a>.
@@ -832,4 +838,18 @@ export async function sendOutreachAdminAlert(opts: {
     subject: `Trick or Truth — ${opts.name}`,
     html,
   });
+}
+
+// "We prayed for you" — sent when Travis or Kimberly taps Prayed and adds a note.
+export async function sendPrayedEmail(to: string, name: string, note: string) {
+  const first = name.trim().split(/\s+/)[0] || 'friend';
+  const html = wrap(`
+    <p>Hi ${escapeHtml(first)},</p>
+    <p style="white-space:pre-line;">${escapeHtml(note)}</p>
+    <p style="margin-top:24px;">Travis &amp; Kimberly<br/><span style="color:#8a8378;">ARK Identity</span></p>
+    <p style="color:#8a8378; font-size:13px; margin-top:24px;">
+      Something new we can pray for? <a href="${siteUrl()}/pray" style="color:#8a8378;">Let us know</a>.
+    </p>
+  `);
+  return getResend().emails.send({ from: fromAddress(), to, subject: 'We prayed for you today', html });
 }

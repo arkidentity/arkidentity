@@ -121,6 +121,7 @@ type EventLike = {
   id: string; title: string; event_date: string; start_time: string | null; end_time: string | null;
   location: string | null; meeting_link: string | null; repeat_weekly: boolean; repeat_until: string | null;
   skip_dates?: string[] | null; show_in_daily_dna?: boolean; created_by?: string | null; signup_url?: string | null; daily_dna_description?: string | null;
+  rsvp_token?: string | null;
 };
 
 /** Who sees a guest-list event in Daily DNA, as Daily DNA accounts. null = no guest list (everyone at
@@ -165,6 +166,8 @@ async function eventPayload(e: EventLike) {
     signupUrl: e.signup_url ?? null, // migration 045
     description: e.daily_dna_description ?? null, // migration 046
     ...(invitees && { invitees }),
+    // RSVP link open = ask who's going: Daily DNA shows a Going button and sends taps to /api/partner/rsvp (Daily DNA Mig 340)
+    askGoing: !!e.rsvp_token,
   };
 }
 

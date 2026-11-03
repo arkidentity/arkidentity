@@ -1,6 +1,7 @@
 import { randomBytes } from 'node:crypto';
 import { after } from 'next/server';
 import { getSupabaseAdmin } from '@/lib/supabaseAdmin';
+import { syncEventToDailyDna } from '@/lib/dailyDnaLink';
 import { listStaff, getStaff, type IowaStaff } from '@/lib/iowaStaff';
 import { findOrCreateContact, createContact, ensureTag } from '@/lib/contacts';
 import { formatTime } from '@/lib/bibleStudyFormat';
@@ -267,6 +268,9 @@ export async function setRsvpOpen(eventId: string, open: boolean): Promise<strin
   const t = open ? e.rsvp_token ?? token() : null;
   const { error } = await db.from('iowa_events').update({ rsvp_token: t }).eq('id', eventId);
   if (error) throw error;
+  // Shown in Daily DNA: the Going button turns on/off with the RSVP link
+  const { data: full } = await db.from('iowa_events').select('*').eq('id', eventId).maybeSingle();
+  if (full?.show_in_daily_dna) await syncEventToDailyDna(full).catch(() => {});
   return t;
 }
 

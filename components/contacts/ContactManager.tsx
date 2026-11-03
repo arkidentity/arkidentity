@@ -401,7 +401,12 @@ export function ContactManager({
                   {!c.subscribed && <span className="text-xs font-normal" style={{ color: '#8a8378' }}> · not on updates</span>}
                 </p>
                 <p className="text-sm" style={{ color: '#8a8378' }}>
-                  {[c.email, c.phone, [c.city, c.state].filter(Boolean).join(', '), c.church].filter(Boolean).join(' · ')}
+                  {[
+                    c.email && (c.other_emails?.length ? `${c.email} (+${c.other_emails.length})` : c.email),
+                    c.phone && (c.other_phones?.length ? `${c.phone} (+${c.other_phones.length})` : c.phone),
+                    [c.city, c.state].filter(Boolean).join(', '),
+                    c.church,
+                  ].filter(Boolean).join(' · ')}
                 </p>
               </div>
               {/* Two tags, then "+N"; tap to turn tags on or off right here. */}
@@ -563,6 +568,8 @@ function EditRow({
   const [region, setRegion] = useState(contact.region ?? '');
   const [church, setChurch] = useState(contact.church ?? '');
   const [notes, setNotes] = useState(contact.relationship_notes ?? '');
+  const [otherEmails, setOtherEmails] = useState<string[]>(contact.other_emails ?? []);
+  const [otherPhones, setOtherPhones] = useState<string[]>(contact.other_phones ?? []);
   const [tagIds, setTagIds] = useState<string[]>(contact.tags.map((t) => t.id));
   const [busy, setBusy] = useState(false);
 
@@ -580,11 +587,30 @@ function EditRow({
         <input value={church} onChange={(e) => setChurch(e.target.value)} placeholder="Church" className="px-3 py-2 rounded-lg border text-sm" style={inputStyle} />
         <input value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="How you know them" className="sm:col-span-2 px-3 py-2 rounded-lg border text-sm" style={inputStyle} />
       </div>
+      <OtherList
+        label="Other emails"
+        placeholder="Add another email"
+        main={email}
+        values={otherEmails}
+        onChange={setOtherEmails}
+        onMakeMain={(v) => { setOtherEmails([...otherEmails.filter((x) => x !== v), ...(email ? [email] : [])]); setEmail(v); }}
+      />
+      <OtherList
+        label="Other phones"
+        placeholder="Add another phone"
+        main={phone}
+        values={otherPhones}
+        onChange={setOtherPhones}
+        onMakeMain={(v) => { setOtherPhones([...otherPhones.filter((x) => x !== v), ...(phone ? [phone] : [])]); setPhone(v); }}
+      />
       <TagPicker tags={tags} selected={tagIds} onChange={setTagIds} />
       <button
         onClick={async () => {
           setBusy(true);
-          await onSave({ name, email, phone, city, state, region, church, relationship_notes: notes, tagIds });
+          await onSave({
+            name, email, phone, city, state, region, church, relationship_notes: notes, tagIds,
+            other_emails: otherEmails, other_phones: otherPhones,
+          });
           setBusy(false);
         }}
         disabled={busy}
@@ -698,6 +724,59 @@ function MergePanel({
         >
           {busy ? 'Merging…' : 'Merge'}
         </button>
+      </div>
+    </div>
+  );
+}
+
+// Extra emails or phones: the main one is what updates and texts use. Make
+// main swaps it in; × drops a wrong one (from Google too, on save).
+function OtherList({
+  label,
+  placeholder,
+  main,
+  values,
+  onChange,
+  onMakeMain,
+}: {
+  label: string;
+  placeholder: string;
+  main: string;
+  values: string[];
+  onChange: (v: string[]) => void;
+  onMakeMain: (v: string) => void;
+}) {
+  const [draft, setDraft] = useState('');
+  function add() {
+    const v = draft.trim();
+    if (!v || v === main || values.includes(v)) { setDraft(''); return; }
+    onChange([...values, v]);
+    setDraft('');
+  }
+  return (
+    <div className="mb-3">
+      <p className="text-xs font-semibold mb-1" style={{ color: '#8a8378' }}>{label}</p>
+      <div className="flex flex-wrap items-center gap-2">
+        {values.map((v) => (
+          <span key={v} className="flex items-center gap-2 rounded-full border px-3 py-1 text-sm" style={{ borderColor: '#d1d5db', color: '#4a4540' }}>
+            {v}
+            <button type="button" onClick={() => onMakeMain(v)} className="text-xs font-semibold hover:underline" style={{ color: 'var(--navy)' }}>
+              Make main
+            </button>
+            <button type="button" onClick={() => onChange(values.filter((x) => x !== v))} aria-label={`Remove ${v}`} style={{ color: '#b91c1c' }}>
+              ×
+            </button>
+          </span>
+        ))}
+        <input
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); add(); } }}
+          onBlur={add}
+          placeholder={placeholder}
+          className="px-3 py-1.5 rounded-lg border text-sm"
+          style={inputStyle}
+        />
       </div>
     </div>
   );

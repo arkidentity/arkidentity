@@ -32,6 +32,9 @@ export interface Contact {
   // Google Contacts sync (migrations 050-051)
   google_resource_name?: string | null;
   on_phone?: boolean;
+  // Extra addresses and numbers (migration 053). `email`/`phone` is the main one.
+  other_emails?: string[];
+  other_phones?: string[];
   created_at: string;
   updated_at: string;
 }
@@ -217,6 +220,7 @@ export async function createContact(input: CreateContactInput): Promise<Contact>
 const EDITABLE: (keyof Contact)[] = [
   'name', 'email', 'phone', 'city', 'state', 'region', 'church',
   'relationship_notes', 'source', 'status', 'channel', 'frequency', 'subscribed', 'on_phone',
+  'other_emails', 'other_phones',
 ];
 
 export async function updateContact(id: string, patch: Partial<Contact>): Promise<Contact> {
@@ -226,6 +230,15 @@ export async function updateContact(id: string, patch: Partial<Contact>): Promis
   }
   if (typeof update.email === 'string') update.email = normEmail(update.email as string);
   if (typeof update.state === 'string') update.state = normState(update.state as string);
+  // Others are deduped and never repeat the main one.
+  if (Array.isArray(update.other_emails)) {
+    const main = (update.email as string | null | undefined) ?? patch.email ?? null;
+    update.other_emails = [...new Set((update.other_emails as string[]).map((e) => normEmail(e)).filter((e): e is string => !!e && e !== main))];
+  }
+  if (Array.isArray(update.other_phones)) {
+    const main = (update.phone as string | null | undefined) ?? patch.phone ?? null;
+    update.other_phones = [...new Set((update.other_phones as string[]).map((x) => x.trim()).filter((x) => !!x && x !== main))];
+  }
 
   const { data, error } = await getSupabaseAdmin()
     .from('contacts')
@@ -783,14 +796,21 @@ export async function findOrCreateContact(input: {
   if (email) {
     const { data: byEmail } = await db.from('contacts').select('*').ilike('email', email).maybeSingle();
     existing = (byEmail as Contact | null) ?? null;
+    if (!existing) {
+      const { data: byOther } = await db.from('contacts').select('*').contains('other_emails', [email]).limit(1);
+      existing = ((byOther ?? [])[0] as Contact | undefined) ?? null;
+    }
   }
 
   if (!existing) {
     const digits = digitsOf(input.phone ?? '').slice(-10);
     if (digits.length === 10) {
       // Stored formatting varies, so compare tails rather than raw strings.
-      const { data } = await db.from('contacts').select('*').not('phone', 'is', null);
-      existing = ((data ?? []) as Contact[]).find((c) => digitsOf(c.phone ?? '').slice(-10) === digits) ?? null;
+      const { data } = await db.from('contacts').select('*');
+      existing =
+        ((data ?? []) as Contact[]).find((c) =>
+          [c.phone, ...(c.other_phones ?? [])].some((x) => digitsOf(x ?? '').slice(-10) === digits)
+        ) ?? null;
     }
   }
 
@@ -802,6 +822,10 @@ export async function findOrCreateContact(input: {
     const patch: Record<string, unknown> = {};
     if (!contact.phone && input.phone) patch.phone = normPhone(input.phone);
     if (!contact.email && email) patch.email = email;
+    // A new address for someone we matched by phone is kept as an other email.
+    else if (email && contact.email?.toLowerCase() !== email && !(contact.other_emails ?? []).includes(email)) {
+      patch.other_emails = [...(contact.other_emails ?? []), email];
+    }
     if (!contact.name && input.name) patch.name = input.name.trim();
     if (Object.keys(patch).length) {
       patch.updated_at = new Date().toISOString();

@@ -16,7 +16,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     // Name/email/phone edits go to Google now, or the next sync (where Google
     // wins) would put the old value back. The ARK save stands either way.
     let googleError: string | undefined;
-    if ('name' in body || 'email' in body || 'phone' in body) {
+    if (['name', 'email', 'phone', 'other_emails', 'other_phones'].some((k) => k in body)) {
       try {
         await pushContactToGoogle(contact);
       } catch (e) {

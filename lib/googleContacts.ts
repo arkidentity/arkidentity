@@ -161,6 +161,33 @@ function personEmail(p: GPerson): string | null {
 function personPhone(p: GPerson): string | null {
   return primary(p.phoneNumbers)?.value?.trim() || null;
 }
+// Primary first, then the rest; deduped.
+function personEmails(p: GPerson): string[] {
+  const main = personEmail(p);
+  return uniq([main, ...(p.emailAddresses ?? []).map((x) => x.value?.trim().toLowerCase())]);
+}
+function personPhones(p: GPerson): string[] {
+  const main = personPhone(p);
+  return uniqPhones([main, ...(p.phoneNumbers ?? []).map((x) => x.value?.trim())]);
+}
+function uniq(list: (string | null | undefined)[]): string[] {
+  return [...new Set(list.filter((x): x is string => !!x))];
+}
+function uniqPhones(list: (string | null | undefined)[]): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const x of list) {
+    if (!x) continue;
+    const k = phoneKey(x) ?? x;
+    if (seen.has(k)) continue;
+    seen.add(k);
+    out.push(x);
+  }
+  return out;
+}
+function sameList(a: string[], b: string[]): boolean {
+  return a.length === b.length && a.every((x, i) => x === b[i]);
+}
 function personBirthday(p: GPerson): string | null {
   const d = p.birthdays?.find((b) => b.date?.month && b.date?.day)?.date;
   if (!d?.month || !d.day) return null;
@@ -326,15 +353,27 @@ export async function syncGoogleContacts(opts: { dryRun: boolean }): Promise<Syn
   }
 
   // ---- 2. Match Google people to ARK contacts ------------------------------
-  const byResource = new Map<string, (typeof contacts)[number]>();
-  const byEmail = new Map<string, (typeof contacts)[number]>();
-  const byPhone = new Map<string, (typeof contacts)[number]>();
+  // Every email and phone counts for matching, main or other (migration 053).
+  type Row = (typeof contacts)[number];
+  const byResource = new Map<string, Row>();
+  const byEmail = new Map<string, Row>();
+  const byPhone = new Map<string, Row>();
+  const mainEmailOwner = new Map<string, string>(); // `email` is unique; others aren't
   for (const c of contacts) {
     if (c.google_resource_name) byResource.set(c.google_resource_name, c);
-    if (c.email) byEmail.set(c.email.toLowerCase(), c);
-    const pk = phoneKey(c.phone);
-    if (pk && !byPhone.has(pk)) byPhone.set(pk, c);
+    if (c.email) mainEmailOwner.set(c.email.toLowerCase(), c.id);
+    for (const e of [c.email, ...(c.other_emails ?? [])]) {
+      if (e && !byEmail.has(e.toLowerCase())) byEmail.set(e.toLowerCase(), c);
+    }
+    for (const ph of [c.phone, ...(c.other_phones ?? [])]) {
+      const pk = phoneKey(ph);
+      if (pk && !byPhone.has(pk)) byPhone.set(pk, c);
+    }
   }
+  const mainFree = (email: string, id: string) => {
+    const owner = mainEmailOwner.get(email);
+    return !owner || owner === id;
+  };
 
   const claimed = new Set<string>(); // ARK ids already matched this run
   const pairs: { contactId: string; person: GPerson }[] = [];
@@ -342,37 +381,55 @@ export async function syncGoogleContacts(opts: { dryRun: boolean }): Promise<Syn
   for (const p of people) {
     if (mergedAway.has(p.resourceName)) continue;
     const name = personName(p);
-    const email = personEmail(p);
-    const phone = personPhone(p);
+    const emails = personEmails(p);
+    const phones = personPhones(p);
+    const email = emails[0] ?? null;
+    const phone = phones[0] ?? null;
     if (!name && !email && !phone) { summary.skipped++; continue; }
 
     let c = byResource.get(p.resourceName);
     const firstLink = !c;
-    if (!c && email) c = byEmail.get(email);
-    if (!c && phone) { const pk = phoneKey(phone); if (pk) c = byPhone.get(pk); }
+    for (const e of emails) { if (c) break; c = byEmail.get(e); }
+    for (const ph of phones) { if (c) break; const pk = phoneKey(ph); if (pk) c = byPhone.get(pk); }
     if (c && claimed.has(c.id)) c = undefined; // two Google entries for one person: second imports
 
     if (c) {
       claimed.add(c.id);
       const label = c.name || name || email || phone || '';
-      // Google wins once linked; on the first link only blanks are filled.
       const patch: Record<string, unknown> = {};
+      const arkEmails = [c.email, ...(c.other_emails ?? [])].filter((x): x is string => !!x).map((x) => x.toLowerCase());
+      const arkPhones = [c.phone, ...(c.other_phones ?? [])].filter((x): x is string => !!x);
+
+      // On the first link both sides' lists are combined. After that Google
+      // holds the list (ARK edits are pushed to it straight away).
+      const allEmails = firstLink ? uniq([...arkEmails, ...emails]) : emails;
+      const allPhones = firstLink ? uniqPhones([...arkPhones, ...phones]) : phones;
+
+      // The main one stays put while it's still on the list; it only moves
+      // when it's gone from Google.
+      let mainEmail = c.email && allEmails.includes(c.email.toLowerCase()) ? c.email.toLowerCase() : null;
+      if (!mainEmail) mainEmail = allEmails.find((e) => mainFree(e, c!.id)) ?? null;
+      let mainPhone = c.phone && allPhones.some((x) => phoneKey(x) === phoneKey(c!.phone)) ? c.phone : null;
+      if (!mainPhone) mainPhone = allPhones[0] ?? null;
+      const otherEmails = allEmails.filter((e) => e !== mainEmail);
+      const otherPhones = allPhones.filter((x) => phoneKey(x) !== phoneKey(mainPhone));
+
       if (firstLink) {
         patch.google_resource_name = p.resourceName;
         patch.on_phone = true;
         summary.linked.push(label);
         log.push({ contact_id: c.id, action: 'linked', detail: label });
-        if (!c.email && email && !byEmail.has(email)) patch.email = email;
-        if (!c.phone && phone) patch.phone = phone;
         if (!c.name && name) patch.name = name;
-      } else {
-        if (name && name !== c.name) patch.name = name;
-        if (email && email !== c.email && !byEmail.has(email)) patch.email = email;
-        if (phone && phone !== c.phone) patch.phone = phone;
+      } else if (name && name !== c.name) {
+        patch.name = name;
       }
+      if (mainEmail !== (c.email?.toLowerCase() ?? null)) patch.email = mainEmail;
+      if (mainPhone !== c.phone) patch.phone = mainPhone;
+      if (!sameList(otherEmails, c.other_emails ?? [])) patch.other_emails = otherEmails;
+      if (!sameList(otherPhones, c.other_phones ?? [])) patch.other_phones = otherPhones;
       const bday = personBirthday(p);
       if (bday && bday !== (c as unknown as { birthday?: string | null }).birthday) patch.birthday = bday;
-      const filledKeys = Object.keys(patch).filter((k) => k !== 'google_resource_name');
+      const filledKeys = Object.keys(patch).filter((k) => k !== 'google_resource_name' && k !== 'on_phone');
       if (filledKeys.length) {
         summary.filled++;
         log.push({ contact_id: c.id, action: 'filled', detail: filledKeys.join(', ') });
@@ -388,16 +445,19 @@ export async function syncGoogleContacts(opts: { dryRun: boolean }): Promise<Syn
       const label = name || email || phone || '';
       summary.imported.push(label);
       if (!dryRun) {
+        const mainEmail = emails.find((e) => !mainEmailOwner.has(e)) ?? null;
         const { data, error } = await db
           .from('contacts')
           .insert({
             name: name || email || phone,
-            email: email && !byEmail.has(email) ? email : null,
+            email: mainEmail,
             phone,
+            other_emails: emails.filter((e) => e !== mainEmail),
+            other_phones: phones.slice(1),
             birthday: personBirthday(p),
             source: 'google-contacts',
             status: 'active',
-            channel: email ? 'email' : 'text',
+            channel: mainEmail ? 'email' : 'text',
             frequency: 'monthly',
             subscribed: false, // the sync never adds anyone to the newsletter
             confirmed: true,
@@ -411,7 +471,7 @@ export async function syncGoogleContacts(opts: { dryRun: boolean }): Promise<Syn
           .single();
         if (error) throw new Error(`${label}: ${error.message}`);
         log.push({ contact_id: data.id, action: 'imported', detail: label });
-        if (email) byEmail.set(email, { id: data.id } as (typeof contacts)[number]);
+        if (mainEmail) mainEmailOwner.set(mainEmail, data.id);
         pairs.push({ contactId: data.id, person: p });
       } else {
         pairs.push({ contactId: `new:${p.resourceName}`, person: p });
@@ -527,8 +587,8 @@ export async function syncGoogleContacts(opts: { dryRun: boolean }): Promise<Syn
       bodies.push({
         contactPerson: {
           names: [{ unstructuredName: c.name }],
-          ...(c.email ? { emailAddresses: [{ value: c.email }] } : {}),
-          ...(c.phone ? { phoneNumbers: [{ value: c.phone }] } : {}),
+          emailAddresses: uniq([c.email, ...(c.other_emails ?? [])]).map((value) => ({ value })),
+          phoneNumbers: uniqPhones([c.phone, ...(c.other_phones ?? [])]).map((value) => ({ value })),
           ...(memberships.length ? { memberships } : {}),
         },
       });
@@ -586,6 +646,8 @@ export async function pushContactToGoogle(contact: {
   name: string;
   email: string | null;
   phone: string | null;
+  other_emails?: string[];
+  other_phones?: string[];
   google_resource_name?: string | null;
 }): Promise<boolean> {
   const rn = contact.google_resource_name;
@@ -593,15 +655,7 @@ export async function pushContactToGoogle(contact: {
   const token = await accessToken();
 
   const person = await api<GPerson>(token, `${rn}?personFields=names,emailAddresses,phoneNumbers`);
-
-  function replacePrimary<T extends { value?: string; metadata?: { primary?: boolean } }>(
-    list: T[] | undefined,
-    value: string | null
-  ): { value: string }[] {
-    const rest = (list ?? []).filter((x) => x !== primary(list)).map((x) => ({ value: x.value ?? '' })).filter((x) => x.value);
-    return value ? [{ value }, ...rest] : rest;
-  }
-
+  // ARK holds the full list (main first); Google gets exactly that.
   const updated = await api<GPerson>(
     token,
     `${rn}:updateContact?updatePersonFields=names,emailAddresses,phoneNumbers`,
@@ -610,8 +664,8 @@ export async function pushContactToGoogle(contact: {
       body: JSON.stringify({
         etag: person.etag,
         names: [{ unstructuredName: contact.name }],
-        emailAddresses: replacePrimary(person.emailAddresses, contact.email),
-        phoneNumbers: replacePrimary(person.phoneNumbers, contact.phone),
+        emailAddresses: uniq([contact.email, ...(contact.other_emails ?? [])]).map((value) => ({ value })),
+        phoneNumbers: uniqPhones([contact.phone, ...(contact.other_phones ?? [])]).map((value) => ({ value })),
       }),
     }
   );

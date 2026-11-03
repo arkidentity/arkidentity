@@ -15,7 +15,7 @@ export function OrderList({ initial }: { initial: StoreOrder[] }) {
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState('');
 
-  async function act(o: StoreOrder, action: 'packed' | 'unpack' | 'shipped', extra: { tracking?: string } = {}) {
+  async function act(o: StoreOrder, action: 'packed' | 'unpack' | 'shipped' | 'approve-message' | 'hide-message', extra: { tracking?: string } = {}) {
     setBusy(o.id);
     setError('');
     const res = await fetch(`/api/admin/orders/${o.id}`, {
@@ -33,9 +33,11 @@ export function OrderList({ initial }: { initial: StoreOrder[] }) {
     setRows((list) =>
       list.map((x) =>
         x.id === o.id
-          ? action === 'shipped'
-            ? { ...x, status: 'shipped', tracking_number: extra.tracking ?? null, shipped_at: new Date().toISOString() }
-            : { ...x, status: action === 'packed' ? 'packed' : 'paid' }
+          ? action === 'approve-message' || action === 'hide-message'
+            ? { ...x, wall_message_ok: action === 'approve-message' }
+            : action === 'shipped'
+              ? { ...x, status: 'shipped', tracking_number: extra.tracking ?? null, shipped_at: new Date().toISOString() }
+              : { ...x, status: action === 'packed' ? 'packed' : 'paid' }
           : x
       )
     );
@@ -47,11 +49,17 @@ export function OrderList({ initial }: { initial: StoreOrder[] }) {
   const live = rows.filter((o) => o.status !== 'refunded' && o.status !== 'canceled');
   const decks = live.reduce((n, o) => n + o.decks, 0);
   const toPack = rows.filter((o) => o.status === 'paid').reduce((n, o) => n + o.decks + o.bonus_decks, 0);
+  const waiting = rows.filter((o) => o.wall_message && !o.wall_message_ok).length;
 
   return (
     <div>
       <p className="mb-4 text-sm" style={{ color: '#4a4540' }}>
         <b>{decks}</b> decks sold · <b>{toPack}</b> decks to pack (with bonus decks)
+        {waiting > 0 && (
+          <>
+            {' '}· <b>{waiting}</b> Founders wall message{waiting === 1 ? '' : 's'} waiting (view All)
+          </>
+        )}
       </p>
       <div className="flex gap-2 mb-6 flex-wrap">
         {VIEWS.map((v) => (
@@ -103,6 +111,27 @@ export function OrderList({ initial }: { initial: StoreOrder[] }) {
                 </p>
               )}
               {o.group_name && <p className="mt-1 text-sm" style={{ color: '#4a4540' }}>Group: {o.group_name}</p>}
+              <p className="mt-1 text-sm" style={{ color: '#8a8378' }}>
+                Founders wall: {o.wall_public && o.wall_name ? [o.wall_name, o.wall_city].filter(Boolean).join(', ') : 'anonymous'}
+              </p>
+              {o.wall_message && (
+                <div className="mt-2 flex items-start justify-between gap-3 rounded-lg p-3" style={{ background: '#FAF8F5' }}>
+                  <p className="text-sm" style={{ color: '#4a4540' }}>
+                    “{o.wall_message}”
+                    <span className="ml-2 text-xs font-semibold" style={{ color: o.wall_message_ok ? '#15803d' : '#b45309' }}>
+                      {o.wall_message_ok ? 'on the wall' : 'waiting for you'}
+                    </span>
+                  </p>
+                  <button
+                    disabled={busy === o.id}
+                    onClick={() => act(o, o.wall_message_ok ? 'hide-message' : 'approve-message')}
+                    className="text-sm font-semibold rounded-lg px-3 py-1 shrink-0 text-white"
+                    style={{ background: o.wall_message_ok ? '#8a8378' : 'var(--navy)' }}
+                  >
+                    {o.wall_message_ok ? 'Hide' : 'Show it'}
+                  </button>
+                </div>
+              )}
               {o.tracking_number && <p className="mt-1 text-sm" style={{ color: '#8a8378' }}>Tracking: {o.tracking_number}</p>}
 
               {shipFor === o.id ? (

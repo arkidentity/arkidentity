@@ -47,6 +47,10 @@ export interface StoreOrder {
   tracking_number: string | null;
   shipped_at: string | null;
   notes: string | null;
+  wall_public: boolean;
+  wall_city: string | null;
+  wall_message: string | null;
+  wall_message_ok: boolean;
 }
 
 // ---------- Stripe (plain fetch; no SDK) ----------
@@ -147,6 +151,7 @@ export async function saveCheckoutSession(sessionId: string): Promise<StoreOrder
     gift_recipient: customField(fields, /recipient|address/),
     gift_note: customField(fields, /note/),
     wall_name: customField(fields, /wall|founder/),
+    wall_public: !!customField(fields, /wall|founder/),
     group_name: customField(fields, /church|group/),
     items,
     decks,
@@ -276,4 +281,83 @@ export function pirateShipCsv(orders: StoreOrder[]): string {
     }
   }
   return [head, ...rows].map((r) => r.map(csvCell).join(',')).join('\n');
+}
+
+// ---------- Founders wall (Mig 055) ----------
+
+const TIER_LABEL: Partial<Record<Sku, string>> = { 'cc-give': 'Keep One, Give One', 'cc-table': 'The Table', 'cc-bulk': 'for a group' };
+
+/** "2 decks · Keep One, Give One" */
+export function founderWhat(o: Pick<StoreOrder, 'items' | 'decks'>): string {
+  const label = o.items.map((i) => (i.sku ? TIER_LABEL[i.sku] : undefined)).find(Boolean);
+  return [`${o.decks} deck${o.decks === 1 ? '' : 's'}`, label].filter(Boolean).join(' · ');
+}
+
+export interface PublicFounder {
+  name: string; // "Sarah" or "A founder"
+  city: string | null;
+  what: string;
+  message: string | null;
+  at: string;
+}
+
+/** The public list: every paid order, newest first. Names only when they opted in; messages only once approved. */
+export async function publicFounders(brand = 'cc', limit = 200): Promise<{ founders: number; decks: number; list: PublicFounder[] }> {
+  const { data, error } = await getSupabaseAdmin()
+    .from('store_orders')
+    .select('items, decks, created_at, wall_public, wall_name, wall_city, wall_message, wall_message_ok')
+    .eq('brand', brand)
+    .in('status', ['paid', 'packed', 'shipped'])
+    .order('created_at', { ascending: false });
+  if (error) throw new Error(error.message);
+  const rows = (data ?? []) as Pick<StoreOrder, 'items' | 'decks' | 'created_at' | 'wall_public' | 'wall_name' | 'wall_city' | 'wall_message' | 'wall_message_ok'>[];
+  return {
+    founders: rows.length,
+    decks: rows.reduce((n, r) => n + (r.decks ?? 0), 0),
+    list: rows.slice(0, limit).map((r) => ({
+      name: r.wall_public && r.wall_name ? r.wall_name : 'A founder',
+      city: r.wall_public ? r.wall_city : null,
+      what: founderWhat(r),
+      message: r.wall_message_ok ? r.wall_message : null,
+      at: r.created_at,
+    })),
+  };
+}
+
+/** The buyer's own wall entry, found by their Checkout Session id (only they have it, from the /thanks redirect). */
+export async function getFounderEntry(sessionId: string) {
+  const { data } = await getSupabaseAdmin()
+    .from('store_orders')
+    .select('name, decks, items, wall_public, wall_name, wall_city, wall_message')
+    .eq('stripe_session_id', sessionId)
+    .maybeSingle();
+  if (!data) return null;
+  return {
+    firstName: (data.name ?? '').split(' ')[0] || null,
+    what: founderWhat(data as Pick<StoreOrder, 'items' | 'decks'>),
+    public: data.wall_public as boolean,
+    name: data.wall_name as string | null,
+    city: data.wall_city as string | null,
+    message: data.wall_message as string | null,
+  };
+}
+
+export async function saveFounderEntry(
+  sessionId: string,
+  e: { public: boolean; name: string | null; city: string | null; message: string | null }
+): Promise<boolean> {
+  const db = getSupabaseAdmin();
+  const { data: o } = await db.from('store_orders').select('id, wall_message').eq('stripe_session_id', sessionId).maybeSingle();
+  if (!o) return false;
+  const message = e.message?.trim().slice(0, 140) || null;
+  await updateOrder(o.id, {
+    wall_public: e.public,
+    wall_name: e.name?.trim().slice(0, 40) || null,
+    wall_city: e.city?.trim().slice(0, 40) || null,
+    wall_message: message,
+    // A changed message goes back for approval.
+    ...(message !== o.wall_message ? { wall_message_ok: false } : {}),
+    wall_updated_at: new Date().toISOString(),
+  } as Partial<StoreOrder>);
+  return true;
 }

@@ -4,7 +4,7 @@ import { getOrder, updateOrder } from '@/lib/store';
 
 export const dynamic = 'force-dynamic';
 
-// POST /api/admin/orders/:id — { action: 'packed' | 'shipped' | 'unpack' | 'note', tracking?, note? }
+// POST /api/admin/orders/:id — { action: 'packed' | 'shipped' | 'unpack' | 'note' | 'approve-message' | 'hide-message', tracking?, note? }
 // 'shipped' with a tracking number emails the buyer (Resend).
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -15,6 +15,8 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   try {
     if (b.action === 'packed') await updateOrder(id, { status: 'packed' });
     else if (b.action === 'unpack') await updateOrder(id, { status: 'paid' });
+    else if (b.action === 'approve-message') await updateOrder(id, { wall_message_ok: true });
+    else if (b.action === 'hide-message') await updateOrder(id, { wall_message_ok: false });
     else if (b.action === 'note') await updateOrder(id, { notes: (b.note ?? '').trim().slice(0, 1000) || null });
     else if (b.action === 'shipped') {
       const tracking = (b.tracking ?? '').replace(/\s+/g, '').slice(0, 60);

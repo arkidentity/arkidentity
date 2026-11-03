@@ -190,3 +190,4 @@ ARK admin already has contacts (32 as of 2026-08-31, some imported partners). Th
 - **"ARK Info" label: dropped.** Travis doesn't know where it came from; the newsletter has its own subscribe switch.
 - **Bulk tagging must be easy:** select many in ARK (filter, check all, add tag), and the two-way sync relabels them in Google. Nobody labels one by one.
 - **GSA monthly reports:** two separate monthly reports (Travis Gluckler personal account, ARK Identity ministry account). Goal: no manual upload. Open: do they arrive by email, and as PDF or spreadsheet? If emailed, a nightly job can read them from the Gmail inbox; also ask GSA about DonorView API or scheduled export.
+- **Final label set (11/2):** Financial Partner, Prayer Partner, Prospect, Worship Night, ARK Iowa, Ministry Partner. No Board & Advisors or Church Partner labels. A person can carry several (most financial partners also pray).

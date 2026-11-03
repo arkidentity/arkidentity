@@ -14,6 +14,7 @@ const CONTACT_TABS = [
   { href: '/admin/contacts/segments', label: 'Segments', match: (p: string) => p.startsWith('/admin/contacts/segments') },
   { href: '/admin/contacts/events', label: 'Events', match: (p: string) => p.startsWith('/admin/contacts/events') },
   { href: '/admin/contacts/tags', label: 'Tags', match: (p: string) => p.startsWith('/admin/contacts/tags') },
+  { href: '/admin/contacts/google', label: 'Google', match: (p: string) => p.startsWith('/admin/contacts/google') },
 ];
 
 const BARE = ['/admin/login', '/admin/quick-add'];

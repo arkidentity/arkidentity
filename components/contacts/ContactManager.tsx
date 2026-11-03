@@ -32,6 +32,8 @@ export function ContactManager({
   const [editing, setEditing] = useState<string | null>(null);
   const [selected, setSelected] = useState<string[]>([]);
   const [bulkTagId, setBulkTagId] = useState('');
+  const [tagMenu, setTagMenu] = useState<string | null>(null);
+  const [syncing, setSyncing] = useState(false);
 
   // A CSV import refreshes the server data; pick it up (see EventDetail).
   useEffect(() => { setContacts(initialContacts); }, [initialContacts]);
@@ -114,7 +116,8 @@ export function ContactManager({
       setError((await res.json().catch(() => ({}))).error || 'Update failed.');
       return;
     }
-    const { contact } = (await res.json()) as { contact: Contact };
+    const { contact, googleError } = (await res.json()) as { contact: Contact; googleError?: string };
+    if (googleError) setError(googleError);
     setContacts((list) =>
       list.map((c) =>
         c.id === id
@@ -122,6 +125,46 @@ export function ContactManager({
           : c
       )
     );
+  }
+
+  // One tag on or off for one person, straight from the list.
+  async function toggleTag(c: ContactWithTags, tagId: string) {
+    const ids = c.tags.map((t) => t.id);
+    await patch(c.id, { tagIds: ids.includes(tagId) ? ids.filter((x) => x !== tagId) : [...ids, tagId] });
+  }
+
+  async function setOnPhone(ids: string[], on: boolean) {
+    setBusy(true); setError(''); setNotice('');
+    const res = await fetch('/api/admin/contacts/phone', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ contactIds: ids, on }),
+    });
+    setBusy(false);
+    if (!res.ok) { setError((await res.json().catch(() => ({}))).error || 'Could not update.'); return; }
+    const { ids: changed } = (await res.json()) as { ids: string[] };
+    setContacts((list) => list.map((c) => (changed.includes(c.id) ? { ...c, on_phone: on } : c)));
+    if (ids.length > 1) {
+      setNotice(`${changed.length} ${changed.length === 1 ? 'person' : 'people'} ${on ? 'will be added to Google at the next sync' : 'taken off the phone list'}.`);
+      setSelected([]);
+    }
+  }
+
+  async function syncGoogle() {
+    setSyncing(true); setError(''); setNotice('');
+    const res = await fetch('/api/admin/google/sync', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ dryRun: false }),
+    });
+    setSyncing(false);
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) { setError(data.error || 'Sync failed.'); return; }
+    const s = data.summary as { imported: string[]; pushed: string[]; filled: number; arkLabelChanges: number; googleLabelChanges: number };
+    setNotice(
+      `Synced with Google: ${s.imported.length} new from Google, ${s.pushed.length} added to Google, ${s.filled} updated, ${s.arkLabelChanges + s.googleLabelChanges} tag changes.`
+    );
+    router.refresh();
   }
 
   async function archive(id: string, name: string) {
@@ -207,6 +250,14 @@ export function ContactManager({
               onChange={(e) => { const f = e.target.files?.[0]; if (f) importCsv(f); e.target.value = ''; }}
             />
           </label>
+          <button
+            onClick={syncGoogle}
+            disabled={syncing}
+            className="text-sm font-semibold px-3 py-2 rounded-lg border disabled:opacity-50"
+            style={{ borderColor: 'var(--navy)', color: 'var(--navy)' }}
+          >
+            {syncing ? 'Syncing…' : 'Sync with Google'}
+          </button>
           <span className="text-sm" style={{ color: '#8a8378' }}>
             {visible.length} of {contacts.length}
           </span>
@@ -242,6 +293,14 @@ export function ContactManager({
             style={{ borderColor: '#d1d5db', color: 'var(--navy)' }}
           >
             Remove tag
+          </button>
+          <button
+            onClick={() => setOnPhone(selected, true)}
+            disabled={busy}
+            className="text-sm font-semibold px-3 py-2 rounded-lg border disabled:opacity-40"
+            style={{ borderColor: '#d1d5db', color: 'var(--navy)' }}
+          >
+            Add to phone
           </button>
           <button onClick={() => setSelected([])} className="text-sm font-semibold px-3 py-2 rounded-lg border" style={{ borderColor: '#d1d5db', color: '#8a8378' }}>
             Clear
@@ -280,13 +339,57 @@ export function ContactManager({
                   {[c.email, c.phone, [c.city, c.state].filter(Boolean).join(', '), c.church].filter(Boolean).join(' · ')}
                 </p>
               </div>
-              <div className="flex flex-wrap gap-1">
-                {c.tags.map((t) => (
-                  <span key={t.id} className="text-xs px-2 py-1 rounded-full" style={{ backgroundColor: '#f0ede8', color: '#4a4540' }}>
-                    {t.name}
-                  </span>
-                ))}
+              {/* Two tags, then "+N"; tap to turn tags on or off right here. */}
+              <div className="relative">
+                <button
+                  onClick={() => setTagMenu(tagMenu === c.id ? null : c.id)}
+                  className="flex flex-wrap items-center gap-1 text-left"
+                  aria-label={`Tags for ${c.name}`}
+                >
+                  {c.tags.slice(0, 2).map((t) => (
+                    <span key={t.id} className="text-xs px-2 py-1 rounded-full" style={{ backgroundColor: '#f0ede8', color: '#4a4540' }}>
+                      {t.name}
+                    </span>
+                  ))}
+                  {c.tags.length > 2 && (
+                    <span className="text-xs px-2 py-1 rounded-full font-semibold" style={{ backgroundColor: '#e4ecf2', color: 'var(--navy)' }}>
+                      +{c.tags.length - 2}
+                    </span>
+                  )}
+                  {c.tags.length === 0 && (
+                    <span className="text-xs px-2 py-1 rounded-full border border-dashed" style={{ borderColor: '#d1d5db', color: '#8a8378' }}>
+                      + Tag
+                    </span>
+                  )}
+                </button>
+                {tagMenu === c.id && (
+                  <div
+                    className="absolute right-0 z-20 mt-1 w-56 max-h-72 overflow-y-auto rounded-lg border bg-white p-2 shadow-lg"
+                    style={{ borderColor: '#e5e1da' }}
+                  >
+                    {tags.map((t) => (
+                      <label key={t.id} className="flex items-center gap-2 rounded px-2 py-1.5 text-sm cursor-pointer hover:bg-[#f7f4ef]" style={{ color: '#4a4540' }}>
+                        <input type="checkbox" checked={c.tags.some((x) => x.id === t.id)} onChange={() => toggleTag(c, t.id)} />
+                        {t.name}
+                      </label>
+                    ))}
+                    <button onClick={() => setTagMenu(null)} className="mt-1 w-full rounded px-2 py-1.5 text-sm font-semibold" style={{ color: 'var(--navy)' }}>
+                      Done
+                    </button>
+                  </div>
+                )}
               </div>
+              {c.google_resource_name ? (
+                <span className="text-xs" style={{ color: '#8a8378' }}>In Google</span>
+              ) : (
+                <button
+                  onClick={() => setOnPhone([c.id], !c.on_phone)}
+                  className="text-sm font-semibold px-3 py-1.5 rounded-lg border"
+                  style={c.on_phone ? { borderColor: 'var(--navy)', backgroundColor: 'var(--navy)', color: 'white' } : { borderColor: '#d1d5db', color: 'var(--navy)' }}
+                >
+                  {c.on_phone ? 'Adding to phone' : 'Add to phone'}
+                </button>
+              )}
               <button onClick={() => patch(c.id, { subscribed: !c.subscribed })} className="text-sm font-semibold px-3 py-1.5 rounded-lg border" style={{ borderColor: '#d1d5db', color: 'var(--navy)' }}>
                 {c.subscribed ? 'Unsubscribe' : 'Subscribe'}
               </button>

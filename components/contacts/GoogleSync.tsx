@@ -46,7 +46,6 @@ export function GoogleSync({
   const router = useRouter();
   const [busy, setBusy] = useState<'preview' | 'sync' | null>(null);
   const [error, setError] = useState(initialError ? ERRORS[initialError] ?? initialError : '');
-  const [pushArkOnly, setPushArkOnly] = useState(true);
   const [preview, setPreview] = useState<SyncSummary | null>(null);
   const [done, setDone] = useState<SyncSummary | null>(null);
 
@@ -56,7 +55,7 @@ export function GoogleSync({
     const res = await fetch('/api/admin/google/sync', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ dryRun, pushArkOnly }),
+      body: JSON.stringify({ dryRun }),
     });
     setBusy(null);
     const data = await res.json().catch(() => ({}));
@@ -110,10 +109,9 @@ export function GoogleSync({
 
       {connection && (
         <section className="rounded-xl p-5" style={card}>
-          <label className="flex items-start gap-2 text-sm" style={{ color: '#5f5a52' }}>
-            <input type="checkbox" checked={pushArkOnly} onChange={(e) => setPushArkOnly(e.target.checked)} className="mt-1" />
-            Add ARK people who aren&apos;t in Google yet to Google, with their labels
-          </label>
+          <p className="text-sm" style={{ color: '#5f5a52' }}>
+            ARK people switched to <b>Add to phone</b> on the Contacts list are added to Google at the next sync.
+          </p>
 
           <div className="mt-4 flex justify-end gap-3">
             <button

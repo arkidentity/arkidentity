@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { updateContact, archiveContact, setContactTags, type Contact } from '@/lib/contacts';
+import { pushContactToGoogle } from '@/lib/googleContacts';
 
 export const dynamic = 'force-dynamic';
 
@@ -12,7 +13,17 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   try {
     if (body.tagIds) await setContactTags(id, body.tagIds);
     const contact = await updateContact(id, body);
-    return NextResponse.json({ contact });
+    // Name/email/phone edits go to Google now, or the next sync (where Google
+    // wins) would put the old value back. The ARK save stands either way.
+    let googleError: string | undefined;
+    if ('name' in body || 'email' in body || 'phone' in body) {
+      try {
+        await pushContactToGoogle(contact);
+      } catch (e) {
+        googleError = `Saved in ARK, but Google wasn't updated: ${(e as Error).message}`;
+      }
+    }
+    return NextResponse.json({ contact, googleError });
   } catch (e) {
     return NextResponse.json({ error: (e as Error).message }, { status: 400 });
   }

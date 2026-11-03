@@ -226,11 +226,11 @@ export interface SyncSummary {
 interface LogRow { contact_id: string | null; action: string; detail: string }
 
 /**
- * Run (or preview, with dryRun) one full sync. `pushArkOnly` adds ARK contacts
- * that aren't in Google yet to Google, with their labels.
+ * Run (or preview, with dryRun) one full sync. ARK contacts switched to
+ * "On my phone" that aren't in Google yet are added to Google, with labels.
  */
-export async function syncGoogleContacts(opts: { dryRun: boolean; pushArkOnly: boolean }): Promise<SyncSummary> {
-  const { dryRun, pushArkOnly } = opts;
+export async function syncGoogleContacts(opts: { dryRun: boolean }): Promise<SyncSummary> {
+  const { dryRun } = opts;
   const db = getSupabaseAdmin();
   const token = await accessToken();
   const log: LogRow[] = [];
@@ -353,6 +353,7 @@ export async function syncGoogleContacts(opts: { dryRun: boolean; pushArkOnly: b
       const patch: Record<string, unknown> = {};
       if (firstLink) {
         patch.google_resource_name = p.resourceName;
+        patch.on_phone = true;
         summary.linked.push(label);
         log.push({ contact_id: c.id, action: 'linked', detail: label });
         if (!c.email && email && !byEmail.has(email)) patch.email = email;
@@ -397,6 +398,7 @@ export async function syncGoogleContacts(opts: { dryRun: boolean; pushArkOnly: b
             confirmed_at: new Date().toISOString(),
             google_resource_name: p.resourceName,
             google_etag: p.etag ?? null,
+            on_phone: true,
             synced_at: new Date().toISOString(),
           })
           .select('id')
@@ -466,9 +468,9 @@ export async function syncGoogleContacts(opts: { dryRun: boolean; pushArkOnly: b
   for (const list of [...groupAdds.values(), ...groupRemoves.values()]) summary.googleLabelChanges += list.length;
 
   // ---- 4. ARK-only people into Google --------------------------------------
-  const toPush = pushArkOnly
-    ? contacts.filter((c) => c.status === 'active' && !claimed.has(c.id) && !c.google_resource_name && (c.email || c.phone))
-    : [];
+  const toPush = contacts.filter(
+    (c) => c.on_phone && c.status === 'active' && !claimed.has(c.id) && !c.google_resource_name && (c.email || c.phone)
+  );
   for (const c of toPush) summary.pushed.push(c.name);
 
   if (dryRun) return summary;
@@ -562,4 +564,54 @@ export async function syncGoogleContacts(opts: { dryRun: boolean; pushArkOnly: b
     .eq('id', 1);
 
   return summary;
+}
+
+// ---------------------------------------------------------------------------
+// ARK edits -> Google, right away
+// ---------------------------------------------------------------------------
+
+/**
+ * Send an ARK edit of name, email or phone to the linked Google contact, so the
+ * next sync reads the new value instead of putting the old one back. Only the
+ * primary email and phone are replaced; any others in Google are kept.
+ * Returns false when there is nothing to push (not linked, not connected).
+ */
+export async function pushContactToGoogle(contact: {
+  name: string;
+  email: string | null;
+  phone: string | null;
+  google_resource_name?: string | null;
+}): Promise<boolean> {
+  const rn = contact.google_resource_name;
+  if (!rn || !googleConfigured() || !(await getConnection())) return false;
+  const token = await accessToken();
+
+  const person = await api<GPerson>(token, `${rn}?personFields=names,emailAddresses,phoneNumbers`);
+
+  function replacePrimary<T extends { value?: string; metadata?: { primary?: boolean } }>(
+    list: T[] | undefined,
+    value: string | null
+  ): { value: string }[] {
+    const rest = (list ?? []).filter((x) => x !== primary(list)).map((x) => ({ value: x.value ?? '' })).filter((x) => x.value);
+    return value ? [{ value }, ...rest] : rest;
+  }
+
+  const updated = await api<GPerson>(
+    token,
+    `${rn}:updateContact?updatePersonFields=names,emailAddresses,phoneNumbers`,
+    {
+      method: 'PATCH',
+      body: JSON.stringify({
+        etag: person.etag,
+        names: [{ unstructuredName: contact.name }],
+        emailAddresses: replacePrimary(person.emailAddresses, contact.email),
+        phoneNumbers: replacePrimary(person.phoneNumbers, contact.phone),
+      }),
+    }
+  );
+  await getSupabaseAdmin()
+    .from('contacts')
+    .update({ google_etag: updated.etag ?? null, synced_at: new Date().toISOString() })
+    .eq('google_resource_name', rn);
+  return true;
 }

@@ -29,6 +29,9 @@ export interface Contact {
   confirm_token: string | null;
   unsubscribe_token: string;
   confirmed_at: string | null;
+  // Google Contacts sync (migrations 050-051)
+  google_resource_name?: string | null;
+  on_phone?: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -213,7 +216,7 @@ export async function createContact(input: CreateContactInput): Promise<Contact>
 
 const EDITABLE: (keyof Contact)[] = [
   'name', 'email', 'phone', 'city', 'state', 'region', 'church',
-  'relationship_notes', 'source', 'status', 'channel', 'frequency', 'subscribed',
+  'relationship_notes', 'source', 'status', 'channel', 'frequency', 'subscribed', 'on_phone',
 ];
 
 export async function updateContact(id: string, patch: Partial<Contact>): Promise<Contact> {

@@ -7,6 +7,7 @@ const TABS = [
   { href: '/admin', label: 'Updates', match: (p: string) => p === '/admin' },
   { href: '/admin/contacts', label: 'Contacts', match: (p: string) => p.startsWith('/admin/contacts') },
   { href: '/admin/prayer', label: 'Prayer', match: (p: string) => p.startsWith('/admin/prayer') },
+  { href: '/admin/orders', label: 'Orders', match: (p: string) => p.startsWith('/admin/orders') },
 ];
 
 const CONTACT_TABS = [

@@ -868,3 +868,21 @@ export async function sendPrayerRequestNotice(r: { name: string; email: string |
   `);
   return getResend().emails.send({ from: fromAddress(), to, subject: `Prayer request from ${r.name}`, html });
 }
+
+// ARK store: "your order shipped" (system email, so Resend). Sent from the
+// brand's own mail. subdomain: STORE_EMAIL_FROM, e.g.
+// "Creed Cards <orders@mail.creedcards.com>". Plan: ark-workspace ark-store/PLAN.md §8.
+export async function sendShippedEmail(opts: { to: string; name: string | null; contents: string; tracking: string }) {
+  const from = process.env.STORE_EMAIL_FROM || fromAddress();
+  const url = `https://tools.usps.com/go/TrackConfirmAction?tLabels=${encodeURIComponent(opts.tracking)}`;
+  const html = wrap(`
+    <h1 style="color:#143348; font-size:22px;">Your order shipped</h1>
+    <p>Hi ${escapeHtml(opts.name?.split(' ')[0] || 'friend')},</p>
+    <p>Your order is on its way: ${escapeHtml(opts.contents)}.</p>
+    <p style="margin:28px 0;">
+      <a href="${url}" style="background:#143348; color:#fff; text-decoration:none; padding:12px 24px; border-radius:8px; font-weight:600;">Track it (USPS)</a>
+    </p>
+    <p style="color:#8a8378; font-size:14px;">Tracking number: ${escapeHtml(opts.tracking)}. Something missing or damaged? Reply to this email and we'll make it right.</p>
+  `);
+  return getResend().emails.send({ from, to: opts.to, subject: 'Your order shipped', html });
+}

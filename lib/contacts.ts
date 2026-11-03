@@ -240,6 +240,13 @@ export async function updateContact(id: string, patch: Partial<Contact>): Promis
   return data as Contact;
 }
 
+// Fold `loseId` into `keepId`: everything pointing at the duplicate moves to
+// the keeper, blank fields fill in, then the duplicate row goes (migration 052).
+export async function mergeContacts(keepId: string, loseId: string): Promise<void> {
+  const { error } = await getSupabaseAdmin().rpc('merge_contacts', { keep: keepId, lose: loseId });
+  if (error) throw new Error(error.message);
+}
+
 // Contacts are archived, never deleted — the invite history and Bible study
 // roster rows that point at them have to stay meaningful.
 export async function archiveContact(id: string): Promise<void> {

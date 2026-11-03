@@ -34,6 +34,8 @@ export function ContactManager({
   const [bulkTagId, setBulkTagId] = useState('');
   const [tagMenu, setTagMenu] = useState<string | null>(null);
   const [syncing, setSyncing] = useState(false);
+  const [merging, setMerging] = useState(false);
+  const [dupesOnly, setDupesOnly] = useState(false);
 
   // A CSV import refreshes the server data; pick it up (see EventDetail).
   useEffect(() => { setContacts(initialContacts); }, [initialContacts]);
@@ -47,16 +49,37 @@ export function ContactManager({
     [contacts]
   );
 
+  // Possible duplicates: same name, same email, or same last-10 phone digits.
+  const dupeIds = useMemo(() => {
+    const groups = new Map<string, string[]>();
+    const add = (key: string | null, id: string) => {
+      if (!key) return;
+      groups.set(key, [...(groups.get(key) ?? []), id]);
+    };
+    for (const c of contacts) {
+      add(c.name ? `n:${c.name.trim().toLowerCase().replace(/\s+/g, ' ')}` : null, c.id);
+      add(c.email ? `e:${c.email.toLowerCase()}` : null, c.id);
+      const d = c.phone?.replace(/\D/g, '') ?? '';
+      add(d.length >= 7 ? `p:${d.slice(-10)}` : null, c.id);
+    }
+    const ids = new Set<string>();
+    for (const list of groups.values()) if (list.length > 1) list.forEach((id) => ids.add(id));
+    return ids;
+  }, [contacts]);
+
   const visible = useMemo(() => {
     const q = search.trim().toLowerCase();
-    return contacts.filter((c) => {
+    const list = contacts.filter((c) => {
+      if (dupesOnly && !dupeIds.has(c.id)) return false;
       if (stateFilter && c.state !== stateFilter) return false;
       if (tagFilter && !c.tags.some((t) => t.id === tagFilter)) return false;
       if (churchFilter && c.church !== churchFilter) return false;
       if (!q) return true;
       return [c.name, c.email, c.phone, c.city, c.church].some((v) => v?.toLowerCase().includes(q));
     });
-  }, [contacts, search, stateFilter, tagFilter, churchFilter]);
+    // Duplicates read best side by side.
+    return dupesOnly ? [...list].sort((a, b) => a.name.localeCompare(b.name)) : list;
+  }, [contacts, search, stateFilter, tagFilter, churchFilter, dupesOnly, dupeIds]);
 
   // Selection is by id and survives filter changes on purpose: filter to
   // Colorado, select those, filter to Iowa, add those too, then tag the lot.
@@ -167,6 +190,22 @@ export function ContactManager({
     router.refresh();
   }
 
+  async function merge(keepId: string, loseId: string) {
+    setBusy(true); setError(''); setNotice('');
+    const res = await fetch('/api/admin/contacts/merge', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ keepId, loseId }),
+    });
+    setBusy(false);
+    if (!res.ok) { setError((await res.json().catch(() => ({}))).error || 'Merge failed.'); return; }
+    const { contact } = (await res.json()) as { contact: ContactWithTags };
+    setContacts((list) => list.filter((c) => c.id !== loseId).map((c) => (c.id === keepId ? contact : c)));
+    setMerging(false);
+    setSelected([]);
+    setNotice(`Merged into ${contact.name}.`);
+  }
+
   async function archive(id: string, name: string) {
     if (!window.confirm(`Archive ${name}? They stay in the database and on any roster — they just stop showing up here.`)) return;
     const res = await fetch(`/api/admin/contacts/${id}`, { method: 'DELETE' });
@@ -258,6 +297,12 @@ export function ContactManager({
           >
             {syncing ? 'Syncing…' : 'Sync with Google'}
           </button>
+          {dupeIds.size > 0 && (
+            <label className="flex items-center gap-2 text-sm cursor-pointer" style={{ color: 'var(--navy)' }}>
+              <input type="checkbox" checked={dupesOnly} onChange={(e) => setDupesOnly(e.target.checked)} />
+              Possible duplicates ({dupeIds.size})
+            </label>
+          )}
           <span className="text-sm" style={{ color: '#8a8378' }}>
             {visible.length} of {contacts.length}
           </span>
@@ -302,10 +347,30 @@ export function ContactManager({
           >
             Add to phone
           </button>
-          <button onClick={() => setSelected([])} className="text-sm font-semibold px-3 py-2 rounded-lg border" style={{ borderColor: '#d1d5db', color: '#8a8378' }}>
+          {selected.length === 2 && (
+            <button
+              onClick={() => setMerging(true)}
+              disabled={busy}
+              className="text-sm font-semibold px-3 py-2 rounded-lg border disabled:opacity-40"
+              style={{ borderColor: '#d1d5db', color: 'var(--navy)' }}
+            >
+              Merge these 2
+            </button>
+          )}
+          <button onClick={() => { setSelected([]); setMerging(false); }} className="text-sm font-semibold px-3 py-2 rounded-lg border" style={{ borderColor: '#d1d5db', color: '#8a8378' }}>
             Clear
           </button>
         </div>
+      )}
+
+      {merging && selected.length === 2 && (
+        <MergePanel
+          a={contacts.find((c) => c.id === selected[0])!}
+          b={contacts.find((c) => c.id === selected[1])!}
+          busy={busy}
+          onMerge={merge}
+          onCancel={() => setMerging(false)}
+        />
       )}
 
       {showAdd && <AddForm tags={tags} onAdded={(c) => { setContacts((l) => [c, ...l]); setShowAdd(false); }} onError={setError} />}
@@ -562,6 +627,78 @@ function TagPicker({
         );
       })}
       {tags.length === 0 && <p className="text-sm" style={{ color: '#8a8378' }}>No tags yet.</p>}
+    </div>
+  );
+}
+
+// Pick the keeper. The other one's tags, history, prayer requests and roster
+// spots move onto the keeper, blank details fill in, then it's gone.
+function MergePanel({
+  a,
+  b,
+  busy,
+  onMerge,
+  onCancel,
+}: {
+  a: ContactWithTags;
+  b: ContactWithTags;
+  busy: boolean;
+  onMerge: (keepId: string, loseId: string) => void;
+  onCancel: () => void;
+}) {
+  // Default keeper: the one already in Google, else the one with more tags.
+  const [keepId, setKeepId] = useState(
+    a.google_resource_name && !b.google_resource_name ? a.id
+      : b.google_resource_name && !a.google_resource_name ? b.id
+      : a.tags.length >= b.tags.length ? a.id : b.id
+  );
+  const lose = keepId === a.id ? b : a;
+  const bothInGoogle = !!a.google_resource_name && !!b.google_resource_name;
+
+  return (
+    <div className="rounded-xl p-5 mb-5" style={card}>
+      <p className="font-semibold mb-3" style={{ color: 'var(--navy)' }}>Which one do you keep?</p>
+      <div className="grid sm:grid-cols-2 gap-3">
+        {[a, b].map((c) => (
+          <label
+            key={c.id}
+            className="rounded-lg border p-3 cursor-pointer"
+            style={{ borderColor: keepId === c.id ? 'var(--navy)' : '#e5e1da', backgroundColor: keepId === c.id ? '#f3f6f9' : 'white' }}
+          >
+            <div className="flex items-center gap-2">
+              <input type="radio" checked={keepId === c.id} onChange={() => setKeepId(c.id)} />
+              <span className="font-semibold" style={{ color: 'var(--navy)' }}>{c.name}</span>
+            </div>
+            <p className="text-sm mt-1" style={{ color: '#5f5a52' }}>{[c.email, c.phone].filter(Boolean).join(' · ') || 'No email or phone'}</p>
+            <p className="text-xs mt-1" style={{ color: '#8a8378' }}>
+              {c.tags.length ? c.tags.map((t) => t.name).join(', ') : 'No tags'}
+              {c.google_resource_name ? ' · In Google' : ''}
+              {c.subscribed ? ' · On updates' : ''}
+            </p>
+          </label>
+        ))}
+      </div>
+      <p className="text-sm mt-3" style={{ color: '#5f5a52' }}>
+        {lose.name}&apos;s tags, history and prayer requests move to the one you keep, and any blank details fill in. Then {lose.name} is removed from ARK.
+      </p>
+      {bothInGoogle && (
+        <p className="text-sm mt-2" style={{ color: '#9a6b00' }}>
+          Both are in Google. After this, merge them in Google too (contacts.google.com, Merge &amp; fix). The sync won&apos;t bring the duplicate back.
+        </p>
+      )}
+      <div className="mt-4 flex justify-end gap-3">
+        <button onClick={onCancel} className="text-sm font-semibold px-3 py-2 rounded-lg border" style={{ borderColor: '#d1d5db', color: '#8a8378' }}>
+          Cancel
+        </button>
+        <button
+          onClick={() => onMerge(keepId, lose.id)}
+          disabled={busy}
+          className="text-sm font-semibold px-4 py-2 rounded-lg disabled:opacity-50"
+          style={{ backgroundColor: 'var(--navy)', color: 'white' }}
+        >
+          {busy ? 'Merging…' : 'Merge'}
+        </button>
+      </div>
     </div>
   );
 }

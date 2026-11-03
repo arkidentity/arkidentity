@@ -257,6 +257,11 @@ export async function syncGoogleContacts(opts: { dryRun: boolean }): Promise<Syn
   const { data: linkRows, error: lErr } = await db.from('contact_tag_links').select('contact_id, tag_id');
   if (lErr) throw new Error(lErr.message);
 
+  // Google ids of duplicates merged away in ARK (migration 052): skip them so
+  // the duplicate isn't imported again before it's merged in Google too.
+  const { data: awayRows } = await db.from('google_merged_away').select('resource_name');
+  const mergedAway = new Set((awayRows ?? []).map((r) => r.resource_name as string));
+
   // ---- 1. Labels <-> tags, matched by group id, then by slug ---------------
   const tagBySlug = new Map(tags.map((t) => [t.slug, t]));
   const tagById = new Map(tags.map((t) => [t.id, t]));
@@ -335,6 +340,7 @@ export async function syncGoogleContacts(opts: { dryRun: boolean }): Promise<Syn
   const pairs: { contactId: string; person: GPerson }[] = [];
 
   for (const p of people) {
+    if (mergedAway.has(p.resourceName)) continue;
     const name = personName(p);
     const email = personEmail(p);
     const phone = personPhone(p);

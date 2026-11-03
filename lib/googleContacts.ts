@@ -675,3 +675,47 @@ export async function pushContactToGoogle(contact: {
     .eq('google_resource_name', rn);
   return true;
 }
+
+// ---------------------------------------------------------------------------
+// Tag edits -> Google labels
+// ---------------------------------------------------------------------------
+// A merged, deleted or renamed tag has to change in Google too, or the next
+// sync reads the old label and brings the tag back. Contacts are never deleted
+// with a label (deleteContacts=false). All of these are best-effort: when
+// Google isn't connected they do nothing.
+
+export async function googleGroupForTag(tagId: string): Promise<string | null> {
+  const { data } = await getSupabaseAdmin()
+    .from('contact_tags')
+    .select('google_group_resource_name')
+    .eq('id', tagId)
+    .maybeSingle();
+  return (data?.google_group_resource_name as string | null) ?? null;
+}
+
+async function connectedToken(): Promise<string | null> {
+  if (!googleConfigured() || !(await getConnection())) return null;
+  return accessToken();
+}
+
+export async function deleteGoogleGroup(resourceName: string | null): Promise<void> {
+  if (!resourceName) return;
+  const token = await connectedToken();
+  if (!token) return;
+  const res = await fetch(`${API}/${resourceName}?deleteContacts=false`, {
+    method: 'DELETE',
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!res.ok && res.status !== 404) throw new Error(`Google label delete ${res.status}: ${await res.text()}`);
+}
+
+export async function renameGoogleGroup(resourceName: string | null, name: string): Promise<void> {
+  if (!resourceName) return;
+  const token = await connectedToken();
+  if (!token) return;
+  const group = await api<GGroup & { etag?: string }>(token, resourceName);
+  await api(token, resourceName, {
+    method: 'PUT',
+    body: JSON.stringify({ contactGroup: { name, etag: group.etag } }),
+  });
+}

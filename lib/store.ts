@@ -93,10 +93,10 @@ function customField(fields: CustomField[], re: RegExp): string | null {
   return f?.text?.value?.trim() || null;
 }
 
-/** Bulk bonuses (PLAN §4): 1 free deck per 10 + group guide · 25+ a DNA Journal · 50+ a call with Travis. */
+/** Bulk bonuses (PLAN §4): 1 free deck per 10 + group guide · 25+ a DNA Journal. */
 export function bulkBonus(qty: number) {
   if (qty < 10) return { bonus_decks: 0, journals: 0, note: null as string | null };
-  const note = ['Group guide', qty >= 25 ? 'DNA Journal' : null, qty >= 50 ? 'Call with Travis' : null].filter(Boolean).join(' · ');
+  const note = ['Group guide', qty >= 25 ? 'DNA Journal' : null].filter(Boolean).join(' · ');
   return { bonus_decks: Math.floor(qty / 10), journals: qty >= 25 ? 1 : 0, note };
 }
 

@@ -36,6 +36,7 @@ export function ContactManager({
   const [syncing, setSyncing] = useState(false);
   const [merging, setMerging] = useState(false);
   const [dupesOnly, setDupesOnly] = useState(false);
+  const [showArchived, setShowArchived] = useState(false);
 
   // A CSV import refreshes the server data; pick it up (see EventDetail).
   useEffect(() => { setContacts(initialContacts); }, [initialContacts]);
@@ -57,6 +58,7 @@ export function ContactManager({
       groups.set(key, [...(groups.get(key) ?? []), id]);
     };
     for (const c of contacts) {
+      if (c.status === 'archived' && !showArchived) continue;
       add(c.name ? `n:${c.name.trim().toLowerCase().replace(/\s+/g, ' ')}` : null, c.id);
       add(c.email ? `e:${c.email.toLowerCase()}` : null, c.id);
       const d = c.phone?.replace(/\D/g, '') ?? '';
@@ -65,21 +67,23 @@ export function ContactManager({
     const ids = new Set<string>();
     for (const list of groups.values()) if (list.length > 1) list.forEach((id) => ids.add(id));
     return ids;
-  }, [contacts]);
+  }, [contacts, showArchived]);
 
   const visible = useMemo(() => {
     const q = search.trim().toLowerCase();
     const list = contacts.filter((c) => {
+      if (c.status === 'archived' && !showArchived) return false;
       if (dupesOnly && !dupeIds.has(c.id)) return false;
+      if (tagFilter === '__none' && c.tags.length > 0) return false;
       if (stateFilter && c.state !== stateFilter) return false;
-      if (tagFilter && !c.tags.some((t) => t.id === tagFilter)) return false;
+      if (tagFilter && tagFilter !== '__none' && !c.tags.some((t) => t.id === tagFilter)) return false;
       if (churchFilter && c.church !== churchFilter) return false;
       if (!q) return true;
       return [c.name, c.email, c.phone, c.city, c.church].some((v) => v?.toLowerCase().includes(q));
     });
     // Duplicates read best side by side.
     return dupesOnly ? [...list].sort((a, b) => a.name.localeCompare(b.name)) : list;
-  }, [contacts, search, stateFilter, tagFilter, churchFilter, dupesOnly, dupeIds]);
+  }, [contacts, search, stateFilter, tagFilter, churchFilter, dupesOnly, dupeIds, showArchived]);
 
   // Selection is by id and survives filter changes on purpose: filter to
   // Colorado, select those, filter to Iowa, add those too, then tag the lot.
@@ -209,8 +213,20 @@ export function ContactManager({
   async function archive(id: string, name: string) {
     if (!window.confirm(`Archive ${name}? They stay in the database and on any roster — they just stop showing up here.`)) return;
     const res = await fetch(`/api/admin/contacts/${id}`, { method: 'DELETE' });
-    if (res.ok) setContacts((list) => list.filter((c) => c.id !== id));
+    if (res.ok) setContacts((list) => list.map((c) => (c.id === id ? { ...c, status: 'archived', subscribed: false } : c)));
     else setError('Could not archive.');
+  }
+
+  async function bulkArchive() {
+    if (!window.confirm(`Archive ${selected.length} people? They stay in Google and can be restored any time.`)) return;
+    setBusy(true); setError(''); setNotice('');
+    const ids = [...selected];
+    const results = await Promise.all(ids.map((id) => fetch(`/api/admin/contacts/${id}`, { method: 'DELETE' }).then((r) => r.ok)));
+    setBusy(false);
+    const done = ids.filter((_, i) => results[i]);
+    setContacts((list) => list.map((c) => (done.includes(c.id) ? { ...c, status: 'archived', subscribed: false } : c)));
+    setNotice(`Archived ${done.length}.${done.length < ids.length ? ` ${ids.length - done.length} failed.` : ''}`);
+    setSelected([]);
   }
 
   async function importCsv(file: File) {
@@ -263,6 +279,7 @@ export function ContactManager({
           </select>
           <select value={tagFilter} onChange={(e) => setTagFilter(e.target.value)} className="px-3 py-2 rounded-lg border text-sm" style={inputStyle}>
             <option value="">All tags</option>
+            <option value="__none">No tags</option>
             {tags.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
           </select>
           {churches.length > 0 && (
@@ -303,8 +320,12 @@ export function ContactManager({
               Possible duplicates ({dupeIds.size})
             </label>
           )}
+          <label className="flex items-center gap-2 text-sm cursor-pointer" style={{ color: 'var(--navy)' }}>
+            <input type="checkbox" checked={showArchived} onChange={(e) => setShowArchived(e.target.checked)} />
+            Show archived
+          </label>
           <span className="text-sm" style={{ color: '#8a8378' }}>
-            {visible.length} of {contacts.length}
+            {visible.length} of {contacts.filter((c) => showArchived || c.status !== 'archived').length}
           </span>
         </div>
         {notice && <p className="text-sm mt-2" style={{ color: '#1e5631' }}>{notice}</p>}
@@ -357,6 +378,14 @@ export function ContactManager({
               Merge these 2
             </button>
           )}
+          <button
+            onClick={bulkArchive}
+            disabled={busy}
+            className="text-sm font-semibold px-3 py-2 rounded-lg border disabled:opacity-40"
+            style={{ borderColor: '#f0c8c8', color: '#b91c1c' }}
+          >
+            Archive
+          </button>
           <button onClick={() => { setSelected([]); setMerging(false); }} className="text-sm font-semibold px-3 py-2 rounded-lg border" style={{ borderColor: '#d1d5db', color: '#8a8378' }}>
             Clear
           </button>
@@ -398,6 +427,7 @@ export function ContactManager({
               <div className="flex-1 min-w-[180px]">
                 <p className="font-semibold" style={{ color: 'var(--navy)' }}>
                   {c.name}
+                  {c.status === 'archived' && <span className="text-xs font-normal" style={{ color: '#b91c1c' }}> · archived</span>}
                   {!c.subscribed && <span className="text-xs font-normal" style={{ color: '#8a8378' }}> · not on updates</span>}
                 </p>
                 <p className="text-sm" style={{ color: '#8a8378' }}>
@@ -466,9 +496,15 @@ export function ContactManager({
               <button onClick={() => setEditing(editing === c.id ? null : c.id)} className="text-sm font-semibold px-3 py-1.5 rounded-lg border" style={{ borderColor: '#d1d5db', color: 'var(--navy)' }}>
                 {editing === c.id ? 'Close' : 'Edit'}
               </button>
-              <button onClick={() => archive(c.id, c.name)} className="text-sm font-semibold px-3 py-1.5 rounded-lg border" style={{ borderColor: '#f0c8c8', color: '#b91c1c' }}>
-                Archive
-              </button>
+              {c.status === 'archived' ? (
+                <button onClick={() => patch(c.id, { status: 'active' })} className="text-sm font-semibold px-3 py-1.5 rounded-lg border" style={{ borderColor: '#d1d5db', color: 'var(--navy)' }}>
+                  Restore
+                </button>
+              ) : (
+                <button onClick={() => archive(c.id, c.name)} className="text-sm font-semibold px-3 py-1.5 rounded-lg border" style={{ borderColor: '#f0c8c8', color: '#b91c1c' }}>
+                  Archive
+                </button>
+              )}
             </div>
 
             {editing === c.id && (

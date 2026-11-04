@@ -301,7 +301,7 @@ export interface PublicFounder {
   at: string;
 }
 
-/** The public list: every paid order, newest first. Names only when they opted in; messages only once approved. */
+/** The public list: every paid order, newest first. Names only when they opted in; messages unless Travis hid them. */
 export async function publicFounders(brand = 'cc', limit = 200): Promise<{ founders: number; decks: number; list: PublicFounder[] }> {
   const { data, error } = await getSupabaseAdmin()
     .from('store_orders')
@@ -355,8 +355,8 @@ export async function saveFounderEntry(
     wall_name: e.name?.trim().slice(0, 40) || null,
     wall_city: e.city?.trim().slice(0, 40) || null,
     wall_message: message,
-    // A changed message goes back for approval.
-    ...(message !== o.wall_message ? { wall_message_ok: false } : {}),
+    // Messages show right away (Travis 11/3); a new message clears an earlier hide.
+    ...(message !== o.wall_message ? { wall_message_ok: true } : {}),
     wall_updated_at: new Date().toISOString(),
   } as Partial<StoreOrder>);
   return true;

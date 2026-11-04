@@ -49,15 +49,15 @@ export function OrderList({ initial }: { initial: StoreOrder[] }) {
   const live = rows.filter((o) => o.status !== 'refunded' && o.status !== 'canceled');
   const decks = live.reduce((n, o) => n + o.decks, 0);
   const toPack = rows.filter((o) => o.status === 'paid').reduce((n, o) => n + o.decks + o.bonus_decks, 0);
-  const waiting = rows.filter((o) => o.wall_message && !o.wall_message_ok).length;
+  const notes = rows.filter((o) => o.wall_message && o.wall_message_ok).length;
 
   return (
     <div>
       <p className="mb-4 text-sm" style={{ color: '#4a4540' }}>
         <b>{decks}</b> decks sold · <b>{toPack}</b> decks to pack (with bonus decks)
-        {waiting > 0 && (
+        {notes > 0 && (
           <>
-            {' '}· <b>{waiting}</b> Founders wall message{waiting === 1 ? '' : 's'} waiting (view All)
+            {' '}· <b>{notes}</b> note{notes === 1 ? '' : 's'} on the Founders wall
           </>
         )}
       </p>
@@ -118,8 +118,8 @@ export function OrderList({ initial }: { initial: StoreOrder[] }) {
                 <div className="mt-2 flex items-start justify-between gap-3 rounded-lg p-3" style={{ background: '#FAF8F5' }}>
                   <p className="text-sm" style={{ color: '#4a4540' }}>
                     “{o.wall_message}”
-                    <span className="ml-2 text-xs font-semibold" style={{ color: o.wall_message_ok ? '#15803d' : '#b45309' }}>
-                      {o.wall_message_ok ? 'on the wall' : 'waiting for you'}
+                    <span className="ml-2 text-xs font-semibold" style={{ color: o.wall_message_ok ? '#15803d' : '#8a8378' }}>
+                      {o.wall_message_ok ? 'on the wall' : 'hidden'}
                     </span>
                   </p>
                   <button
@@ -128,7 +128,7 @@ export function OrderList({ initial }: { initial: StoreOrder[] }) {
                     className="text-sm font-semibold rounded-lg px-3 py-1 shrink-0 text-white"
                     style={{ background: o.wall_message_ok ? '#8a8378' : 'var(--navy)' }}
                   >
-                    {o.wall_message_ok ? 'Hide' : 'Show it'}
+                    {o.wall_message_ok ? 'Hide' : 'Show again'}
                   </button>
                 </div>
               )}

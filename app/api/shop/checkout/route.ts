@@ -36,6 +36,8 @@ export async function POST(req: Request) {
   } catch (e) {
     const status = e instanceof ShopError ? e.status : 500;
     console.error('[shop checkout]', sku, e);
-    return NextResponse.json({ error: status === 400 ? (e as Error).message : 'Checkout is unavailable.' }, { status, headers: CORS });
+    // ShopError messages are ours or Stripe's (e.g. "Invalid API Key provided", a permission or price problem):
+    // safe to show and they make a broken key obvious. Anything else stays generic.
+    return NextResponse.json({ error: e instanceof ShopError ? e.message : 'Checkout is unavailable.' }, { status, headers: CORS });
   }
 }

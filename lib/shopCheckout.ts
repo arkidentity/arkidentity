@@ -5,6 +5,8 @@
 // Env (Vercel, ark-identity): STRIPE_CHECKOUT_KEY = restricted key on the ARK Identity Shop with
 //   Checkout Sessions: Write · Prices: Read · Shipping Rates: Write.
 //   Preview → test key (rk_test_…). Production → live key, added only when a front door switches over.
+// STRIPE_PUBLISHABLE_KEY = the matching pk_test_/pk_live_ key (public). The embedded form needs it; the API hands
+// it to the front door with the session so the two keys always match and only live here.
 
 import { BRAND_SITES, CATALOG, currentPriceKey, type Brand } from '@/lib/shopCatalog';
 
@@ -43,7 +45,14 @@ async function priceIds(lookupKeys: string[]): Promise<Record<string, string>> {
  * `sku`: the main item. `addons`: add-on SKUs the buyer said yes to. `origin`: the calling site
  * (only used if it belongs to the product's brand, so previews come back to the preview).
  */
-export async function createShopCheckout(opts: { sku: string; addons?: string[]; origin?: string | null }): Promise<string> {
+export async function createShopCheckout(opts: {
+  sku: string;
+  addons?: string[];
+  origin?: string | null;
+  /** 'embedded' = Stripe's form inside the brand's own /checkout page; 'hosted' = Stripe's page. */
+  ui?: 'embedded' | 'hosted';
+}): Promise<{ url?: string; clientSecret?: string }> {
+  const ui = opts.ui ?? 'hosted';
   const item = CATALOG[opts.sku];
   if (!item || item.addonOnly) throw new ShopError('Unknown product.');
   const addons = [...new Set(opts.addons ?? [])];
@@ -62,8 +71,13 @@ export async function createShopCheckout(opts: { sku: string; addons?: string[];
   const p = new URLSearchParams();
   const set = (k: string, v: string | number | boolean) => p.set(k, String(v));
   set('mode', 'payment');
-  set('success_url', `${back}/thanks?session_id={CHECKOUT_SESSION_ID}`);
-  set('cancel_url', `${back}/#reserve`);
+  if (ui === 'embedded') {
+    set('ui_mode', 'embedded');
+    set('return_url', `${back}/thanks?session_id={CHECKOUT_SESSION_ID}`);
+  } else {
+    set('success_url', `${back}/thanks?session_id={CHECKOUT_SESSION_ID}`);
+    set('cancel_url', `${back}/#reserve`);
+  }
   set('allow_promotion_codes', true);
   set('automatic_tax[enabled]', true);
   set('billing_address_collection', 'required');
@@ -104,6 +118,6 @@ export async function createShopCheckout(opts: { sku: string; addons?: string[];
     if (f.optional) set(`custom_fields[${i}][optional]`, true);
   });
 
-  const session = (await stripe('/checkout/sessions', p)) as { url: string };
-  return session.url;
+  const session = (await stripe('/checkout/sessions', p)) as { url?: string; client_secret?: string };
+  return ui === 'embedded' ? { clientSecret: session.client_secret } : { url: session.url };
 }

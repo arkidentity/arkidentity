@@ -4,7 +4,7 @@ import { createShopCheckout, ShopError } from '@/lib/shopCheckout';
 
 export const dynamic = 'force-dynamic';
 
-// POST /api/shop/checkout { sku, addons? } → { url }: the ARK Identity Shop's one checkout, called by every
+// POST /api/shop/checkout { sku, addons?, ui? } → { url } (hosted) or { clientSecret, publishableKey } (embedded): the ARK Identity Shop's one checkout, called by every
 // front door (creedcards.com now). The calling site falls back to its Payment Link if this fails.
 
 function cors(req: Request) {
@@ -24,12 +24,15 @@ export function OPTIONS(req: Request) {
 
 export async function POST(req: Request) {
   const CORS = cors(req);
-  const b = (await req.json().catch(() => ({}))) as { sku?: unknown; addons?: unknown };
+  const b = (await req.json().catch(() => ({}))) as { sku?: unknown; addons?: unknown; ui?: unknown };
   const sku = typeof b.sku === 'string' ? b.sku : '';
   const addons = Array.isArray(b.addons) ? b.addons.filter((a): a is string => typeof a === 'string').slice(0, 5) : [];
+  const ui = b.ui === 'embedded' ? 'embedded' : 'hosted';
   try {
-    const url = await createShopCheckout({ sku, addons, origin: req.headers.get('origin') });
-    return NextResponse.json({ url }, { headers: CORS });
+    if (ui === 'embedded' && !process.env.STRIPE_PUBLISHABLE_KEY) throw new Error('STRIPE_PUBLISHABLE_KEY is not set');
+    const out = await createShopCheckout({ sku, addons, origin: req.headers.get('origin'), ui });
+    const body = ui === 'embedded' ? { ...out, publishableKey: process.env.STRIPE_PUBLISHABLE_KEY } : out;
+    return NextResponse.json(body, { headers: CORS });
   } catch (e) {
     const status = e instanceof ShopError ? e.status : 500;
     console.error('[shop checkout]', sku, e);

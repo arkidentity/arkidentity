@@ -72,7 +72,7 @@ export async function createShopCheckout(opts: {
   const set = (k: string, v: string | number | boolean) => p.set(k, String(v));
   set('mode', 'payment');
   if (ui === 'embedded') {
-    set('ui_mode', 'embedded');
+    set('ui_mode', 'embedded_page'); // Stripe renamed `embedded` → `embedded_page`
     set('return_url', `${back}/thanks?session_id={CHECKOUT_SESSION_ID}`);
   } else {
     set('success_url', `${back}/thanks?session_id={CHECKOUT_SESSION_ID}`);

@@ -36,7 +36,9 @@ export function OrderList({ initial }: { initial: StoreOrder[] }) {
           ? action === 'approve-message' || action === 'hide-message'
             ? { ...x, wall_message_ok: action === 'approve-message' }
             : action === 'shipped'
-              ? { ...x, status: 'shipped', tracking_number: extra.tracking ?? null, shipped_at: new Date().toISOString() }
+              ? x.gifts?.some((g) => !g.tracking)
+                ? { ...x, tracking_number: extra.tracking ?? null } // gift boxes still to ship
+                : { ...x, status: 'shipped', tracking_number: extra.tracking ?? null, shipped_at: new Date().toISOString() }
               : { ...x, status: action === 'packed' ? 'packed' : 'paid' }
           : x
       )
@@ -114,6 +116,7 @@ export function OrderList({ initial }: { initial: StoreOrder[] }) {
                     <p key={i} className="text-sm pl-3" style={{ color: '#4a4540' }}>
                       {i + 1}. {[g.name, g.line1, g.line2, g.city, `${g.state} ${g.zip}`].filter(Boolean).join(', ')}
                       {g.note ? ` · Note: “${g.note}”` : ''}
+                      {g.tracking ? <span style={{ color: '#2f6b3a' }}> · Shipped {g.tracking}</span> : ''}
                     </p>
                   ))}
                 </>

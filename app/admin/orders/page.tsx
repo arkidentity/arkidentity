@@ -1,5 +1,6 @@
 import { listOrders } from '@/lib/store';
 import { OrderList } from '@/components/store/OrderList';
+import { TrackingImport } from '@/components/store/TrackingImport';
 
 export const metadata = { title: 'Orders - ARK Identity' };
 export const dynamic = 'force-dynamic';
@@ -25,9 +26,10 @@ export default async function OrdersAdminPage() {
           </a>
         </div>
         <p className="mb-8" style={{ color: '#8a8378' }}>
-          Paid orders from Stripe, oldest first. Pack, then ship with the tracking number (that emails the buyer). The
-          CSV has every order not shipped yet.
+          Paid orders from Stripe, oldest first. The Pirate Ship CSV has every package not shipped yet (gifts get their
+          own rows). After buying labels, import Pirate Ship&apos;s tracking file below, or ship one order by hand.
         </p>
+        <TrackingImport />
         <OrderList initial={orders} />
       </div>
     </div>

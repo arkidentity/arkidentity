@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { sendShippedEmail } from '@/lib/email';
 import { getOrder, updateOrder } from '@/lib/store';
+import { allShipped } from '@/lib/tracking';
 
 export const dynamic = 'force-dynamic';
 
@@ -21,7 +22,9 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     else if (b.action === 'shipped') {
       const tracking = (b.tracking ?? '').replace(/\s+/g, '').slice(0, 60);
       if (!tracking) return NextResponse.json({ error: 'Add the tracking number.' }, { status: 400 });
-      await updateOrder(id, { status: 'shipped', tracking_number: tracking, shipped_at: new Date().toISOString() });
+      // Gift orders: this number is the buyer's own box; the order is "shipped" once every gift box has tracking too.
+      const done = allShipped({ ...o, tracking_number: tracking });
+      await updateOrder(id, done ? { status: 'shipped', tracking_number: tracking, shipped_at: new Date().toISOString() } : { tracking_number: tracking });
       let emailed = false;
       if (o.email) {
         const decks = o.decks + o.bonus_decks;

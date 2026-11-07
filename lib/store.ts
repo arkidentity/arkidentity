@@ -89,7 +89,19 @@ function skuOf(product: { name?: string; metadata?: Record<string, string> } | n
 
 type CustomField = { key: string; label?: { custom?: string }; text?: { value?: string | null } };
 
-export type GiftPackage = { name: string; line1: string; line2?: string; city: string; state: string; zip: string; note?: string; decks: number };
+export type GiftPackage = {
+  name: string;
+  line1: string;
+  line2?: string;
+  city: string;
+  state: string;
+  zip: string;
+  note?: string;
+  decks: number;
+  /** Set when this gift box ships (lib/tracking.ts). */
+  tracking?: string | null;
+  shipped_at?: string | null;
+};
 
 /** Gift packages from the shop checkout's metadata: gift_1..gift_9 (JSON array) + gift_N_note; older sessions used gift_name etc. */
 export function giftsFromMetadata(m: Record<string, string> | null | undefined): GiftPackage[] {
@@ -385,11 +397,13 @@ export function pirateShipCsv(orders: StoreOrder[]): string {
       const own = o.own_decks ?? Math.max(0, o.decks + o.bonus_decks - giftDecks);
       // Shipping rate shown once per package ("Priority" applies to every package of the order).
       const rate = /priority/i.test(o.shipping_rate ?? '') ? 'Priority' : 'Standard';
-      if (own > 0 || o.journals > 0) {
+      // Packages that already have tracking (shipped in an earlier batch) are left out.
+      if ((own > 0 || o.journals > 0) && !o.tracking_number) {
         const contents = [own ? `${own} deck${own === 1 ? '' : 's'}` : null, o.journals ? `${o.journals} journal` : null, o.bonus_note].filter(Boolean).join(' + ');
         rows.push([short, o.ship_name ?? o.name, a.line1, a.line2, a.city, a.state, a.postal_code, a.country ?? 'US', o.email, o.phone, own * DECK_OZ + o.journals * JOURNAL_OZ, rate, contents, o.notes]);
       }
       o.gifts.forEach((g, i) => {
+        if (g.tracking) return;
         rows.push([
           `${short}-g${i + 1}`, g.name, g.line1, g.line2, g.city, g.state, g.zip, 'US', '', '', g.decks * DECK_OZ, rate,
           `${g.decks} gift deck${g.decks === 1 ? '' : 's'}${g.note ? ' + note' : ''}`,

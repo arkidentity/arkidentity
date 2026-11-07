@@ -872,9 +872,44 @@ export async function sendPrayerRequestNotice(r: { name: string; email: string |
 // ARK store: "your order shipped" (system email, so Resend). Sent from the
 // brand's own mail. subdomain: STORE_EMAIL_FROM, e.g.
 // "Creed Cards <orders@mail.creedcards.com>". Plan: ark-workspace ark-store/PLAN.md §8.
+const uspsUrl = (t: string) => `https://tools.usps.com/go/TrackConfirmAction?tLabels=${encodeURIComponent(t)}`;
+
+/**
+ * One email per order for the packages that just shipped (bulk tracking import, lib/tracking.ts).
+ * Gift boxes are listed by recipient ("Gift deck to Jane Doe") so the buyer can follow each one.
+ */
+export async function sendPackagesShippedEmail(opts: {
+  to: string;
+  name: string | null;
+  packages: { label: string; tracking: string }[];
+  /** Packages of this order still to come (another batch). */
+  more?: number;
+}) {
+  const from = process.env.STORE_EMAIL_FROM || fromAddress();
+  const one = opts.packages.length === 1;
+  const list = opts.packages
+    .map(
+      (p) => `<tr>
+        <td style="padding:10px 0; border-bottom:1px solid #eee;">${escapeHtml(p.label)}<br/><span style="color:#8a8378; font-size:13px;">${escapeHtml(p.tracking)}</span></td>
+        <td style="padding:10px 0; border-bottom:1px solid #eee; text-align:right;"><a href="${uspsUrl(p.tracking)}" style="color:#143348; font-weight:600;">Track</a></td>
+      </tr>`
+    )
+    .join('');
+  const html = wrap(`
+    <h1 style="color:#143348; font-size:22px;">${one ? 'Your order shipped' : `${opts.packages.length} packages shipped`}</h1>
+    <p>Hi ${escapeHtml(opts.name?.split(' ')[0] || 'friend')},</p>
+    <p>${one ? 'Your package is on its way.' : 'Your packages are on their way. Each one has its own tracking number.'}${
+      opts.more ? ` ${opts.more} more ${opts.more === 1 ? 'package ships' : 'packages ship'} soon; we'll email you then.` : ''
+    }</p>
+    <table style="width:100%; border-collapse:collapse; margin:20px 0;">${list}</table>
+    <p style="color:#8a8378; font-size:14px;">Something missing or damaged? Reply to this email and we'll make it right.</p>
+  `);
+  return getResend().emails.send({ from, to: opts.to, subject: one ? 'Your order shipped' : 'Your packages shipped', html });
+}
+
 export async function sendShippedEmail(opts: { to: string; name: string | null; contents: string; tracking: string }) {
   const from = process.env.STORE_EMAIL_FROM || fromAddress();
-  const url = `https://tools.usps.com/go/TrackConfirmAction?tLabels=${encodeURIComponent(opts.tracking)}`;
+  const url = uspsUrl(opts.tracking);
   const html = wrap(`
     <h1 style="color:#143348; font-size:22px;">Your order shipped</h1>
     <p>Hi ${escapeHtml(opts.name?.split(' ')[0] || 'friend')},</p>

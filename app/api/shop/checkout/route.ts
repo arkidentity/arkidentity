@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { BRAND_SITES } from '@/lib/shopCatalog';
-import { createShopCheckout, ShopError } from '@/lib/shopCheckout';
+import { cleanGift, createShopCheckout, ShopError } from '@/lib/shopCheckout';
 
 export const dynamic = 'force-dynamic';
 
@@ -24,13 +24,15 @@ export function OPTIONS(req: Request) {
 
 export async function POST(req: Request) {
   const CORS = cors(req);
-  const b = (await req.json().catch(() => ({}))) as { sku?: unknown; addons?: unknown; ui?: unknown };
+  const b = (await req.json().catch(() => ({}))) as { sku?: unknown; addons?: unknown; ui?: unknown; gift?: unknown };
+  const gift = b.gift ? cleanGift(b.gift) : null;
+  if (b.gift && !gift) return NextResponse.json({ error: 'Please check the gift address.' }, { status: 400, headers: CORS });
   const sku = typeof b.sku === 'string' ? b.sku : '';
   const addons = Array.isArray(b.addons) ? b.addons.filter((a): a is string => typeof a === 'string').slice(0, 5) : [];
   const ui = b.ui === 'embedded' ? 'embedded' : 'hosted';
   try {
     if (ui === 'embedded' && !process.env.STRIPE_PUBLISHABLE_KEY) throw new Error('STRIPE_PUBLISHABLE_KEY is not set');
-    const out = await createShopCheckout({ sku, addons, origin: req.headers.get('origin'), ui });
+    const out = await createShopCheckout({ sku, addons, origin: req.headers.get('origin'), ui, gift });
     const body = ui === 'embedded' ? { ...out, publishableKey: process.env.STRIPE_PUBLISHABLE_KEY } : out;
     return NextResponse.json(body, { headers: CORS });
   } catch (e) {

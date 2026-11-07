@@ -92,6 +92,14 @@ function skuOf(product: { name?: string; metadata?: Record<string, string> } | n
 
 type CustomField = { key: string; label?: { custom?: string }; text?: { value?: string | null } };
 
+/** "Jane Doe, 12 Main St, Apt 2, Ames, IA 50010" from the shop checkout's gift_* metadata. */
+function giftFromMetadata(m: Record<string, string> | null | undefined): string | null {
+  if (!m?.gift_name || !m.gift_line1) return null;
+  return [m.gift_name, m.gift_line1, m.gift_line2, m.gift_city, `${m.gift_state ?? ''} ${m.gift_zip ?? ''}`.trim()]
+    .filter(Boolean)
+    .join(', ');
+}
+
 function customField(fields: CustomField[], re: RegExp): string | null {
   const f = fields.find((x) => re.test(`${x.key} ${x.label?.custom ?? ''}`.toLowerCase()));
   return f?.text?.value?.trim() || null;
@@ -148,8 +156,9 @@ export async function saveCheckoutSession(sessionId: string): Promise<StoreOrder
     ship_name: ship?.name ?? s.customer_details?.name ?? null,
     ship_address: ship?.address ?? null,
     shipping_rate: s.shipping_cost?.shipping_rate?.display_name ?? null,
-    gift_recipient: customField(fields, /recipient|address/),
-    gift_note: customField(fields, /note/),
+    // Shop checkout puts a structured gift address in metadata (lib/shopCheckout.ts); Payment Links use free text.
+    gift_recipient: giftFromMetadata(s.metadata) ?? customField(fields, /recipient|address/),
+    gift_note: s.metadata?.gift_note?.trim() || customField(fields, /note/),
     wall_name: customField(fields, /wall|founder/),
     wall_public: !!customField(fields, /wall|founder/),
     group_name: customField(fields, /church|group/),

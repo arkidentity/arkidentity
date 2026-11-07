@@ -12,6 +12,18 @@ import { BRAND_SITES, CATALOG, currentPriceKey, type Brand } from '@/lib/shopCat
 
 const API = 'https://api.stripe.com/v1';
 
+export type GiftAddress = { name: string; line1: string; line2?: string; city: string; state: string; zip: string; note?: string };
+
+/** Cleans a gift address from the front door; null if anything required is missing. */
+export function cleanGift(g: unknown): GiftAddress | null {
+  if (!g || typeof g !== 'object') return null;
+  const o = g as Record<string, unknown>;
+  const s = (k: string, max: number) => (typeof o[k] === 'string' ? (o[k] as string).trim().slice(0, max) : '');
+  const out = { name: s('name', 80), line1: s('line1', 100), line2: s('line2', 100), city: s('city', 60), state: s('state', 2).toUpperCase(), zip: s('zip', 10), note: s('note', 300) };
+  if (!out.name || !out.line1 || !out.city || !/^[A-Z]{2}$/.test(out.state) || !/^\d{5}(-\d{4})?$/.test(out.zip)) return null;
+  return out;
+}
+
 export class ShopError extends Error {
   constructor(message: string, public status = 400) {
     super(message);
@@ -51,6 +63,8 @@ export async function createShopCheckout(opts: {
   origin?: string | null;
   /** 'embedded' = Stripe's form inside the brand's own /checkout page; 'hosted' = Stripe's page. */
   ui?: 'embedded' | 'hosted';
+  /** Gift recipient collected on the brand's own page (structured, autofill), instead of a free-text Stripe field. */
+  gift?: GiftAddress | null;
 }): Promise<{ url?: string; clientSecret?: string }> {
   const ui = opts.ui ?? 'hosted';
   const item = CATALOG[opts.sku];
@@ -80,7 +94,7 @@ export async function createShopCheckout(opts: {
   }
   set('allow_promotion_codes', true);
   set('automatic_tax[enabled]', true);
-  set('billing_address_collection', 'required');
+  // Billing address: Stripe's default ("auto") asks only for what the card needs (usually ZIP). One address, not two.
   set('shipping_address_collection[allowed_countries][0]', 'US');
   set('metadata[brand]', item.brand);
   set('metadata[source]', 'shop-checkout');
@@ -110,7 +124,31 @@ export async function createShopCheckout(opts: {
     set(`shipping_options[${i}][shipping_rate_data][tax_behavior]`, 'exclusive');
   });
 
-  (item.fields ?? []).forEach((f, i) => {
+  // Add-ons they skipped on the brand page: offered once more inside Stripe ("Add to your order").
+  const skipped = (item.addons ?? []).filter((a) => !addons.includes(a) && CATALOG[a]);
+  if (skipped.length) {
+    const more = await priceIds(skipped.map((a) => currentPriceKey(CATALOG[a])));
+    skipped.forEach((a, i) => {
+      const id = more[currentPriceKey(CATALOG[a])];
+      if (!id) return;
+      set(`optional_items[${i}][price]`, id);
+      set(`optional_items[${i}][quantity]`, 1);
+    });
+  }
+
+  // Gift address from the brand page → metadata (lib/store.ts reads it); then the free-text gift fields aren't needed.
+  const gift = opts.gift ?? null;
+  if (gift) {
+    set('metadata[gift_name]', gift.name);
+    set('metadata[gift_line1]', gift.line1);
+    if (gift.line2) set('metadata[gift_line2]', gift.line2);
+    set('metadata[gift_city]', gift.city);
+    set('metadata[gift_state]', gift.state);
+    set('metadata[gift_zip]', gift.zip);
+    if (gift.note) set('metadata[gift_note]', gift.note);
+  }
+  const fields = (item.fields ?? []).filter((f) => !(gift && /^gift/.test(f.key)));
+  fields.forEach((f, i) => {
     set(`custom_fields[${i}][key]`, f.key);
     set(`custom_fields[${i}][label][type]`, 'custom');
     set(`custom_fields[${i}][label][custom]`, f.label);

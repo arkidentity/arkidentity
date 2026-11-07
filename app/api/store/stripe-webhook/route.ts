@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { markRefunded, saveCheckoutSession, tagBuyer, verifyStripeSignature } from '@/lib/store';
+import { markRefunded, saveCheckoutSession, tagBuyer, untagRefund, verifyStripeSignature } from '@/lib/store';
 
 export const dynamic = 'force-dynamic';
 
@@ -20,7 +20,8 @@ export async function POST(req: Request) {
       // A GHL hiccup never fails the webhook (Stripe would retry and the order is already saved).
       if (order) await tagBuyer(order).catch((e) => console.error('[store] GHL tag', e));
     } else if (event.type === 'charge.refunded' && event.data.object.payment_intent) {
-      await markRefunded(event.data.object.payment_intent);
+      const refunded = await markRefunded(event.data.object.payment_intent);
+      if (refunded) await untagRefund(refunded).catch((e) => console.error('[store] GHL refund', e));
     }
   } catch (e) {
     console.error('[store] webhook', event.type, e);

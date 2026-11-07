@@ -9,18 +9,11 @@ import { getSupabaseAdmin } from '@/lib/supabaseAdmin';
 // back to the product name, so no price IDs live in code.
 //
 // Env: STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET; GHL_PRIVATE_TOKEN +
-// GHL_LOCATION_ID (buyer tags); STORE_EMAIL_FROM (shipped email).
+// GHL_LOCATION_ID (shop tags, history fields, order notes: EMAIL-AND-TAGS v2); STORE_EMAIL_FROM (shipped email).
 
 export type Sku = 'cc-one' | 'cc-give' | 'cc-table' | 'cc-bulk' | 'dna-journal';
 
 const DECKS_PER: Record<Sku, number> = { 'cc-one': 1, 'cc-give': 2, 'cc-table': 4, 'cc-bulk': 1, 'dna-journal': 0 };
-const TIER_TAG: Record<Sku, string | null> = {
-  'cc-one': 'cc-tier-one',
-  'cc-give': 'cc-tier-give',
-  'cc-table': 'cc-tier-table',
-  'cc-bulk': 'cc-tier-bulk',
-  'dna-journal': null,
-};
 
 export interface StoreOrder {
   id: string;
@@ -181,31 +174,80 @@ export async function saveCheckoutSession(sessionId: string): Promise<StoreOrder
   return data as StoreOrder;
 }
 
-export async function markRefunded(paymentIntent: string) {
-  await getSupabaseAdmin().from('store_orders').update({ status: 'refunded' }).eq('stripe_payment_intent', paymentIntent);
+/** Marks the order refunded; returns it (for the GHL refresh) or null if it isn't ours. */
+export async function markRefunded(paymentIntent: string): Promise<StoreOrder | null> {
+  const { data } = await getSupabaseAdmin()
+    .from('store_orders')
+    .update({ status: 'refunded' })
+    .eq('stripe_payment_intent', paymentIntent)
+    .select('*')
+    .maybeSingle();
+  return (data as StoreOrder) ?? null;
 }
 
-// ---------- GoHighLevel: buyers are customers (donors included, PLAN §5) ----------
+// ---------- GoHighLevel: buyers are shop customers (donors included, PLAN §5) ----------
+// House rules: ark-workspace projects/email-and-marketing/EMAIL-AND-TAGS.md v2.
+// Tags = yes/no facts that trigger follow-ups (shop-*, list-*, role-*).
+// Fields = history, recalculated from ALL of this buyer's orders every time (custom field folder
+// "ARK Identity Shop": shop_first_order, shop_last_order, shop_last_journal_order, shop_orders, shop_total_spent).
+// Note = one readable line per order on the contact's timeline.
 
+const GHL = 'https://services.leadconnectorhq.com';
+
+/** Tags this order earns (v2 families). Never removes tags. */
 export function buyerTags(o: Pick<StoreOrder, 'items'>): string[] {
-  const tags = new Set(['cc-buyer']);
+  const tags = new Set(['shop-customer']);
   for (const it of o.items) {
-    const t = it.sku && TIER_TAG[it.sku];
-    if (t) tags.add(t);
-    if (it.sku === 'cc-give') tags.add('cc-gift-sender');
-    if (it.sku === 'cc-bulk') tags.add('cc-church');
-    if (it.sku === 'dna-journal') tags.add('cc-addon-journal');
+    if (it.sku?.startsWith('cc-')) {
+      tags.add('shop-creed-cards');
+      tags.add('list-creed-cards'); // customers get that product's marketing (Travis 11/3)
+    }
+    if (it.sku === 'cc-give') tags.add('shop-gift-sender');
+    if (it.sku === 'cc-bulk') {
+      tags.add('shop-bulk');
+      tags.add('role-church-leader');
+    }
+    if (it.sku === 'dna-journal') tags.add('shop-dna-journal');
   }
   return [...tags];
 }
 
-/** Adds the buyer to GoHighLevel with their tags. Skips quietly when GHL isn't configured. */
-export async function tagBuyer(o: StoreOrder) {
-  const token = process.env.GHL_PRIVATE_TOKEN;
-  const location = process.env.GHL_LOCATION_ID;
-  if (!token || !location || !o.email) return;
-  const headers = { Authorization: `Bearer ${token}`, Version: '2021-07-28', 'Content-Type': 'application/json', Accept: 'application/json' };
-  const res = await fetch('https://services.leadconnectorhq.com/contacts/upsert', {
+const day = (iso: string) => iso.slice(0, 10); // GHL date fields take YYYY-MM-DD
+
+/** The buyer's shop history from store_orders (paid orders only; refunds don't count). */
+async function shopHistory(email: string) {
+  const { data } = await getSupabaseAdmin()
+    .from('store_orders')
+    .select('paid_at, created_at, total_cents, items, status')
+    .eq('email', email.toLowerCase()); // saved lowercased in saveCheckoutSession
+  const rows = ((data ?? []) as { paid_at?: string | null; created_at: string; total_cents: number | null; items: StoreOrder['items']; status: StoreOrder['status'] }[])
+    .filter((r) => r.status !== 'refunded' && r.status !== 'canceled')
+    .map((r) => ({ ...r, at: r.paid_at ?? r.created_at }))
+    .sort((a, b) => a.at.localeCompare(b.at));
+  const journalRows = rows.filter((r) => r.items?.some((i) => i.sku === 'dna-journal'));
+  const fields: { key: string; field_value: string | number }[] = [
+    { key: 'shop_orders', field_value: rows.length },
+    { key: 'shop_total_spent', field_value: Math.round(rows.reduce((n, r) => n + (r.total_cents ?? 0), 0)) / 100 },
+  ];
+  if (rows.length) {
+    fields.push({ key: 'shop_first_order', field_value: day(rows[0].at) });
+    fields.push({ key: 'shop_last_order', field_value: day(rows[rows.length - 1].at) });
+  }
+  if (journalRows.length) fields.push({ key: 'shop_last_journal_order', field_value: day(journalRows[journalRows.length - 1].at) });
+  return fields;
+}
+
+/** "Nov 7: Keep One, Give One + Daily DNA Journal · gift to Jane D., Ames IA · $62" */
+function orderNote(o: StoreOrder, refunded = false) {
+  const when = new Date((o as { paid_at?: string }).paid_at ?? o.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'America/Chicago' });
+  const what = o.items.map((i) => `${i.quantity > 1 ? `${i.quantity}× ` : ''}${i.name.replace(/^Creed Cards: /, '')}`).join(' + ');
+  const gift = o.gift_recipient ? ` · gift to ${o.gift_recipient}` : '';
+  const total = o.total_cents != null ? ` · $${(o.total_cents / 100).toFixed(2).replace(/\.00$/, '')}` : '';
+  return `${refunded ? 'REFUNDED: ' : ''}ARK Identity Shop order, ${when}: ${what}${gift}${total}`;
+}
+
+async function ghlContact(o: StoreOrder, headers: Record<string, string>, location: string, customFields: object[]) {
+  const res = await fetch(`${GHL}/contacts/upsert`, {
     method: 'POST',
     headers,
     body: JSON.stringify({
@@ -213,18 +255,44 @@ export async function tagBuyer(o: StoreOrder) {
       email: o.email,
       ...(o.name ? { name: o.name } : {}),
       ...(o.phone ? { phone: o.phone } : {}),
-      source: o.brand === 'cc' ? 'creedcards.com/checkout' : 'arkidentity.com/store',
+      source: o.brand === 'cc' ? 'creedcards.com/checkout' : 'arkidentity.com/shop',
+      customFields,
     }),
   });
-  if (!res.ok) throw new Error(`GHL upsert ${res.status}`);
+  if (!res.ok) throw new Error(`GHL upsert ${res.status}: ${(await res.text()).slice(0, 200)}`);
   const id: string | undefined = (await res.json()).contact?.id;
   if (!id) throw new Error('GHL upsert returned no contact id');
-  const tagRes = await fetch(`https://services.leadconnectorhq.com/contacts/${id}/tags`, {
-    method: 'POST',
-    headers,
-    body: JSON.stringify({ tags: buyerTags(o) }),
-  });
+  return id;
+}
+
+async function ghlAdd(id: string, headers: Record<string, string>, tags: string[], note: string) {
+  const tagRes = await fetch(`${GHL}/contacts/${id}/tags`, { method: 'POST', headers, body: JSON.stringify({ tags }) });
   if (!tagRes.ok) throw new Error(`GHL tags ${tagRes.status}`);
+  // The note is nice-to-have: never fail the sync over it.
+  await fetch(`${GHL}/contacts/${id}/notes`, { method: 'POST', headers, body: JSON.stringify({ body: note }) }).catch(() => null);
+}
+
+function ghlEnv() {
+  const token = process.env.GHL_PRIVATE_TOKEN;
+  const location = process.env.GHL_LOCATION_ID;
+  if (!token || !location) return null;
+  return { location, headers: { Authorization: `Bearer ${token}`, Version: '2021-07-28', 'Content-Type': 'application/json', Accept: 'application/json' } };
+}
+
+/** New paid order → GHL: contact + shop tags + history fields + order note. Skips quietly when GHL isn't configured. */
+export async function tagBuyer(o: StoreOrder) {
+  const env = ghlEnv();
+  if (!env || !o.email) return;
+  const id = await ghlContact(o, env.headers, env.location, await shopHistory(o.email));
+  await ghlAdd(id, env.headers, buyerTags(o), orderNote(o));
+}
+
+/** Refund → GHL: `shop-refunded` (shop workflows skip them), history fields recalculated, a refund note. */
+export async function untagRefund(o: StoreOrder) {
+  const env = ghlEnv();
+  if (!env || !o.email) return;
+  const id = await ghlContact(o, env.headers, env.location, await shopHistory(o.email));
+  await ghlAdd(id, env.headers, ['shop-refunded'], orderNote(o, true));
 }
 
 // ---------- Admin ----------

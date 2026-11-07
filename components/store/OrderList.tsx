@@ -104,11 +104,26 @@ export function OrderList({ initial }: { initial: StoreOrder[] }) {
                 {[a.line1, a.line2, a.city, a.state, a.postal_code].filter(Boolean).join(', ')}
                 {o.email ? ` · ${o.email}` : ''}
               </p>
-              {o.gift_recipient && (
-                <p className="mt-1 text-sm" style={{ color: '#4a4540' }}>
-                  Gift to: {o.gift_recipient}
-                  {o.gift_note ? ` · Note: “${o.gift_note}”` : ''}
-                </p>
+              {o.gifts?.length ? (
+                <>
+                  <p className="mt-1 text-sm" style={{ color: '#4a4540' }}>
+                    {o.own_decks ? `${o.own_decks} deck${o.own_decks === 1 ? '' : 's'} to the buyer · ` : 'Nothing to the buyer’s address · '}
+                    {o.gifts.length} gift package{o.gifts.length === 1 ? '' : 's'}:
+                  </p>
+                  {o.gifts.map((g, i) => (
+                    <p key={i} className="text-sm pl-3" style={{ color: '#4a4540' }}>
+                      {i + 1}. {[g.name, g.line1, g.line2, g.city, `${g.state} ${g.zip}`].filter(Boolean).join(', ')}
+                      {g.note ? ` · Note: “${g.note}”` : ''}
+                    </p>
+                  ))}
+                </>
+              ) : (
+                o.gift_recipient && (
+                  <p className="mt-1 text-sm" style={{ color: '#4a4540' }}>
+                    Gift to: {o.gift_recipient}
+                    {o.gift_note ? ` · Note: “${o.gift_note}”` : ''}
+                  </p>
+                )
               )}
               {o.group_name && <p className="mt-1 text-sm" style={{ color: '#4a4540' }}>Group: {o.group_name}</p>}
               <p className="mt-1 text-sm" style={{ color: '#8a8378' }}>

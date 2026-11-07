@@ -21,6 +21,8 @@ export type ShopProduct = {
   addons?: string[];
   /** Sold only as an add-on, never on its own. */
   addonOnly?: boolean;
+  /** Decks can ship to other people, one deck per address, free shipping each (lib/shopCheckout.ts). */
+  gifts?: boolean;
 };
 
 const CC_EARLY_ENDS = '2026-12-01T06:00:00Z'; // Early Bird through Nov 30, US Central
@@ -33,6 +35,7 @@ export const CATALOG: Record<string, ShopProduct> = {
     earlyEnds: CC_EARLY_ENDS,
     qty: { min: 1, max: 3, start: 1 },
     priority: true,
+    gifts: true,
     addons: ['dna-journal'],
   },
   'cc-give': {
@@ -41,6 +44,7 @@ export const CATALOG: Record<string, ShopProduct> = {
     prices: { early: 'cc-give-founding', regular: 'cc-give-regular' },
     earlyEnds: CC_EARLY_ENDS,
     priority: true,
+    gifts: true,
     fields: [
       { key: 'giftrecipient', label: 'Gift recipient name and full mailing address' },
       { key: 'giftnote', label: 'Gift note', optional: true },

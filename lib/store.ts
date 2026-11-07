@@ -28,6 +28,10 @@ export interface StoreOrder {
   shipping_rate: string | null;
   gift_recipient: string | null;
   gift_note: string | null;
+  /** Mig 056: structured gift packages (shop checkout). Empty on old orders and Payment Links. */
+  gifts?: GiftPackage[] | null;
+  /** Mig 056: decks to the buyer's own address; null = work it out (old orders). */
+  own_decks?: number | null;
   wall_name: string | null;
   group_name: string | null;
   items: { sku: Sku | null; name: string; quantity: number; amount_cents: number }[];
@@ -85,13 +89,30 @@ function skuOf(product: { name?: string; metadata?: Record<string, string> } | n
 
 type CustomField = { key: string; label?: { custom?: string }; text?: { value?: string | null } };
 
-/** "Jane Doe, 12 Main St, Apt 2, Ames, IA 50010" from the shop checkout's gift_* metadata. */
-function giftFromMetadata(m: Record<string, string> | null | undefined): string | null {
-  if (!m?.gift_name || !m.gift_line1) return null;
-  return [m.gift_name, m.gift_line1, m.gift_line2, m.gift_city, `${m.gift_state ?? ''} ${m.gift_zip ?? ''}`.trim()]
-    .filter(Boolean)
-    .join(', ');
+export type GiftPackage = { name: string; line1: string; line2?: string; city: string; state: string; zip: string; note?: string; decks: number };
+
+/** Gift packages from the shop checkout's metadata: gift_1..gift_9 (JSON array) + gift_N_note; older sessions used gift_name etc. */
+export function giftsFromMetadata(m: Record<string, string> | null | undefined): GiftPackage[] {
+  if (!m) return [];
+  const out: GiftPackage[] = [];
+  for (let i = 1; i <= 9; i++) {
+    const raw = m[`gift_${i}`];
+    if (!raw) break;
+    try {
+      const [name, line1, line2, city, state, zip] = JSON.parse(raw) as string[];
+      if (name && line1) out.push({ name, line1, line2: line2 || undefined, city, state, zip, note: m[`gift_${i}_note`]?.trim() || undefined, decks: 1 });
+    } catch {
+      /* skip a broken entry rather than lose the order */
+    }
+  }
+  if (!out.length && m.gift_name && m.gift_line1) {
+    out.push({ name: m.gift_name, line1: m.gift_line1, line2: m.gift_line2, city: m.gift_city ?? '', state: m.gift_state ?? '', zip: m.gift_zip ?? '', note: m.gift_note?.trim() || undefined, decks: 1 });
+  }
+  return out;
 }
+
+/** "Jane Doe, 12 Main St, Apt 2, Ames, IA 50010" */
+const giftLine = (g: GiftPackage) => [g.name, g.line1, g.line2, g.city, `${g.state ?? ''} ${g.zip ?? ''}`.trim()].filter(Boolean).join(', ');
 
 function customField(fields: CustomField[], re: RegExp): string | null {
   const f = fields.find((x) => re.test(`${x.key} ${x.label?.custom ?? ''}`.toLowerCase()));
@@ -138,6 +159,10 @@ export async function saveCheckoutSession(sessionId: string): Promise<StoreOrder
 
   const ship = s.collected_information?.shipping_details ?? s.shipping_details ?? null;
   const fields: CustomField[] = s.custom_fields ?? [];
+  const gifts = giftsFromMetadata(s.metadata);
+  const giftDecks = gifts.reduce((n, g) => n + g.decks, 0);
+  const ownMeta = s.metadata?.own_decks;
+  const own_decks = gifts.length ? (ownMeta != null && ownMeta !== '' ? Number(ownMeta) : Math.max(0, decks + bonus.bonus_decks - giftDecks)) : null;
   const row = {
     stripe_session_id: s.id,
     stripe_payment_intent: typeof s.payment_intent === 'string' ? s.payment_intent : null,
@@ -150,8 +175,10 @@ export async function saveCheckoutSession(sessionId: string): Promise<StoreOrder
     ship_address: ship?.address ?? null,
     shipping_rate: s.shipping_cost?.shipping_rate?.display_name ?? null,
     // Shop checkout puts a structured gift address in metadata (lib/shopCheckout.ts); Payment Links use free text.
-    gift_recipient: giftFromMetadata(s.metadata) ?? customField(fields, /recipient|address/),
-    gift_note: s.metadata?.gift_note?.trim() || customField(fields, /note/),
+    gift_recipient: gifts.length ? gifts.map(giftLine).join(' | ') : customField(fields, /recipient|address/),
+    gift_note: gifts.length ? gifts.map((g) => g.note).filter(Boolean).join(' | ') || null : customField(fields, /note/),
+    gifts,
+    own_decks,
     wall_name: customField(fields, /wall|founder/),
     wall_public: !!customField(fields, /wall|founder/),
     group_name: customField(fields, /church|group/),
@@ -166,7 +193,13 @@ export async function saveCheckoutSession(sessionId: string): Promise<StoreOrder
     total_cents: s.amount_total ?? null,
   };
 
-  const { data, error } = await db.from('store_orders').insert(row).select('*').single();
+  let { data, error } = await db.from('store_orders').insert(row).select('*').single();
+  if (error && /gifts|own_decks/.test(error.message)) {
+    // Mig 056 not run yet: save the order anyway; the gift addresses still sit in gift_recipient.
+    console.error('[store] run migration 056:', error.message);
+    const { gifts: _g, own_decks: _o, ...old } = row;
+    ({ data, error } = await db.from('store_orders').insert(old).select('*').single());
+  }
   if (error) {
     if (error.code === '23505') return null; // a parallel retry won
     throw new Error(error.message);
@@ -195,8 +228,9 @@ export async function markRefunded(paymentIntent: string): Promise<StoreOrder | 
 const GHL = 'https://services.leadconnectorhq.com';
 
 /** Tags this order earns (v2 families). Never removes tags. */
-export function buyerTags(o: Pick<StoreOrder, 'items'>): string[] {
+export function buyerTags(o: Pick<StoreOrder, 'items'> & Partial<Pick<StoreOrder, 'gifts'>>): string[] {
   const tags = new Set(['shop-customer']);
+  if (o.gifts?.length) tags.add('shop-gift-sender');
   for (const it of o.items) {
     if (it.sku?.startsWith('cc-')) {
       tags.add('shop-creed-cards');
@@ -241,7 +275,11 @@ async function shopHistory(email: string) {
 function orderNote(o: StoreOrder, refunded = false) {
   const when = new Date((o as { paid_at?: string }).paid_at ?? o.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'America/Chicago' });
   const what = o.items.map((i) => `${i.quantity > 1 ? `${i.quantity}× ` : ''}${i.name.replace(/^Creed Cards: /, '')}`).join(' + ');
-  const gift = o.gift_recipient ? ` · gift to ${o.gift_recipient}` : '';
+  const gift = o.gifts?.length
+    ? ` · ${o.gifts.length > 1 ? `${o.gifts.length} gifts` : 'gift'} to ${o.gifts.map((g) => `${g.name}, ${g.city} ${g.state}`).join('; ')}`
+    : o.gift_recipient
+      ? ` · gift to ${o.gift_recipient}`
+      : '';
   const total = o.total_cents != null ? ` · $${(o.total_cents / 100).toFixed(2).replace(/\.00$/, '')}` : '';
   return `${refunded ? 'REFUNDED: ' : ''}ARK Identity Shop order, ${when}: ${what}${gift}${total}`;
 }
@@ -332,9 +370,9 @@ const DECK_OZ = 7;
 const JOURNAL_OZ = 10;
 
 /**
- * One row per package. A Keep One, Give One order is two packages: one deck to
- * the buyer, one to the gift recipient (their address is free text, so that row
- * puts it all in Address 1 and says to check it).
+ * One row per package. Gift decks are their own packages: shop-checkout orders carry structured addresses
+ * (`gifts`, Mig 056) → one row each (Order "abcd1234-g1"). Older Keep One, Give One orders have a free-text
+ * address, so that row puts it all in Address 1 and says to check it.
  */
 export function pirateShipCsv(orders: StoreOrder[]): string {
   const head = ['Order', 'Name', 'Address 1', 'Address 2', 'City', 'State', 'Zip', 'Country', 'Email', 'Phone', 'Weight (oz)', 'Shipping', 'Contents', 'Notes'];
@@ -342,6 +380,24 @@ export function pirateShipCsv(orders: StoreOrder[]): string {
   for (const o of orders) {
     const a = o.ship_address ?? {};
     const short = o.id.slice(0, 8);
+    if (o.gifts?.length) {
+      const giftDecks = o.gifts.reduce((n, g) => n + g.decks, 0);
+      const own = o.own_decks ?? Math.max(0, o.decks + o.bonus_decks - giftDecks);
+      // Shipping rate shown once per package ("Priority" applies to every package of the order).
+      const rate = /priority/i.test(o.shipping_rate ?? '') ? 'Priority' : 'Standard';
+      if (own > 0 || o.journals > 0) {
+        const contents = [own ? `${own} deck${own === 1 ? '' : 's'}` : null, o.journals ? `${o.journals} journal` : null, o.bonus_note].filter(Boolean).join(' + ');
+        rows.push([short, o.ship_name ?? o.name, a.line1, a.line2, a.city, a.state, a.postal_code, a.country ?? 'US', o.email, o.phone, own * DECK_OZ + o.journals * JOURNAL_OZ, rate, contents, o.notes]);
+      }
+      o.gifts.forEach((g, i) => {
+        rows.push([
+          `${short}-g${i + 1}`, g.name, g.line1, g.line2, g.city, g.state, g.zip, 'US', '', '', g.decks * DECK_OZ, rate,
+          `${g.decks} gift deck${g.decks === 1 ? '' : 's'}${g.note ? ' + note' : ''}`,
+          `Gift from ${o.name ?? o.email ?? 'a buyer'}. No prices in the box.${g.note ? ` Note: ${g.note}` : ''}`,
+        ]);
+      });
+      continue;
+    }
     const gift = o.items.some((i) => i.sku === 'cc-give') && o.gift_recipient;
     const giftDecks = gift ? o.items.filter((i) => i.sku === 'cc-give').reduce((n, i) => n + i.quantity, 0) : 0;
     const ownDecks = o.decks + o.bonus_decks - giftDecks;

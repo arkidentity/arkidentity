@@ -1,14 +1,25 @@
 import type { Metadata, Viewport } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Archivo, Public_Sans, Geist_Mono } from "next/font/google";
 import { ToastProvider } from "@/components/ui/Toast";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { BottomTabBar } from "@/components/navigation/BottomTabBar";
 import { BrochureShell } from "@/components/layout/BrochureShell";
 import "./globals.css";
 
-const geistSans = Geist({
+// Site type (human-made-sites skill, 11/8): Archivo at an expanded width for headings (keeps the wide,
+// confident feel of the old Montserrat brand spec without the default look) + Public Sans for reading.
+// Replaces the Next.js starter's unused Geist + Arial fallback.
+const display = Archivo({
+  variable: "--font-display",
+  subsets: ["latin"],
+  axes: ["wdth"],
+  display: "swap",
+});
+
+const sans = Public_Sans({
   variable: "--font-geist-sans",
   subsets: ["latin"],
+  display: "swap",
 });
 
 const geistMono = Geist_Mono({
@@ -61,7 +72,7 @@ export default function RootLayout({
         />
       </head>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${display.variable} ${sans.variable} ${geistMono.variable} antialiased`}
       >
         <ThemeProvider>
           <ToastProvider>

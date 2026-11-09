@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import Image from 'next/image';
 import Script from 'next/script';
 
 export const metadata = {
@@ -6,72 +7,76 @@ export const metadata = {
   description: 'Partner with ARK Identity to multiply disciples. Give directly or through our tax-deductible fiscal sponsor.',
 };
 
+// Design (human-made-sites skill, 11/8): real tables, real people. The one bold thing is the strip of
+// photos from actual ARK moments; everything else stays plain. Tax-deductible (GSA) giving comes first
+// because most partners want a receipt. Site audit: docs/planning/site-audit-2026-11-08.md.
+const MOMENTS: [string, string][] = [
+  ['/photos/church-hall-students.jpg', 'With students after church'],
+  ['/photos/street-prayer.jpg', 'Praying with a student on campus'],
+  ['/photos/home-gathering.jpg', 'A gathering in a home'],
+  ['/photos/campus-lunch.jpg', 'Lunch on campus'],
+];
+
 export default function Giving() {
   return (
-    <div style={{ background: '#FAF8F5' }}>
-      {/* Hero Section */}
-      <section className="py-20" style={{ background: 'linear-gradient(135deg, var(--navy) 0%, var(--maroon) 100%)' }}>
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <p className="text-sm font-semibold tracking-widest uppercase mb-4" style={{ color: 'var(--gold)' }}>
-            Partner With Us
-          </p>
-          <h1 className="text-4xl md:text-5xl font-bold mb-6 text-white">
-            Invest in What Multiplies
-          </h1>
-          <p className="text-xl text-gray-300 leading-relaxed max-w-3xl mx-auto">
-            You want to invest in people. You give generously to ministries, but deep down you wonder—is this producing real life change? Are we creating disciples who make disciples, or just funding programs that fill seats? If your heart longs to invest in something that multiplies—not just maintains—then you&apos;re not alone.
-          </p>
-          <div className="w-16 h-1 mx-auto mt-8 rounded-full" style={{ background: 'linear-gradient(90deg, var(--gold), transparent)' }} />
+    <div className="bg-white">
+      {/* HERO: clear photo, words on a solid band */}
+      <section>
+        <div className="relative h-[42vh] md:h-[60vh] bg-[#1a2b3c]">
+          <Image src="/photos/iowa-table.jpg" alt="ARK Iowa students around a table" fill priority sizes="100vw" className="object-cover object-[center_60%]" />
+        </div>
+        <div style={{ background: 'var(--navy)' }} className="text-white">
+          <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-10 md:py-12 md:flex md:items-end md:justify-between md:gap-10">
+            <div className="max-w-2xl">
+              <h1 className="text-4xl md:text-6xl font-bold leading-[1.05]">Invest in what multiplies.</h1>
+              <p className="mt-4 text-lg md:text-xl text-[#d9dde2]">Disciples who make disciples, around real tables, one person at a time.</p>
+            </div>
+            <a href="#give" className="mt-6 md:mt-0 inline-block w-full md:w-auto text-center px-8 py-4 rounded-md font-semibold text-lg transition hover:brightness-105" style={{ backgroundColor: 'var(--gold)', color: 'var(--navy)' }}>
+              Give
+            </a>
+          </div>
         </div>
       </section>
 
-      {/* Two Giving Options */}
-      <section className="py-16" style={{ background: '#FAF8F5' }}>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h2 className="text-3xl font-bold mb-12 text-center" style={{ color: 'var(--navy)' }}>
-            Choose Your Giving Method
-          </h2>
+      {/* THE QUESTION */}
+      <section className="py-16 md:py-24">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+          <p className="max-w-xl text-lg md:text-xl leading-relaxed text-[#3d3a36]">
+            You want to invest in people. You give generously to ministries, but deep down you wonder: is this producing
+            real life change? Are we creating disciples who make disciples, or just funding programs that fill seats?
+          </p>
+          <p className="mt-10 md:ml-[30%] max-w-3xl text-3xl md:text-5xl font-bold leading-tight" style={{ color: 'var(--navy)' }}>
+            If you want to invest in something that multiplies, not just maintains, you&apos;re not alone.
+          </p>
+        </div>
+      </section>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
-            {/* Option 1: Direct Giving */}
-            <div className="rounded-xl shadow-lg overflow-hidden border-2" style={{ borderColor: 'var(--navy)', backgroundColor: '#FFFFFF' }}>
-              <div className="p-6" style={{ backgroundColor: 'var(--navy)' }}>
-                <h3 className="text-2xl font-bold text-white">Direct Giving</h3>
-                <p className="text-gray-300 mt-2">Support ARK Identity directly</p>
+      {/* WHAT YOUR GIFT LOOKS LIKE: the photo strip */}
+      <section className="pb-16 md:pb-24">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-1">
+          {MOMENTS.map(([src, caption]) => (
+            <figure key={src} className="relative">
+              <div className="relative aspect-[4/5]">
+                <Image src={src} alt={caption} fill sizes="(min-width: 768px) 25vw, 50vw" className="object-cover" />
               </div>
-              <div className="p-6">
-                <p className="mb-4" style={{ color: '#4a4540' }}>
-                  These funds go straight to development, hosting, and content creation.
-                </p>
-                <p className="text-sm mb-6" style={{ color: '#6b6157' }}>
-                  <strong style={{ color: 'var(--navy)' }}>Note:</strong> Donations are not tax-deductible
-                </p>
-                <div className="rounded-lg mb-4" style={{ backgroundColor: '#F5F2EE' }}>
-                  <iframe
-                    src="https://checkout.square.site/merchant/MLC3G13NXWEVC/checkout/KF3JBKCHDFBPSV32MKF62UU3"
-                    className="w-full rounded-lg"
-                    style={{ height: '800px' }}
-                    title="Direct Giving via Square"
-                  />
-                </div>
-              </div>
-            </div>
+              <figcaption className="px-3 py-2 text-sm text-[#5b5650]">{caption}</figcaption>
+            </figure>
+          ))}
+        </div>
+      </section>
 
-            {/* Option 2: Tax-Deductible */}
-            <div className="rounded-xl shadow-lg overflow-hidden border-2" style={{ borderColor: 'var(--gold)', backgroundColor: '#FFFFFF' }}>
-              <div className="p-6" style={{ backgroundColor: 'var(--gold)' }}>
-                <h3 className="text-2xl font-bold" style={{ color: 'var(--navy)' }}>Tax-Deductible Donation</h3>
-                <p className="mt-2" style={{ color: '#3a2a10' }}>Give through our fiscal sponsor</p>
-              </div>
-              <div className="p-6">
-                <p className="mb-4" style={{ color: '#4a4540' }}>
-                  Give through our fiscal sponsor, Global Service Associates (501c3). You&apos;ll receive a tax receipt.
-                </p>
-                <p className="text-sm mb-6" style={{ color: '#6b6157' }}>
-                  <strong style={{ color: 'var(--navy)' }}>Note:</strong> Tax-deductible via Global Service Associates (501c3)
-                </p>
-                <div className="rounded-lg mb-4" style={{ backgroundColor: '#F5F2EE' }}>
-                  <Script
+      {/* GIVE */}
+      <section id="give" className="py-16 md:py-20" style={{ background: '#f3efe8' }}>
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+          <h2 className="text-3xl md:text-4xl font-bold max-w-2xl" style={{ color: 'var(--navy)' }}>Two ways to give</h2>
+          <div className="mt-10 grid grid-cols-1 lg:grid-cols-[1.35fr_1fr] gap-10 items-start">
+            <div>
+              <h3 className="text-2xl font-bold" style={{ color: 'var(--navy)' }}>Tax-deductible</h3>
+              <p className="mt-2 text-[#3d3a36]">
+                Through our fiscal sponsor, Global Service Associates, a 501(c)(3). You&apos;ll get a tax receipt.
+              </p>
+              <div className="mt-5 bg-white rounded-md border border-[#ddd6ca]">
+                <Script
                     src="https://app.donorview.com/scripts/shared/iframeResizer/iframeResizer.min.js"
                     strategy="lazyOnload"
                   />
@@ -82,7 +87,7 @@ export default function Giving() {
                     id="dv-iframe"
                     allow="payment"
                     name="dv-iframe"
-                    className="w-full rounded-lg"
+                    className="w-full rounded-md"
                     style={{ width: '100%', height: '800px' }}
                     title="Tax-Deductible Giving via Global Service Associates"
                   />
@@ -97,29 +102,27 @@ export default function Giving() {
                       }
                     `}
                   </Script>
-                </div>
+              </div>
+            </div>
+            <div>
+              <h3 className="text-2xl font-bold" style={{ color: 'var(--navy)' }}>Give to ARK directly</h3>
+              <p className="mt-2 text-[#3d3a36]">
+                Goes straight to development, hosting and content. <strong>Not tax-deductible.</strong>
+              </p>
+              <div className="mt-5 bg-white rounded-md border border-[#ddd6ca]">
+                <iframe
+                  src="https://checkout.square.site/merchant/MLC3G13NXWEVC/checkout/KF3JBKCHDFBPSV32MKF62UU3"
+                  className="w-full rounded-md"
+                  style={{ height: '800px' }}
+                  title="Direct Giving via Square"
+                />
               </div>
             </div>
           </div>
-        </div>
-      </section>
-
-      {/* Vision 2026 CTA */}
-      <section className="py-16" style={{ backgroundColor: 'var(--navy)' }}>
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h2 className="text-3xl font-bold mb-4" style={{ color: 'var(--gold)' }}>
-            See Where Your Giving Goes
-          </h2>
-          <p className="text-lg mb-8 text-gray-300">
-            Learn about our Vision 2026 goals and how your partnership helps us multiply disciples nationwide.
+          <p className="mt-12 text-lg text-[#3d3a36]">
+            Want to see where it goes?{' '}
+            <Link href="/vision-2026" className="font-semibold underline" style={{ color: 'var(--navy)' }}>Read Vision 2026</Link>.
           </p>
-          <Link
-            href="/vision-2026"
-            className="inline-block px-8 py-4 rounded-lg font-semibold text-lg transition hover:opacity-90"
-            style={{ backgroundColor: 'var(--gold)', color: 'var(--navy)' }}
-          >
-            See Vision 2026
-          </Link>
         </div>
       </section>
     </div>

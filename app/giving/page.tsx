@@ -22,8 +22,8 @@ export default function Giving() {
     <div className="bg-white">
       {/* HERO: clear photo, words on a solid band */}
       <section>
-        <div className="relative h-[42vh] md:h-[60vh] bg-[#1a2b3c]">
-          <Image src="/photos/iowa-table.jpg" alt="ARK Iowa students around a table" fill priority sizes="100vw" className="object-cover object-[center_45%]" />
+        <div className="relative w-full aspect-[16/9] bg-[#1a2b3c]">
+          <Image src="/photos/iowa-table.jpg" alt="ARK Iowa students around a table" fill priority sizes="100vw" className="object-cover" />
         </div>
         <div style={{ background: 'var(--navy)' }} className="text-white">
           <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-10 md:py-12 md:flex md:items-end md:justify-between md:gap-10">

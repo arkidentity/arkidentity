@@ -80,6 +80,8 @@ export async function createShopCheckout(opts: {
   gifts?: GiftAddress[];
   /** One Deck only, when there are gifts: decks for the buyer themselves (0 = all decks are gifts). */
   own?: number;
+  /** Where the buyer came from, e.g. "dailydna-shelf" (lowercase, dashes). Goes to metadata[ref] and back to /thanks. */
+  src?: string;
 }): Promise<{ url?: string; clientSecret?: string }> {
   const ui = opts.ui ?? 'hosted';
   const item = CATALOG[opts.sku];
@@ -98,6 +100,8 @@ export async function createShopCheckout(opts: {
   }
 
   const site = BRAND_SITES[item.brand as Brand];
+  const src = opts.src && /^[a-z0-9-]{1,40}$/.test(opts.src) ? opts.src : '';
+  const srcQ = src ? `&src=${src}` : '';
   const back = opts.origin && site.origins.test(opts.origin) ? opts.origin : site.home;
 
   const extraKey = opts.sku === 'cc-give' && oneDecks ? currentPriceKey(CATALOG['cc-one']) : null;
@@ -111,9 +115,9 @@ export async function createShopCheckout(opts: {
   set('mode', 'payment');
   if (ui === 'embedded') {
     set('ui_mode', 'embedded_page'); // Stripe renamed `embedded` → `embedded_page`
-    set('return_url', `${back}/thanks?session_id={CHECKOUT_SESSION_ID}`);
+    set('return_url', `${back}/thanks?session_id={CHECKOUT_SESSION_ID}${srcQ}`);
   } else {
-    set('success_url', `${back}/thanks?session_id={CHECKOUT_SESSION_ID}`);
+    set('success_url', `${back}/thanks?session_id={CHECKOUT_SESSION_ID}${srcQ}`);
     set('cancel_url', `${back}/#reserve`);
   }
   set('allow_promotion_codes', true);
@@ -124,6 +128,7 @@ export async function createShopCheckout(opts: {
   if (shipsToBuyer) set('shipping_address_collection[allowed_countries][0]', 'US');
   set('metadata[brand]', item.brand);
   set('metadata[source]', 'shop-checkout');
+  if (src) set('metadata[ref]', src);
 
   // Main item. With gifts the deck count was set on our page, so it's fixed here.
   set('line_items[0][price]', ids[keys[0]]);

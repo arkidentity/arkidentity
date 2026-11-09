@@ -24,7 +24,7 @@ export function OPTIONS(req: Request) {
 
 export async function POST(req: Request) {
   const CORS = cors(req);
-  const b = (await req.json().catch(() => ({}))) as { sku?: unknown; addons?: unknown; ui?: unknown; gift?: unknown; gifts?: unknown; own?: unknown };
+  const b = (await req.json().catch(() => ({}))) as { sku?: unknown; addons?: unknown; ui?: unknown; gift?: unknown; gifts?: unknown; own?: unknown; src?: unknown };
   const gift = b.gift ? cleanGift(b.gift) : null;
   if (b.gift && !gift) return NextResponse.json({ error: 'Please check the gift address.' }, { status: 400, headers: CORS });
   // gifts: [{ name, line1, line2?, city, state, zip, note? }], one deck each; own: One Deck decks for the buyer.
@@ -38,7 +38,7 @@ export async function POST(req: Request) {
   const ui = b.ui === 'embedded' ? 'embedded' : 'hosted';
   try {
     if (ui === 'embedded' && !process.env.STRIPE_PUBLISHABLE_KEY) throw new Error('STRIPE_PUBLISHABLE_KEY is not set');
-    const out = await createShopCheckout({ sku, addons, origin: req.headers.get('origin'), ui, gift, gifts: gifts as GiftAddress[], own });
+    const out = await createShopCheckout({ sku, addons, origin: req.headers.get('origin'), ui, gift, gifts: gifts as GiftAddress[], own, src: typeof b.src === 'string' ? b.src : undefined });
     const body = ui === 'embedded' ? { ...out, publishableKey: process.env.STRIPE_PUBLISHABLE_KEY } : out;
     return NextResponse.json(body, { headers: CORS });
   } catch (e) {

@@ -14,7 +14,7 @@ import { CreedCardsProvider } from '@creed-cards/components/CreedCardsProvider';
 export default function CreedCardsLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="creed-shell" style={{ '--pwa-nav-height': '70px' } as React.CSSProperties}>
-      <CreedCardsProvider basePath="/creed-cards">{children}</CreedCardsProvider>
+      <CreedCardsProvider basePath="/creed-cards" printOffer={{ src: "arkidentity" }}>{children}</CreedCardsProvider>
     </div>
   );
 }

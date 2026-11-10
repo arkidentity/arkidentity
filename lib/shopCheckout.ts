@@ -80,6 +80,8 @@ export async function createShopCheckout(opts: {
   gifts?: GiftAddress[];
   /** One Deck only, when there are gifts: decks for the buyer themselves (0 = all decks are gifts). */
   own?: number;
+  /** Starting quantity for adjustable items (Bulk counter on creedcards.com), clamped to the item's min/max. */
+  qty?: number;
   /** Where the buyer came from, e.g. "dailydna-shelf" (lowercase, dashes). Goes to metadata[ref] and back to /thanks. */
   src?: string;
 }): Promise<{ url?: string; clientSecret?: string }> {
@@ -135,7 +137,8 @@ export async function createShopCheckout(opts: {
   if (opts.sku === 'cc-one' && gifts.length) {
     set('line_items[0][quantity]', oneDecks);
   } else {
-    set('line_items[0][quantity]', item.qty?.start ?? 1);
+    const q = item.qty && opts.qty ? Math.min(item.qty.max, Math.max(item.qty.min, Math.floor(opts.qty))) : item.qty?.start ?? 1;
+    set('line_items[0][quantity]', q);
     if (item.qty) {
       set('line_items[0][adjustable_quantity][enabled]', true);
       set('line_items[0][adjustable_quantity][minimum]', item.qty.min);
@@ -156,7 +159,10 @@ export async function createShopCheckout(opts: {
   // Shipping: built into the price, so Standard is free to every address; Priority is $6 per package.
   const packages = (shipsToBuyer ? 1 : 0) + gifts.length;
   const ship = [{ name: packages > 1 ? `Free shipping to all ${packages} addresses (USPS Ground Advantage)` : 'Free shipping (USPS Ground Advantage)', cents: 0 }];
-  if (item.priority) ship.push({ name: packages > 1 ? `Priority Mail (faster), $6 × ${packages} packages` : 'Priority Mail (faster)', cents: 600 * Math.max(1, packages) });
+  // After the Christmas cutoff (Dec 8) the free option may arrive late, so Priority says so (moved off creedcards.com, Travis 11/10).
+  const now = Date.now();
+  const xmas = now >= Date.parse('2026-12-09T06:00:00Z') && now < Date.parse('2026-12-25T06:00:00Z') ? ', gets it there by Christmas' : '';
+  if (item.priority) ship.push({ name: packages > 1 ? `Priority Mail (faster${xmas}), $6 × ${packages} packages` : `Priority Mail (faster${xmas})`, cents: 600 * Math.max(1, packages) });
   ship.forEach((s, i) => {
     set(`shipping_options[${i}][shipping_rate_data][type]`, 'fixed_amount');
     set(`shipping_options[${i}][shipping_rate_data][display_name]`, s.name);

@@ -30,6 +30,8 @@ const PERSON = {
     worksFor: { '@type': 'Organization', name: 'ARK Identity', url: 'https://arkidentity.com' },
     knowsAbout: ['Discipleship', 'Disciple making', 'Church multiplication', 'Campus ministry', 'Identity in Christ'],
     spouse: { '@type': 'Person', name: 'Kimberly Gluckler' },
+    alumniOf: { '@type': 'HighSchool', name: 'Monroe-Woodbury High School' },
+    homeLocation: { '@type': 'Place', name: 'Iowa' },
     memberOf: { '@type': 'Organization', name: 'Global Service Associates' },
     subjectOf: [
       { '@type': 'VideoObject', name: 'Travis and Kimberly Gluckler saved in Sin City', embedUrl: 'https://www.youtube.com/embed/27NsQjBbab4', thumbnailUrl: 'https://i.ytimg.com/vi/27NsQjBbab4/hqdefault.jpg' },
@@ -60,9 +62,14 @@ const YEARS: { year: string; title: string; body: string }[] = [
     body: "ARK's first in-person training at Encounter Church Las Vegas was set for the week the pandemic shut the country down, so it went live on Zoom. More than 1,000 students in multiple states have trained with ARK since. That November the Glucklers moved to Colorado.",
   },
   {
-    year: 'Now',
-    title: 'Iowa, tables and an app',
-    body: 'Travis leads ARK Iowa at the University of Iowa, where students meet around tables of four to open Scripture. He builds Daily DNA, a discipleship app used by churches in North America and Latin America, and wrote Table Up.',
+    year: '2023',
+    title: 'To Iowa',
+    body: 'The Glucklers moved to Iowa.',
+  },
+  {
+    year: '2025',
+    title: 'ARK Iowa launches',
+    body: 'Travis officially launched ARK Iowa, a campus ministry at the University of Iowa where students meet around tables of four to open Scripture. He also builds Daily DNA, a discipleship app used by churches in North America and Latin America, and wrote Table Up.',
   },
 ];
 
@@ -115,7 +122,9 @@ export default function TravisPage() {
           <div className="max-w-2xl text-lg leading-relaxed text-[#3d3a36] space-y-5">
             <p>
               <strong>Travis Gluckler</strong> is an author, church planter and campus minister, and the founder of ARK
-              Identity, a discipleship ministry that helps believers know God and who God says they are.
+              Identity, a discipleship ministry that helps believers know God and who God says they are. He grew up in
+              Monroe, New York, graduated from Monroe-Woodbury High School in 1999, and lives in Iowa with his wife,
+              Kimberly, and their four children.
             </p>
             <p>
               Years of leading groups that depended on him led Travis to a simpler model: put the tools in the hands of
@@ -128,7 +137,9 @@ export default function TravisPage() {
             <div><dt className="font-semibold" style={{ color: 'var(--navy)' }}>Known for</dt><dd className="text-[#3d3a36]">ARK Identity, Daily DNA, Table Up</dd></div>
             <div><dt className="font-semibold" style={{ color: 'var(--navy)' }}>Ministry</dt><dd className="text-[#3d3a36]">Campus minister, University of Iowa</dd></div>
             <div><dt className="font-semibold" style={{ color: 'var(--navy)' }}>Came to faith</dt><dd className="text-[#3d3a36]">Las Vegas, 2009</dd></div>
-            <div><dt className="font-semibold" style={{ color: 'var(--navy)' }}>Spouse</dt><dd className="text-[#3d3a36]">Kimberly Gluckler</dd></div>
+            <div><dt className="font-semibold" style={{ color: 'var(--navy)' }}>Hometown</dt><dd className="text-[#3d3a36]">Monroe, New York</dd></div>
+            <div><dt className="font-semibold" style={{ color: 'var(--navy)' }}>Lives in</dt><dd className="text-[#3d3a36]">Iowa (since 2023)</dd></div>
+            <div><dt className="font-semibold" style={{ color: 'var(--navy)' }}>Family</dt><dd className="text-[#3d3a36]">Married to Kimberly Gluckler; four children</dd></div>
           </dl>
         </div>
       </section>

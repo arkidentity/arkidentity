@@ -1,9 +1,9 @@
 import Image from 'next/image';
 import Link from 'next/link';
 
-// DRAFT (11/9): hidden until Travis approves. noindex + not linked from the site. Copy is a first pass
-// in Travis's voice from travisandtheghost.com and /about; Travis rewrites it. Plan:
-// ark-workspace/projects/travis-online/PLAN.md.
+// DRAFT (11/9, v2): hidden until Travis approves. noindex + not linked from the site. This is the
+// "entity home" for Google: neutral, third person, Wikipedia-style sections. Every fact comes from
+// ark-workspace/projects/travis-online/BIO-KIT.md (the one source of truth); unconfirmed facts stay off.
 // Design (human-made-sites skill): concept = a testimony told across a table, year by year. The one bold
 // thing is the year rail (big Archivo years down the left). Type and colors are the site's (Archivo +
 // Public Sans, ARK navy + gold, warm #f3efe8). Hero reuses the /giving and Baja pattern (clear photo,
@@ -28,7 +28,12 @@ const PERSON = {
     jobTitle: 'Founder and National Director, ARK Identity',
     description: 'Author, church planter and campus minister. Founder of ARK Identity and builder of Daily DNA.',
     worksFor: { '@type': 'Organization', name: 'ARK Identity', url: 'https://arkidentity.com' },
-    knowsAbout: ['Discipleship', 'Church planting', 'Campus ministry', 'Identity in Christ'],
+    knowsAbout: ['Discipleship', 'Disciple making', 'Church multiplication', 'Campus ministry', 'Identity in Christ'],
+    spouse: { '@type': 'Person', name: 'Kimberly Gluckler' },
+    memberOf: { '@type': 'Organization', name: 'Global Service Associates' },
+    subjectOf: [
+      { '@type': 'VideoObject', name: 'Travis and Kimberly Gluckler saved in Sin City', embedUrl: 'https://www.youtube.com/embed/27NsQjBbab4', thumbnailUrl: 'https://i.ytimg.com/vi/27NsQjBbab4/hqdefault.jpg' },
+    ],
     // Every profile from PLAN.md step 2 goes here once it's updated to match.
     sameAs: [
       'https://www.travisandtheghost.com',
@@ -42,22 +47,22 @@ const YEARS: { year: string; title: string; body: string }[] = [
   {
     year: '2009',
     title: 'Saved in Sin City',
-    body: 'Kimberly and I met Jesus in Las Vegas, and He started with our marriage. We were done, and He restored it anyway. Everything I do now comes out of that year.',
+    body: 'Travis met Jesus in Las Vegas through pastor Vince Antonucci. God restored his marriage to Kimberly, and the two of them began opening their home to people who wanted to follow Jesus.',
   },
   {
     year: '2013',
     title: 'ARK Identity begins',
-    body: 'It started with a handful of disciples in Las Vegas. I wrote what God was teaching me about identity in Christ, and we tested it on each other until it worked.',
+    body: 'He founded ARK Identity with a handful of disciples in Las Vegas. His first courses, ARK 101 and ARK 102, became Identity Through the Trinity and Freedom.',
   },
   {
     year: '2020',
-    title: 'The week everything moved online',
-    body: 'Our first in-person training at Encounter Church Las Vegas landed the same week the country shut down, so we went live on Zoom. Since then more than 1,000 students in multiple states have trained with ARK. That November we moved to Colorado.',
+    title: 'Training goes online',
+    body: "ARK's first in-person training at Encounter Church Las Vegas was set for the week the pandemic shut the country down, so it went live on Zoom. More than 1,000 students in multiple states have trained with ARK since. That November the Glucklers moved to Colorado.",
   },
   {
     year: 'Now',
     title: 'Iowa, tables and an app',
-    body: 'Today I lead ARK Iowa at the University of Iowa, where students meet around tables of four and open Scripture every day. I also build Daily DNA, the app churches use to make disciples who make disciples.',
+    body: 'Travis leads ARK Iowa at the University of Iowa, where students meet around tables of four to open Scripture. He builds Daily DNA, a discipleship app used by churches in North America and Latin America, and wrote Table Up.',
   },
 ];
 
@@ -70,8 +75,13 @@ const WORK: [string, string, string][] = [
 ];
 
 const VIDEOS: [string, string][] = [
-  ['27NsQjBbab4', 'Our story, 2012: Travis and Kimberly saved in Sin City'],
-  ['ZYB6Yw_TEeg', 'My story, 2024 (Delafé Testimonies)'],
+  ['27NsQjBbab4', 'Travis and Kimberly Gluckler: saved in Sin City (2012)'],
+  ['ZYB6Yw_TEeg', "Travis Gluckler's testimony, Delafé Testimonies (2024)"],
+];
+
+const BOOKS: { title: string; line: string; href?: string }[] = [
+  { title: 'Table Up', line: 'Disciple making that actually multiplies your church. Foreword by Vince Antonucci.' },
+  { title: 'The ARK Identity Training series', line: 'Identity Through the Trinity, The Bridge: Prophetic Evangelism and more.', href: 'https://www.amazon.com/dp/B09MGCW4V4' },
 ];
 
 export default function TravisPage() {
@@ -89,13 +99,37 @@ export default function TravisPage() {
             <div className="max-w-2xl">
               <h1 className="text-4xl md:text-6xl font-bold leading-[1.05]">Travis Gluckler</h1>
               <p className="mt-4 text-lg md:text-xl text-[#d9dde2]">
-                Author, church planter and campus minister. I build tools that help ordinary people make disciples.
+                Author, church planter and campus minister. Founder of ARK Identity and Daily DNA.
               </p>
             </div>
             <a href="#talk" className="mt-6 md:mt-0 inline-block w-full md:w-auto text-center px-8 py-4 rounded-md font-semibold text-lg transition hover:brightness-105" style={{ backgroundColor: 'var(--gold)', color: 'var(--navy)' }}>
-              Talk with me
+              Contact Travis
             </a>
           </div>
+        </div>
+      </section>
+
+      {/* ABOUT: the long bio from BIO-KIT.md */}
+      <section className="pt-16 md:pt-24">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-1 md:grid-cols-[1fr_16rem] gap-10 items-start">
+          <div className="max-w-2xl text-lg leading-relaxed text-[#3d3a36] space-y-5">
+            <p>
+              <strong>Travis Gluckler</strong> is an author, church planter and campus minister, and the founder of ARK
+              Identity, a discipleship ministry that helps believers know God and who God says they are.
+            </p>
+            <p>
+              Years of leading groups that depended on him led Travis to a simpler model: put the tools in the hands of
+              ordinary people. That became DNA Discipleship and the Daily DNA app, and his book <em>Table Up: Disciple
+              making that actually multiplies your church</em>. He also created Creed Cards and teaches Friday Fill Up each
+              week. He serves as a missionary through Global Service Associates.
+            </p>
+          </div>
+          <dl className="text-sm border-t-2 pt-4 space-y-3" style={{ borderColor: 'var(--gold)' }}>
+            <div><dt className="font-semibold" style={{ color: 'var(--navy)' }}>Known for</dt><dd className="text-[#3d3a36]">ARK Identity, Daily DNA, Table Up</dd></div>
+            <div><dt className="font-semibold" style={{ color: 'var(--navy)' }}>Ministry</dt><dd className="text-[#3d3a36]">Campus minister, University of Iowa</dd></div>
+            <div><dt className="font-semibold" style={{ color: 'var(--navy)' }}>Came to faith</dt><dd className="text-[#3d3a36]">Las Vegas, 2009</dd></div>
+            <div><dt className="font-semibold" style={{ color: 'var(--navy)' }}>Spouse</dt><dd className="text-[#3d3a36]">Kimberly Gluckler</dd></div>
+          </dl>
         </div>
       </section>
 
@@ -111,6 +145,26 @@ export default function TravisPage() {
               </div>
             </div>
           ))}
+        </div>
+      </section>
+
+      {/* BOOKS */}
+      <section className="pb-16 md:pb-24">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+          <h2 className="text-3xl md:text-4xl font-bold" style={{ color: 'var(--navy)' }}>Books</h2>
+          <div className="mt-8 grid grid-cols-1 md:grid-cols-[1fr_20rem] gap-10 items-start">
+            <ul>
+              {BOOKS.map((b) => (
+                <li key={b.title} className="py-5 border-t border-[#e6e0d6]">
+                  <h3 className="text-xl font-bold" style={{ color: 'var(--navy)' }}><cite className="not-italic">{b.title}</cite></h3>
+                  <p className="mt-1 text-[#3d3a36]">{b.line}</p>
+                  {b.href && <a href={b.href} className="mt-2 inline-block font-semibold underline" style={{ color: 'var(--navy)' }}>See it on Amazon</a>}
+                </li>
+              ))}
+            </ul>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/images/ark books.jpg" alt="Books in The ARK Identity Training series by Travis Gluckler" className="w-full rounded-md" />
+          </div>
         </div>
       </section>
 
@@ -141,7 +195,7 @@ export default function TravisPage() {
       {/* WHAT I'M BUILDING */}
       <section className="py-16 md:py-24">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h2 className="text-3xl md:text-4xl font-bold" style={{ color: 'var(--navy)' }}>What I&apos;m building</h2>
+          <h2 className="text-3xl md:text-4xl font-bold" style={{ color: 'var(--navy)' }}>Ministry and work</h2>
           <ul className="mt-8">
             {WORK.map(([name, line, href]) => (
               <li key={name} className="py-5 border-t border-[#e6e0d6] md:flex md:items-baseline md:justify-between md:gap-8">
@@ -158,8 +212,7 @@ export default function TravisPage() {
             ))}
           </ul>
           <p className="mt-10 max-w-2xl text-lg text-[#3d3a36]">
-            I also write. <strong>Table Up</strong> is my book for pastors who know something is missing between what they
-            built and what Jesus described. And you can hear me on the ARK Identity, Friday Fill Up and Bridge Evangelism podcasts.
+            Podcasts: The ARK Identity Podcast, The Friday Fill Up Podcast and The Bridge Evangelism Podcast.
           </p>
         </div>
       </section>
@@ -168,9 +221,9 @@ export default function TravisPage() {
       <section id="talk" style={{ background: 'var(--navy)' }} className="text-white">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-14 md:flex md:items-end md:justify-between md:gap-10">
           <div className="max-w-2xl">
-            <h2 className="text-3xl md:text-4xl font-bold">Want to talk?</h2>
+            <h2 className="text-3xl md:text-4xl font-bold">Contact</h2>
             <p className="mt-3 text-lg text-[#d9dde2]">
-              Speaking, coaching your church, prayer, or a question about any of this. Write me and I&apos;ll write back.
+              For speaking, church coaching, interviews or prayer, write to Travis at ARK Identity.
             </p>
           </div>
           <a href="mailto:info@arkidentity.com?subject=Hi%20Travis" className="mt-6 md:mt-0 inline-block w-full md:w-auto text-center px-8 py-4 rounded-md font-semibold text-lg transition hover:brightness-105" style={{ backgroundColor: 'var(--gold)', color: 'var(--navy)' }}>

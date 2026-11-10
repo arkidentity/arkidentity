@@ -136,7 +136,7 @@ export function packageLabel(o: StoreOrder, gift: number): string {
   }
   const giftDecks = (o.gifts ?? []).reduce((n, g) => n + g.decks, 0);
   const decks = o.own_decks ?? Math.max(0, o.decks + o.bonus_decks - giftDecks);
-  return [decks ? `${decks} Creed Cards deck${decks === 1 ? '' : 's'}` : null, o.journals ? `${o.journals} DNA Journal` : null]
+  return [decks ? `${decks} Creed Cards deck${decks === 1 ? '' : 's'}` : null, o.journals ? `${o.journals} DNA Journal${o.journals === 1 ? "" : "s"}` : null]
     .filter(Boolean)
     .join(' + ') || 'Your order';
 }

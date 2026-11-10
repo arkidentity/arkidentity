@@ -28,7 +28,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       let emailed = false;
       if (o.email) {
         const decks = o.decks + o.bonus_decks;
-        const contents = [`${decks} Creed Cards deck${decks === 1 ? '' : 's'}`, o.journals ? `${o.journals} DNA Journal` : null].filter(Boolean).join(' and ');
+        const contents = [`${decks} Creed Cards deck${decks === 1 ? '' : 's'}`, o.journals ? `${o.journals} DNA Journal${o.journals === 1 ? "" : "s"}` : null].filter(Boolean).join(' and ');
         await sendShippedEmail({ to: o.email, name: o.name, contents, tracking });
         emailed = true;
       }

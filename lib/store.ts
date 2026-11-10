@@ -131,11 +131,11 @@ function customField(fields: CustomField[], re: RegExp): string | null {
   return f?.text?.value?.trim() || null;
 }
 
-/** Bulk bonuses (PLAN §4): 1 free deck per 10 + group guide · 25+ a DNA Journal. */
+/** Bulk bonuses (PLAN §4, Travis 11/10): 1 free deck per 10 + group guide · free DNA Journals: 1, 2 at 25+, 3 at 50+.
+ *  The journals are counted in `journals`, so the note only names the guide. */
 export function bulkBonus(qty: number) {
   if (qty < 10) return { bonus_decks: 0, journals: 0, note: null as string | null };
-  const note = ['Group guide', qty >= 25 ? 'DNA Journal' : null].filter(Boolean).join(' · ');
-  return { bonus_decks: Math.floor(qty / 10), journals: qty >= 25 ? 1 : 0, note };
+  return { bonus_decks: Math.floor(qty / 10), journals: qty >= 50 ? 3 : qty >= 25 ? 2 : 1, note: 'Group guide' };
 }
 
 /** Saves a paid Checkout Session as an order. Returns null if it was already saved (webhook retry). */
@@ -399,7 +399,7 @@ export function pirateShipCsv(orders: StoreOrder[]): string {
       const rate = /priority/i.test(o.shipping_rate ?? '') ? 'Priority' : 'Standard';
       // Packages that already have tracking (shipped in an earlier batch) are left out.
       if ((own > 0 || o.journals > 0) && !o.tracking_number) {
-        const contents = [own ? `${own} deck${own === 1 ? '' : 's'}` : null, o.journals ? `${o.journals} journal` : null, o.bonus_note].filter(Boolean).join(' + ');
+        const contents = [own ? `${own} deck${own === 1 ? '' : 's'}` : null, o.journals ? `${o.journals} journal${o.journals === 1 ? "" : "s"}` : null, o.bonus_note].filter(Boolean).join(' + ');
         rows.push([short, o.ship_name ?? o.name, a.line1, a.line2, a.city, a.state, a.postal_code, a.country ?? 'US', o.email, o.phone, own * DECK_OZ + o.journals * JOURNAL_OZ, rate, contents, o.notes]);
       }
       o.gifts.forEach((g, i) => {
@@ -415,7 +415,7 @@ export function pirateShipCsv(orders: StoreOrder[]): string {
     const gift = o.items.some((i) => i.sku === 'cc-give') && o.gift_recipient;
     const giftDecks = gift ? o.items.filter((i) => i.sku === 'cc-give').reduce((n, i) => n + i.quantity, 0) : 0;
     const ownDecks = o.decks + o.bonus_decks - giftDecks;
-    const contents = [`${ownDecks} deck${ownDecks === 1 ? '' : 's'}`, o.journals ? `${o.journals} journal` : null, o.bonus_note].filter(Boolean).join(' + ');
+    const contents = [`${ownDecks} deck${ownDecks === 1 ? '' : 's'}`, o.journals ? `${o.journals} journal${o.journals === 1 ? "" : "s"}` : null, o.bonus_note].filter(Boolean).join(' + ');
     rows.push([
       short, o.ship_name ?? o.name, a.line1, a.line2, a.city, a.state, a.postal_code, a.country ?? 'US', o.email, o.phone,
       ownDecks * DECK_OZ + o.journals * JOURNAL_OZ, o.shipping_rate, contents, o.notes,

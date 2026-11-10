@@ -130,7 +130,7 @@ export default function TravisPage() {
               Years of leading groups that depended on him led Travis to a simpler model: put the tools in the hands of
               ordinary people. That became DNA Discipleship and the Daily DNA app, and his book <em>Table Up: Disciple
               making that actually multiplies your church</em>. He also created Creed Cards and teaches Friday Fill Up each
-              week. He serves as a missionary through Global Service Associates.
+              week. He is a commissioned member of Global Service Associates.
             </p>
           </div>
           <dl className="text-sm border-t-2 pt-4 space-y-3" style={{ borderColor: 'var(--gold)' }}>

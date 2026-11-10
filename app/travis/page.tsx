@@ -38,6 +38,7 @@ const PERSON = {
     ],
     // Every profile from PLAN.md step 2 goes here once it's updated to match.
     sameAs: [
+      'https://www.imdb.com/name/nm6626012/',
       'https://www.globalassociates.org/members/travis-gluckler',
       'https://www.travisandtheghost.com',
       'https://dnadiscipleship.com',

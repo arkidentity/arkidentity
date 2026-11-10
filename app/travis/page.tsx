@@ -32,12 +32,13 @@ const PERSON = {
     spouse: { '@type': 'Person', name: 'Kimberly Gluckler' },
     alumniOf: { '@type': 'HighSchool', name: 'Monroe-Woodbury High School' },
     homeLocation: { '@type': 'Place', name: 'Iowa' },
-    memberOf: { '@type': 'Organization', name: 'Global Service Associates' },
+    memberOf: { '@type': 'Organization', name: 'Global Service Associates', url: 'https://www.globalassociates.org' },
     subjectOf: [
       { '@type': 'VideoObject', name: 'Travis and Kimberly Gluckler saved in Sin City', embedUrl: 'https://www.youtube.com/embed/27NsQjBbab4', thumbnailUrl: 'https://i.ytimg.com/vi/27NsQjBbab4/hqdefault.jpg' },
     ],
     // Every profile from PLAN.md step 2 goes here once it's updated to match.
     sameAs: [
+      'https://www.globalassociates.org/members/travis-gluckler',
       'https://www.travisandtheghost.com',
       'https://dnadiscipleship.com',
       'https://creedcards.com',

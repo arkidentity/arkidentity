@@ -21,6 +21,7 @@ const PERSON = {
   '@type': 'ProfilePage',
   mainEntity: {
     '@type': 'Person',
+    '@id': 'https://arkidentity.com/travis#person',
     name: 'Travis Gluckler',
     url: 'https://arkidentity.com/travis',
     image: 'https://arkidentity.com/images/travis.JPG',

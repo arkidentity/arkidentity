@@ -37,7 +37,7 @@ export default function Team() {
                 <Image src="/images/travis.JPG" alt="Travis Gluckler" width={192} height={192} className="w-full h-full object-cover" />
               </div>
               <h3 className="text-2xl font-bold mb-1" style={{ color: 'var(--navy)' }}>Travis Gluckler</h3>
-              <p className="text-lg italic" style={{ color: 'var(--gold)' }}>Founder & National Director</p>
+              <p className="text-lg italic" style={{ color: 'var(--gold)' }}>Founder and Director</p>
             </div>
 
             <div className="text-center p-8 rounded-xl" style={{ backgroundColor: '#FFFFFF', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>

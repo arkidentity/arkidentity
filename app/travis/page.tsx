@@ -9,9 +9,9 @@ import Link from 'next/link';
 // Public Sans, ARK navy + gold, warm #f3efe8). Hero reuses the /giving and Baja pattern (clear photo,
 // navy band, button right) on purpose for site consistency.
 export const metadata = {
-  title: 'Travis Gluckler: author, church planter and campus minister',
+  title: 'Travis Gluckler: author and disciple maker',
   description:
-    'Travis Gluckler founded ARK Identity, leads ARK Iowa at the University of Iowa and builds Daily DNA, a discipleship app for churches.',
+    'Travis Gluckler is an author and disciple maker. He founded ARK Identity, leads ARK Iowa at the University of Iowa and builds Daily DNA, a discipleship app for churches.',
   alternates: { canonical: 'https://arkidentity.com/travis' },
   robots: { index: false, follow: false },
 };
@@ -25,8 +25,8 @@ const PERSON = {
     name: 'Travis Gluckler',
     url: 'https://arkidentity.com/travis',
     image: 'https://arkidentity.com/images/travis.JPG',
-    jobTitle: 'Founder and National Director, ARK Identity',
-    description: 'Author, church planter and campus minister. Founder of ARK Identity and builder of Daily DNA.',
+    jobTitle: 'Founder and Director, ARK Identity',
+    description: 'Author and disciple maker. Founder of ARK Identity and creator of the Daily DNA app.',
     worksFor: { '@type': 'Organization', name: 'ARK Identity', url: 'https://arkidentity.com' },
     knowsAbout: ['Discipleship', 'Disciple making', 'Church multiplication', 'Campus ministry', 'Identity in Christ'],
     spouse: { '@type': 'Person', name: 'Kimberly Gluckler' },
@@ -107,7 +107,7 @@ export default function TravisPage() {
             <div className="max-w-2xl">
               <h1 className="text-4xl md:text-6xl font-bold leading-[1.05]">Travis Gluckler</h1>
               <p className="mt-4 text-lg md:text-xl text-[#d9dde2]">
-                Author, church planter and campus minister. Founder of ARK Identity and Daily DNA.
+                Author and disciple maker. Founder of ARK Identity and creator of the Daily DNA app.
               </p>
             </div>
             <a href="#talk" className="mt-6 md:mt-0 inline-block w-full md:w-auto text-center px-8 py-4 rounded-md font-semibold text-lg transition hover:brightness-105" style={{ backgroundColor: 'var(--gold)', color: 'var(--navy)' }}>
@@ -122,7 +122,7 @@ export default function TravisPage() {
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-1 md:grid-cols-[1fr_16rem] gap-10 items-start">
           <div className="max-w-2xl text-lg leading-relaxed text-[#3d3a36] space-y-5">
             <p>
-              <strong>Travis Gluckler</strong> is an author, church planter and campus minister, and the founder of ARK
+              <strong>Travis Gluckler</strong> is an author and disciple maker, and the founder and director of ARK
               Identity, a discipleship ministry that helps believers know God and who God says they are. He grew up in
               Monroe, New York, graduated from Monroe-Woodbury High School in 1999, and lives in Iowa with his wife,
               Kimberly, and their four children.

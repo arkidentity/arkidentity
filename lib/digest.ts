@@ -22,8 +22,22 @@ const MAX_DIGEST_POSTS = 3;
 const DAY = 24 * 60 * 60 * 1000;
 const DUE_DAYS: Record<Contact['frequency'], number> = { weekly: 7, monthly: 28 };
 
+// Resend's free plan allows 100 emails/day across ALL our mail (study
+// reminders, Iowa digests, alerts, etc.), so the donor digest gets a daily
+// budget. Anyone over the cap simply stays "due" and goes out on tomorrow's
+// cron run, which naturally staggers the list across days (and keeps it
+// staggered, since each person's next send is measured from their own last
+// send). Override with DIGEST_DAILY_CAP; raise it after upgrading Resend.
+const DEFAULT_DAILY_CAP = 40;
+
+function dailyCap(): number {
+  const n = Number(process.env.DIGEST_DAILY_CAP);
+  return Number.isFinite(n) && n > 0 ? Math.floor(n) : DEFAULT_DAILY_CAP;
+}
+
 export interface DigestSummary {
   sent: number;
+  deferred: number;
   skipped: number;
   failed: number;
   errors: string[];
@@ -31,8 +45,9 @@ export interface DigestSummary {
 
 export async function runDigests(): Promise<DigestSummary> {
   const supabase = getSupabaseAdmin();
-  const summary: DigestSummary = { sent: 0, skipped: 0, failed: 0, errors: [] };
+  const summary: DigestSummary = { sent: 0, deferred: 0, skipped: 0, failed: 0, errors: [] };
   const now = Date.now();
+  const cap = dailyCap();
 
   const { data: contactRows, error: pErr } = await supabase
     .from('contacts')
@@ -92,6 +107,13 @@ export async function runDigests(): Promise<DigestSummary> {
     // Everything new counts as "sent" (it won't be offered again — sinceIso
     // moves to now), but only the most recent MAX_DIGEST_POSTS actually appear
     // in the email, newest first.
+    // Daily budget reached: leave this person due (no `sends` row is written),
+    // so tomorrow's run picks them up with all their new posts.
+    if (summary.sent + summary.failed >= cap) {
+      summary.deferred++;
+      continue;
+    }
+
     const featured = posts.slice(0, MAX_DIGEST_POSTS);
 
     const digestPosts: DigestPost[] = featured.map((p) => {

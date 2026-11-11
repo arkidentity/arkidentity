@@ -1,4 +1,5 @@
 import { Resend } from 'resend';
+import type { StoreOrder } from '@/lib/store';
 
 // Server-only email sending via Resend. Uses a dedicated sending identity
 // (ideally a subdomain like updates.arkidentity.com) so ministry-feed volume
@@ -920,4 +921,58 @@ export async function sendShippedEmail(opts: { to: string; name: string | null; 
     <p style="color:#8a8378; font-size:14px;">Tracking number: ${escapeHtml(opts.tracking)}. Something missing or damaged? Reply to this email and we'll make it right.</p>
   `);
   return getResend().emails.send({ from, to: opts.to, subject: 'Your order shipped', html });
+}
+
+/**
+ * ARK store: "order confirmed" (system email, so Resend), sent by the Stripe webhook the moment a paid
+ * order is saved. Its job is the part Stripe's receipt doesn't do: list every address (own + gifts)
+ * so the buyer can catch a typo before packages ship. Copy approved by Travis 11/11.
+ */
+export async function sendOrderConfirmationEmail(o: StoreOrder) {
+  if (!o.email) return null;
+  const from = process.env.STORE_EMAIL_FROM || fromAddress();
+  const first = escapeHtml(o.name?.split(' ')[0] || 'friend');
+  const usd = (c: number) => `$${(c / 100).toFixed(2)}`;
+  const joinAddr = (parts: (string | undefined)[]) => parts.filter(Boolean).join(', ');
+
+  const lines = o.items.map((it) => `${escapeHtml(it.name)} × ${it.quantity}`);
+  if (o.bonus_decks > 0) {
+    lines.push(`Bonus: ${o.bonus_decks} free ${o.bonus_decks === 1 ? 'deck' : 'decks'}${o.bonus_note ? ` + ${escapeHtml(o.bonus_note.toLowerCase())}` : ''}`);
+  }
+  const boughtJournals = o.items.filter((it) => it.sku === 'dna-journal').reduce((n, it) => n + it.quantity, 0);
+  const freeJournals = Math.max(0, o.journals - boughtJournals);
+  if (freeJournals > 0) lines.push(`Bonus: ${freeJournals} free Daily DNA ${freeJournals === 1 ? 'Journal' : 'Journals'}`);
+
+  const gifts = o.gifts ?? [];
+  const where: string[] = [];
+  const ownDecks = gifts.length ? o.own_decks ?? 0 : o.decks + o.bonus_decks;
+  const a = o.ship_address;
+  const home = a ? joinAddr([a.line1, a.line2, a.city, `${a.state ?? ''} ${a.postal_code ?? ''}`.trim()]) : '';
+  if (home && (ownDecks > 0 || o.journals > 0)) {
+    where.push(`To you: ${escapeHtml(o.ship_name || o.name || 'you')}, ${escapeHtml(home)}`);
+  }
+  for (const g of gifts) {
+    const gaddr = joinAddr([g.line1, g.line2, g.city, `${g.state ?? ''} ${g.zip ?? ''}`.trim()]);
+    where.push(
+      `Gift to ${escapeHtml(g.name)}: ${escapeHtml(gaddr)}${g.note ? `<br/><span style="color:#8a8378; font-size:14px;">Your note: “${escapeHtml(g.note)}”</span>` : ''}`
+    );
+  }
+  const list = (items: string[]) =>
+    `<ul style="padding-left:20px; margin:8px 0 20px;">${items.map((t) => `<li style="margin:6px 0;">${t}</li>`).join('')}</ul>`;
+  const head = (t: string) => `<p style="margin:24px 0 0; font-weight:600; color:#143348;">${t}</p>`;
+
+  const html = wrap(`
+    <h1 style="color:#143348; font-size:22px;">Your Creed Cards order is confirmed</h1>
+    <p>Hi ${first},</p>
+    <p>Thank you. Your order is paid, and here's exactly what we have:</p>
+    ${head('Your order')}
+    ${list(lines)}
+    ${o.total_cents != null ? `<p style="margin:0 0 4px;">Total: ${usd(o.total_cents)} <span style="color:#8a8378; font-size:14px;">(Stripe emails your receipt separately)</span></p>` : ''}
+    ${where.length ? `${head("Where it's going")}${list(where)}` : ''}
+    ${head('What happens next')}
+    <p style="margin:8px 0 20px;">Founders decks ship in the first two weeks of December. Each package gets its own email with tracking. Want to start before they arrive? The app is free at <a href="https://creedcards.com/cards" style="color:#143348; font-weight:600;">creedcards.com/cards</a>.</p>
+    <p style="color:#8a8378; font-size:14px;">Something wrong with an address? Just reply and we'll fix it before it ships.</p>
+    <p>Travis</p>
+  `);
+  return getResend().emails.send({ from, to: o.email, subject: 'Your Creed Cards order is confirmed', html });
 }

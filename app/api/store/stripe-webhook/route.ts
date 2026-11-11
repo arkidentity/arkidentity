@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { sendOrderConfirmationEmail } from '@/lib/email';
 import { markRefunded, saveCheckoutSession, tagBuyer, untagRefund, verifyStripeSignature } from '@/lib/store';
 
 export const dynamic = 'force-dynamic';
@@ -6,7 +7,7 @@ export const dynamic = 'force-dynamic';
 // POST /api/store/stripe-webhook — the LLC's one Stripe webhook for every store front door.
 // Stripe → Developers → Webhooks → endpoint https://www.arkidentity.com/api/store/stripe-webhook
 // Events: checkout.session.completed, checkout.session.async_payment_succeeded, charge.refunded.
-// Stripe's own receipt is the order confirmation; we only save the order and tag the buyer.
+// Stripe's receipt covers payment; we save the order, tag the buyer, and send our own confirmation (addresses + next steps).
 export async function POST(req: Request) {
   const payload = await req.text();
   if (!(await verifyStripeSignature(payload, req.headers.get('stripe-signature')))) {
@@ -18,7 +19,11 @@ export async function POST(req: Request) {
     if (event.type === 'checkout.session.completed' || event.type === 'checkout.session.async_payment_succeeded') {
       const order = await saveCheckoutSession(event.data.object.id);
       // A GHL hiccup never fails the webhook (Stripe would retry and the order is already saved).
-      if (order) await tagBuyer(order).catch((e) => console.error('[store] GHL tag', e));
+      if (order) {
+        await tagBuyer(order).catch((e) => console.error('[store] GHL tag', e));
+        // Same rule for our own confirmation email (copy approved 11/11): never fail the webhook over it.
+        await sendOrderConfirmationEmail(order).catch((e) => console.error('[store] confirmation email', e));
+      }
     } else if (event.type === 'charge.refunded' && event.data.object.payment_intent) {
       const refunded = await markRefunded(event.data.object.payment_intent);
       if (refunded) await untagRefund(refunded).catch((e) => console.error('[store] GHL refund', e));

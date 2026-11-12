@@ -23,12 +23,21 @@ export type ShopProduct = {
   addonOnly?: boolean;
   /** Decks can ship to other people, one deck per address, free shipping each (lib/shopCheckout.ts). */
   gifts?: boolean;
+  /** Shop cart (lib/shopCart.ts): price shown in the cart, in cents (Stripe still charges from the lookup keys). */
+  show?: { early?: number; regular: number };
+  /** Shop cart quantity limits; missing = the item can't go in the cart (Buy now only). */
+  cart?: { min: number; max: number };
+  /** Which box it ships in. Media Mail is books only, so books always ship as their own package. */
+  ship?: 'parcel' | 'media';
 };
 
 const CC_EARLY_ENDS = '2026-12-01T06:00:00Z'; // Early Bird through Nov 30, US Central
 
 export const CATALOG: Record<string, ShopProduct> = {
   'cc-one': {
+    show: { early: 2500, regular: 2900 },
+    cart: { min: 1, max: 9 },
+    ship: 'parcel',
     brand: 'cc',
     name: 'Creed Cards: One Deck',
     prices: { early: 'cc-one-founding', regular: 'cc-one-regular' },
@@ -39,6 +48,9 @@ export const CATALOG: Record<string, ShopProduct> = {
     addons: ['dna-journal'],
   },
   'cc-give': {
+    show: { early: 5000, regular: 5500 },
+    cart: { min: 1, max: 1 }, // one gift recipient field per order; more gifts = Buy now on creedcards.com
+    ship: 'parcel',
     brand: 'cc',
     name: 'Creed Cards: Keep One, Give One',
     prices: { early: 'cc-give-founding', regular: 'cc-give-regular' },
@@ -52,6 +64,9 @@ export const CATALOG: Record<string, ShopProduct> = {
     addons: ['dna-journal'],
   },
   'cc-table': {
+    show: { early: 7500, regular: 8700 },
+    cart: { min: 1, max: 5 },
+    ship: 'parcel',
     brand: 'cc',
     name: 'Creed Cards: The Table (4 decks)',
     prices: { early: 'cc-table-founding', regular: 'cc-table-regular' },
@@ -60,6 +75,9 @@ export const CATALOG: Record<string, ShopProduct> = {
     addons: ['dna-journal'],
   },
   'cc-bulk': {
+    show: { early: 1800, regular: 2100 },
+    cart: { min: 10, max: 500 },
+    ship: 'parcel',
     brand: 'cc',
     name: 'Creed Cards: Bulk (per deck, 10+)',
     prices: { early: 'cc-bulk-founding', regular: 'cc-bulk-regular' },
@@ -70,12 +88,23 @@ export const CATALOG: Record<string, ShopProduct> = {
     addons: ['dna-journal'],
   },
   'dna-journal': {
+    show: { regular: 1200 },
+    cart: { min: 1, max: 10 },
+    ship: 'parcel',
     brand: 'ark',
     name: 'Daily DNA Journal',
     prices: { regular: 'dna-journal-addon' },
     addonOnly: true,
   },
 };
+
+/** Products on the way: shown in the shop as "Coming soon", not sold yet. Each becomes a CATALOG entry when ready. */
+export const COMING: { key: string; brand: string; name: string; line: string; when: string }[] = [
+  { key: 'books', brand: 'ARK Identity', name: 'ARK books for groups', line: '10 or more of one title, with workbook sets (like Identity Through the Trinity).', when: 'Soon' },
+  { key: 'spark', brand: 'Spark', name: 'Spark deck', line: 'A new deck, playing-card size.', when: 'January' },
+  { key: 'outreach', brand: 'Outreach in a Box', name: 'Outreach in a Box', line: 'An outreach for your group, ready to go.', when: 'January' },
+  { key: 'communion', brand: 'Communion in a Box', name: 'Communion in a Box', line: 'Our premium box.', when: 'January' },
+];
 
 /** The lookup key to charge right now. */
 export function currentPriceKey(p: ShopProduct, now = Date.now()): string {

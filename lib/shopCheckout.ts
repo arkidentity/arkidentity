@@ -9,6 +9,7 @@
 // it to the front door with the session so the two keys always match and only live here.
 
 import { BRAND_SITES, CATALOG, currentPriceKey, type Brand } from '@/lib/shopCatalog';
+import { cleanCart, shipping, type CartLine } from '@/lib/shopCart';
 
 const API = 'https://api.stripe.com/v1';
 
@@ -194,6 +195,75 @@ export async function createShopCheckout(opts: {
     if (opts.sku === 'cc-one') set('metadata[own_decks]', own);
   }
   const fields = (item.fields ?? []).filter((f) => !(gifts.length && /^gift/.test(f.key)));
+  fields.forEach((f, i) => {
+    set(`custom_fields[${i}][key]`, f.key);
+    set(`custom_fields[${i}][label][type]`, 'custom');
+    set(`custom_fields[${i}][label][custom]`, f.label);
+    set(`custom_fields[${i}][type]`, 'text');
+    if (f.optional) set(`custom_fields[${i}][optional]`, true);
+  });
+
+  const session = (await stripe('/checkout/sessions', p)) as { url?: string; client_secret?: string };
+  return ui === 'embedded' ? { clientSecret: session.client_secret } : { url: session.url };
+}
+
+/**
+ * The shop cart's checkout (arkidentity.com/shop/cart): several items in one Checkout Session, same webhook, same
+ * order rows. Rules come from lib/shopCart.ts so the cart page and Stripe agree. Gift addresses beyond the one Keep
+ * One, Give One recipient stay on creedcards.com (Buy now), so here the recipient is a Stripe text field.
+ */
+export async function createCartCheckout(opts: { lines: CartLine[]; origin?: string | null; ui?: 'embedded' | 'hosted'; src?: string }) {
+  const ui = opts.ui ?? 'embedded';
+  const lines = cleanCart(opts.lines);
+  if (!lines.length) throw new ShopError('Your cart is empty.');
+  const items = lines.map((l) => CATALOG[l.sku]);
+  const keys = items.map((p) => currentPriceKey(p));
+  const ids = await priceIds([...new Set(keys)]);
+  const missing = keys.filter((k) => !ids[k]);
+  if (missing.length) throw new ShopError(`Missing Stripe price: ${missing.join(', ')}`, 502);
+
+  const site = BRAND_SITES.ark;
+  const back = opts.origin && site.origins.test(opts.origin) ? opts.origin : site.home;
+  const src = opts.src && /^[a-z0-9-]{1,40}$/.test(opts.src) ? opts.src : '';
+  const done = `${back}/shop/thanks?session_id={CHECKOUT_SESSION_ID}${src ? `&src=${src}` : ''}`;
+
+  const p = new URLSearchParams();
+  const set = (k: string, v: string | number | boolean) => p.set(k, String(v));
+  set('mode', 'payment');
+  if (ui === 'embedded') {
+    set('ui_mode', 'embedded_page');
+    set('return_url', done);
+  } else {
+    set('success_url', done);
+    set('cancel_url', `${back}/shop/cart`);
+  }
+  set('allow_promotion_codes', true);
+  set('automatic_tax[enabled]', true);
+  set('shipping_address_collection[allowed_countries][0]', 'US');
+  // Founders count and the wall read brand 'cc', so a cart with decks counts as Creed Cards.
+  set('metadata[brand]', items.some((i) => i.brand === 'cc') ? 'cc' : 'ark');
+  set('metadata[source]', 'shop-cart');
+  if (src) set('metadata[ref]', src);
+
+  lines.forEach((l, i) => {
+    set(`line_items[${i}][price]`, ids[keys[i]]);
+    set(`line_items[${i}][quantity]`, l.qty);
+  });
+
+  const ship = shipping(lines);
+  const where = ship.packages > 1 ? ` (${ship.packages} packages)` : '';
+  const opt = [{ name: `Free shipping${where}`, cents: 0 }];
+  if (ship.priority) opt.push({ name: ship.parcels > 1 ? `Priority Mail (faster), $6 × ${ship.parcels} packages` : 'Priority Mail (faster)', cents: ship.priorityCents });
+  opt.forEach((s, i) => {
+    set(`shipping_options[${i}][shipping_rate_data][type]`, 'fixed_amount');
+    set(`shipping_options[${i}][shipping_rate_data][display_name]`, s.name);
+    set(`shipping_options[${i}][shipping_rate_data][fixed_amount][amount]`, s.cents);
+    set(`shipping_options[${i}][shipping_rate_data][fixed_amount][currency]`, 'usd');
+    set(`shipping_options[${i}][shipping_rate_data][tax_behavior]`, 'exclusive');
+  });
+
+  // Checkout fields from every item, once each (Stripe allows 3).
+  const fields = [...new Map(items.flatMap((i) => i.fields ?? []).map((f) => [f.key, f])).values()].slice(0, 3);
   fields.forEach((f, i) => {
     set(`custom_fields[${i}][key]`, f.key);
     set(`custom_fields[${i}][label][type]`, 'custom');

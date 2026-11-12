@@ -78,7 +78,8 @@ export function BottomTabBar() {
     pathname.startsWith('/vision') ||
     pathname.startsWith('/team') ||
     pathname.startsWith('/get-involved') ||
-    pathname.startsWith('/iowa');
+    pathname.startsWith('/iowa') ||
+    pathname.startsWith('/shop');
 
   if (isPublicPage) return null;
 

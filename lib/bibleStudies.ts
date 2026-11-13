@@ -835,6 +835,7 @@ export interface CampusStudent {
   // Empty means unplaced — met, but not in a study yet.
   studies: { id: string; label: string; member_id: string }[];
   added_at: string | null; // when they went on the student list (campus_students.created_at)
+  gender: StudentGender | null; // migration 058 — from the signup page
 }
 
 // Just id + name for pickers ("link this task to a student"). The full
@@ -904,6 +905,7 @@ export async function listCampusStudents(): Promise<CampusStudent[]> {
       daily_dna_account_id?: string | null;
       daily_dna_name?: string | null;
       created_at?: string | null;
+      gender?: StudentGender | null;
     }[])
       .map((r) => [r.contact_id, r])
   );
@@ -947,6 +949,7 @@ export async function listCampusStudents(): Promise<CampusStudent[]> {
         daily_dna_name: c?.daily_dna_name ?? null,
         studies: seatsByContact.get(p.contact_id) ?? [],
         added_at: c?.created_at ?? null,
+        gender: c?.gender ?? null,
       };
     })
     .sort((a, b) => a.name.localeCompare(b.name));

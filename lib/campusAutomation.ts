@@ -12,7 +12,7 @@ import { pendingInvitesFor, type PendingInvite } from '@/lib/eventInvites';
 import { listStudyTeam, pendingStudyInvitesFor } from '@/lib/studyTeam';
 import { teamOn } from '@/lib/campusFormat';
 import { listStaff, type IowaStaff } from '@/lib/iowaStaff';
-import { DAY_NAMES, formatSlot, formatTime } from '@/lib/bibleStudyFormat';
+import { DAY_NAMES, formatSlot, formatTime, slotLabel, sortSlots, type StudentGender } from '@/lib/bibleStudyFormat';
 import {
   addDays,
   chicagoToday,
@@ -685,6 +685,8 @@ export async function recordInterest(input: {
   year?: string | null;
   metBy?: string | null;
   note?: string | null;
+  freeSlots?: string[];
+  gender?: StudentGender | null;
 }): Promise<{ contactId: string; taskId: string | null }> {
   const contact = await ensureStudentContact(input);
   const staff = await listStaff();
@@ -702,9 +704,11 @@ export async function recordInterest(input: {
       metLabel({ met_by_staff_id: metStaff, met_by_other: null }, staff)
         ? `How they came: ${metLabel({ met_by_staff_id: metStaff, met_by_other: null }, staff)}`
         : null,
+      input.gender ? `Studies they can join: ${input.gender === 'guy' ? 'Guys + Co-ed' : 'Girls + Co-ed'}` : null,
+      input.freeSlots?.length ? `Free: ${sortSlots(input.freeSlots).map(slotLabel).join(', ')}` : 'Free: not sure yet',
       input.note ? `They said: ${input.note}` : null,
       '',
-      'They asked us to follow up — they’re interested but didn’t pick a study time. Text or call, find a time that fits their schedule, then place them from the Students page.',
+      'Text them a spot in a study at one of those times (Who’s waiting on the Studies page shows what’s open). Once they say yes, add them to it or text them the study’s link.',
     ]
       .filter((x) => x !== null)
       .join('\n'),

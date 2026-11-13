@@ -38,7 +38,7 @@ export default async function IowaStudiesPage({ searchParams }: { searchParams: 
     if (p.free_slots_semester !== semester) continue; // last semester's answers don't count
     for (const slot of p.free_slots) {
       const w = bySlot.get(slot) ?? { slot, open: [], students: [] };
-      w.students.push({ contact_id: p.contact_id, name: p.name, phone: p.phone, email: p.email });
+      w.students.push({ contact_id: p.contact_id, name: p.name, phone: p.phone, email: p.email, gender: p.gender });
       bySlot.set(slot, w);
     }
   }
@@ -47,7 +47,7 @@ export default async function IowaStudiesPage({ searchParams }: { searchParams: 
     w.open = studies
       .filter((st) => ['forming', 'activated'].includes(st.status) && st.day_of_week === Number(day) && blockOf(st.start_time) === block)
       .filter((st) => st.activeCount < st.capacity)
-      .map((st) => ({ id: st.id, label: formatSlot(st), spotsLeft: st.capacity - st.activeCount }));
+      .map((st) => ({ id: st.id, label: formatSlot(st), spotsLeft: st.capacity - st.activeCount, group_type: st.group_type ?? 'coed' }));
   }
   const waiting = [...bySlot.values()].sort((a, b) => b.students.length - a.students.length);
   const unplacedNoTimes = unplaced.filter((p) => p.free_slots_semester !== semester).length;

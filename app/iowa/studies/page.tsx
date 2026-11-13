@@ -6,7 +6,7 @@ export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = {
   title: 'ARK Iowa — Bible studies',
-  description: 'Open Bible studies at the University of Iowa. Pick a time, or start one.',
+  description: 'Bible studies at the University of Iowa. Tell us when you’re free and we’ll text you a spot.',
   robots: { index: false, follow: false },
 };
 
@@ -17,11 +17,11 @@ export default async function IowaStudiesPage() {
     <div style={{ background: '#FAF8F5', minHeight: '100vh' }}>
       <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-14">
         <h1 className="text-3xl md:text-4xl font-bold mb-3" style={{ color: 'var(--navy)' }}>
-          Find a Bible study
+          Join a Bible study
         </h1>
         <p className="text-lg text-[#4a4540] mb-10">
-          One hour a week, four students, all semester. Join one that’s open, or start a new one at a
-          time that works for you.
+          One hour a week, four students, all semester. Tell us when you’re free and we’ll text you a
+          spot in a group that fits.
         </p>
         <StudiesBrowser initial={studies} pause={pause} tabs={tabs} />
       </div>

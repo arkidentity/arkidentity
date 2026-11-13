@@ -35,7 +35,7 @@ function PrimaryButton({ className = '' }: { className?: string }) {
       className={`inline-block px-8 py-4 rounded-lg font-semibold text-lg transition hover:opacity-90 ${className}`}
       style={{ backgroundColor: 'var(--gold)', color: 'var(--navy)' }}
     >
-      Pick your day and time
+      Join a Bible study
     </a>
   );
 }
@@ -217,8 +217,8 @@ export default function IowaPageContent({ studies, counts, pause = null, tabs = 
         <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="space-y-0">
             {[
-              { n: '1', h: 'Pick your day and time.', b: 'Your name and a number.', t: '30 seconds' },
-              { n: '2', h: 'Come sit in on one.', b: 'One table, one hour, no commitment. Nothing to bring.', t: 'This week' },
+              { n: '1', h: 'Tell us when you’re free.', b: 'The times you could meet, your name and a number.', t: '30 seconds' },
+              { n: '2', h: 'We text you a spot.', b: 'A group at a time that fits. Come sit in, no commitment, nothing to bring.', t: 'This week' },
               { n: '3', h: 'Keep the same hour every week.', b: 'Same four people, all semester.', t: 'Ongoing' },
             ].map((s, i) => (
               <div
@@ -294,15 +294,15 @@ export default function IowaPageContent({ studies, counts, pause = null, tabs = 
         </div>
       </section>
 
-      {/* 10 — PICK YOUR DAY AND TIME (the form) */}
+      {/* 10 — WHEN ARE YOU FREE (the form) */}
       <section id="pick" style={{ background: '#F5F2EE' }} className="py-20">
         <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="mb-10">
             <h2 className="text-3xl md:text-4xl font-bold mb-3" style={{ color: 'var(--navy)' }}>
-              Pick your day and time
+              Tell us when you’re free
             </h2>
             <p className="text-lg text-[#5a5247]">
-              Tap the times you’re free to see what’s open. Join one, or start a new one.
+              Tap the times you could meet. We’ll text you a spot in a group that fits.
             </p>
           </div>
 
@@ -371,7 +371,7 @@ export default function IowaPageContent({ studies, counts, pause = null, tabs = 
           <dl className="space-y-7">
             {[
               ['Is this a cult?', 'Fair question. Everything we teach comes straight out of the Bible, and we’ll tell you exactly what we believe before you ever sit down. Nobody asks you for money. You can stop coming any week and nobody will chase you. We meet in fours because it’s the only size where everybody actually talks, not because we’re hiding.'],
-              ['I don’t have time.', 'One hour a week, at a time you pick. If none of the times work, tell us and we’ll start one that does.'],
+              ['I don’t have time.', 'One hour a week, at a time that fits your schedule. Tell us when you’re free and we’ll find a group that meets then.'],
               ['Is it guys and girls together?', 'Separate — guys with guys, girls with girls. A table of four gets honest fast, and that’s easier when it isn’t mixed.'],
               ['I don’t really know what I believe.', 'Then you’re the easiest person to have at a table. Bring the questions. Nobody’s going to ask you to perform.'],
               ['I already go to Cru, or Salt, or a church.', 'Good, keep going. This isn’t instead of that. This is the four people who read the Bible with you during the week.'],

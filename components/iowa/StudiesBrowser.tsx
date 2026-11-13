@@ -1,19 +1,7 @@
 'use client';
 
-import { useMemo, useState } from 'react';
-import {
-  PICKER_DAYS,
-  DAY_NAMES,
-  blockOf,
-  formatTime,
-  spotsLabel,
-  groupFits,
-  GROUP_LABEL,
-  GROUP_TYPES,
-  type GroupType,
-  type StudentGender,
-} from '@/lib/bibleStudyFormat';
-import JoinForm from '@/components/iowa/JoinForm';
+import { useState } from 'react';
+import type { GroupType, StudentGender } from '@/lib/bibleStudyFormat';
 import SlotGrid from '@/components/iowa/SlotGrid';
 import MetByPicker from '@/components/iowa/MetByPicker';
 
@@ -28,39 +16,28 @@ interface PublicStudy {
   group_type?: GroupType;
 }
 
-// During a school break (Settings → School calendar) signups stay open; `pause`
-// just tells students which break it is and when studies meet again.
-// `tabs` appears once next semester's signup opens (~Nov 30 for spring): the
-// current semester and the next, each with its own studies.
+// The signup: gather when they're free, then staff text them a spot that fits
+// (Travis, 11/13 — picking a study time yourself didn't hold up). Every signup
+// lands as Needs a study with a follow-up task; "Who's waiting" on the Studies
+// admin groups them by these times next to the open studies.
+// `pause`: a school break (Settings → School calendar). `tabs`: once next
+// semester's signup opens, the current semester and the next.
 export default function StudiesBrowser({
-  initial,
   pause = null,
   tabs = [],
 }: {
-  initial: PublicStudy[];
+  initial?: PublicStudy[];
   pause?: { name: string; resumes: string } | null;
   tabs?: { name: string; studies: PublicStudy[] }[];
 }) {
   const [tab, setTab] = useState(tabs[0]?.name ?? '');
-  const [studies, setStudies] = useState<PublicStudy[]>(tabs[0]?.studies ?? initial);
   const [cells, setCells] = useState<Set<string>>(new Set());
   const [gender, setGender] = useState<StudentGender | null>(null);
-  const [openJoin, setOpenJoin] = useState<string | null>(null);
-  const [showStart, setShowStart] = useState(false);
-  const [showInterest, setShowInterest] = useState(false);
-
-  async function refresh() {
-    try {
-      const res = await fetch(`/api/iowa/studies${tab ? `?semester=${encodeURIComponent(tab)}` : ''}`, { cache: 'no-store' });
-      const data = await res.json().catch(() => ({}));
-      if (Array.isArray(data.studies)) setStudies(data.studies);
-    } catch {
-      /* keep what we have */
-    }
-  }
+  const [notSure, setNotSure] = useState(false);
 
   function toggleCell(day: number, block: string) {
     const key = `${day}-${block}`;
+    setNotSure(false);
     setCells((prev) => {
       const next = new Set(prev);
       if (next.has(key)) next.delete(key);
@@ -69,55 +46,39 @@ export default function StudiesBrowser({
     });
   }
 
-  const filtered = useMemo(() => {
-    // A guy never sees a girls' study and the other way round; co-ed is open to all.
-    const list = studies
-      .filter((s) => groupFits(s.group_type, gender))
-      .filter((s) => cells.size === 0 || cells.has(`${s.day_of_week}-${blockOf(s.start_time)}`));
-    return [...list].sort(
-      (a, b) => a.day_of_week - b.day_of_week || a.start_time.localeCompare(b.start_time)
-    );
-  }, [studies, cells, gender]);
+  const pick = (on: boolean) => ({
+    backgroundColor: on ? 'var(--gold)' : '#f1ede7',
+    color: on ? 'var(--navy)' : '#8a8378',
+    border: on ? '1px solid var(--gold)' : '1px solid #e2ddd5',
+  });
 
-  const byDay = useMemo(() => {
-    const map = new Map<number, PublicStudy[]>();
-    for (const s of filtered) {
-      const arr = map.get(s.day_of_week) ?? [];
-      arr.push(s);
-      map.set(s.day_of_week, arr);
-    }
-    return [...map.entries()].sort((a, b) => a[0] - b[0]);
-  }, [filtered]);
+  const blocked = cells.size === 0 && !notSure ? 'Tap the times you’re free, or “Not sure yet”.' : '';
 
   return (
-    <div className="space-y-10">
+    <div className="space-y-8">
       {tabs.length > 1 && (
-        <div className="flex flex-wrap gap-2">
-          {tabs.map((t, i) => (
-            <button
-              key={t.name}
-              type="button"
-              onClick={() => {
-                setTab(t.name);
-                setStudies(t.studies);
-                setOpenJoin(null);
-              }}
-              className="px-4 py-2 rounded-lg font-semibold text-sm transition"
-              style={
-                tab === t.name
-                  ? { backgroundColor: 'var(--navy)', color: 'white' }
-                  : { backgroundColor: '#f1ede7', color: 'var(--navy)' }
-              }
-            >
-              {i === 0 ? `This semester` : t.name}
-            </button>
-          ))}
+        <div>
+          <span className="block text-sm font-semibold mb-2" style={{ color: 'var(--navy)' }}>
+            Which semester?
+          </span>
+          <div className="flex flex-wrap gap-2">
+            {tabs.map((t, i) => (
+              <button
+                key={t.name}
+                type="button"
+                onClick={() => setTab(t.name)}
+                className="px-4 py-2 rounded-lg font-semibold text-sm transition"
+                style={
+                  tab === t.name
+                    ? { backgroundColor: 'var(--navy)', color: 'white' }
+                    : { backgroundColor: '#f1ede7', color: 'var(--navy)' }
+                }
+              >
+                {i === 0 ? 'This semester' : t.name}
+              </button>
+            ))}
+          </div>
         </div>
-      )}
-      {tabs.length > 1 && tab !== tabs[0].name && (
-        <p className="text-[#4a4540] -mt-4">
-          Know your {tab} schedule? Grab a spot now, or start a {tab} study at a time that works.
-        </p>
       )}
       {pause && (tabs.length < 2 || tab === tabs[0].name) && (
         <div className="rounded-xl px-5 py-4" style={{ backgroundColor: '#f1ede7', border: '1px solid #e2ddd5' }}>
@@ -131,26 +92,21 @@ export default function StudiesBrowser({
           </p>
         </div>
       )}
-      {/* Guys + Co-ed or Girls + Co-ed: still saved as guy/girl so joins can be checked */}
+
+      {/* Guys + Co-ed or Girls + Co-ed: saved as guy/girl so we only offer studies that fit */}
       <div>
         <span className="block text-sm font-semibold mb-1" style={{ color: 'var(--navy)' }}>
           Which studies can you join?
         </span>
-        <p className="text-sm text-[#8a8378] mb-3">
-          We have guys’, girls’ and co-ed studies. Pick one to see just those.
-        </p>
-        <div className="flex gap-2">
+        <p className="text-sm text-[#8a8378] mb-3">We have guys’, girls’ and co-ed studies.</p>
+        <div className="flex flex-wrap gap-2">
           {(['guy', 'girl'] as StudentGender[]).map((g) => (
             <button
               key={g}
               type="button"
-              onClick={() => { setGender(gender === g ? null : g); setOpenJoin(null); }}
+              onClick={() => setGender(gender === g ? null : g)}
               className="px-5 py-2.5 rounded-lg text-sm font-semibold transition"
-              style={{
-                backgroundColor: gender === g ? 'var(--gold)' : '#f1ede7',
-                color: gender === g ? 'var(--navy)' : '#8a8378',
-                border: gender === g ? '1px solid var(--gold)' : '1px solid #e2ddd5',
-              }}
+              style={pick(gender === g)}
             >
               {g === 'guy' ? 'Guys + Co-ed' : 'Girls + Co-ed'}
             </button>
@@ -158,145 +114,40 @@ export default function StudiesBrowser({
         </div>
       </div>
 
-      {/* Filter grid */}
       <div>
         <span className="block text-sm font-semibold mb-1" style={{ color: 'var(--navy)' }}>
           When are you free?
         </span>
         <p className="text-sm text-[#8a8378] mb-3">
-          Tap the times you could meet. We’ll show the studies open then. Leave it blank to see everything.
+          Tap every time you could meet for an hour. The more you pick, the faster we can find you a group.
         </p>
         <SlotGrid cells={cells} onToggle={toggleCell} />
+        <button
+          type="button"
+          onClick={() => { setNotSure((v) => !v); setCells(new Set()); }}
+          className="mt-3 px-4 py-2 rounded-lg text-sm font-semibold transition"
+          style={pick(notSure)}
+        >
+          Not sure yet
+        </button>
       </div>
 
-      {/* Results */}
-      <div>
-        {filtered.length === 0 ? (
-          <div className="rounded-xl border border-gray-200 bg-white px-6 py-8 text-center">
-            <p className="text-lg font-semibold" style={{ color: 'var(--navy)' }}>
-              No open Bible study at those times yet.
+      <InterestForm
+        freeSlots={[...cells]}
+        semester={tabs.length > 1 ? tab : undefined}
+        gender={gender}
+        submitLabel="Find me a study"
+        blocked={blocked}
+        extraNote={notSure ? 'Not sure of their schedule yet.' : ''}
+        success={
+          <>
+            <p className="font-bold" style={{ color: 'var(--navy)' }}>Got it.</p>
+            <p className="text-[#4a4540] mt-1">
+              Someone from ARK Iowa will text you this week with a spot in a group that fits your schedule.
             </p>
-            <p className="text-[#4a4540] mt-2">
-              Start one — you’ll be first, and we’ll help fill it.
-            </p>
-            <button
-              onClick={() => setShowStart(true)}
-              className="mt-4 px-6 py-3 rounded-lg font-semibold transition hover:opacity-90"
-              style={{ backgroundColor: 'var(--gold)', color: 'var(--navy)' }}
-            >
-              Start a new one
-            </button>
-          </div>
-        ) : (
-          <div className="space-y-8">
-            {byDay.map(([day, list]) => (
-              <div key={day}>
-                <h3
-                  className="text-sm font-bold uppercase tracking-wider mb-3"
-                  style={{ color: 'var(--maroon)' }}
-                >
-                  {DAY_NAMES[day]}
-                </h3>
-                <div className="space-y-3">
-                  {list.map((s) => (
-                    <div key={s.id} className="rounded-xl border border-gray-200 bg-white">
-                      <div className="flex items-center justify-between gap-4 px-5 py-4">
-                        <div>
-                          <p className="font-bold" style={{ color: 'var(--navy)' }}>
-                            <GroupTag type={s.group_type ?? 'coed'} />
-                            {formatTime(s.start_time)}
-                            <span className="font-normal text-[#8a8378]">
-                              {s.location ? ` · ${s.location}` : ''}
-                            </span>
-                          </p>
-                          <p className="text-sm text-[#8a8378]">
-                            {spotsLabel(s.spotsLeft, s.capacity)}
-                            {s.leader_name ? ` · ${s.leader_name}` : ''}
-                          </p>
-                        </div>
-                        <button
-                          onClick={() => setOpenJoin(openJoin === s.id ? null : s.id)}
-                          className="px-5 py-2.5 rounded-lg font-semibold text-sm transition hover:opacity-90 shrink-0"
-                          style={{ backgroundColor: 'var(--gold)', color: 'var(--navy)' }}
-                        >
-                          {openJoin === s.id ? 'Close' : 'Join'}
-                        </button>
-                      </div>
-                      {openJoin === s.id && (
-                        <div className="px-5 pb-5">
-                          <JoinForm
-                            studyId={s.id}
-                            slotLabel={`${DAY_NAMES[s.day_of_week]} · ${formatTime(s.start_time)}`}
-                            location={s.location}
-                            spotsLeft={s.spotsLeft}
-                            capacity={s.capacity}
-                            onJoined={refresh}
-                            freeSlots={[...cells]}
-                            gender={gender}
-                          />
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* Start a new one */}
-      <div className="rounded-xl border border-gray-200 bg-[#FAF8F5] px-6 py-6">
-        <div className="flex items-center justify-between gap-4">
-          <div>
-            <p className="font-bold" style={{ color: 'var(--navy)' }}>
-              Don’t see a time that works?
-            </p>
-            <p className="text-sm text-[#4a4540]">
-              Start a new study. You’ll be the first, and we’ll help you fill it.
-            </p>
-          </div>
-          <button
-            onClick={() => setShowStart((v) => !v)}
-            className="px-5 py-2.5 rounded-lg font-semibold text-sm transition hover:opacity-80 shrink-0"
-            style={{ border: '1px solid var(--navy)', color: 'var(--navy)' }}
-          >
-            {showStart ? 'Close' : 'Start one'}
-          </button>
-        </div>
-        {showStart && (
-          <div className="mt-5">
-            <StartForm semester={tabs.length > 1 ? tab : undefined} freeSlots={[...cells]} gender={gender} />
-          </div>
-        )}
-      </div>
-
-      {/* The third door: plenty of students want in before they know their
-          schedule, and the other two options both make them pick a time. */}
-      <div className="rounded-xl border border-gray-200 bg-[#FAF8F5] px-6 py-6 mt-4">
-        <div className="flex items-center justify-between gap-4">
-          <div>
-            <p className="font-bold" style={{ color: 'var(--navy)' }}>
-              Not sure about your schedule yet?
-            </p>
-            <p className="text-sm text-[#4a4540]">
-              Leave your info and we’ll reach out this week to find a time that works.
-            </p>
-          </div>
-          <button
-            onClick={() => setShowInterest((v) => !v)}
-            className="px-5 py-2.5 rounded-lg font-semibold text-sm transition hover:opacity-80 shrink-0"
-            style={{ border: '1px solid var(--navy)', color: 'var(--navy)' }}
-          >
-            {showInterest ? 'Close' : 'Have us reach out'}
-          </button>
-        </div>
-        {showInterest && (
-          <div className="mt-5">
-            <InterestForm freeSlots={[...cells]} semester={tabs.length > 1 ? tab : undefined} gender={gender} />
-          </div>
-        )}
-      </div>
+          </>
+        }
+      />
     </div>
   );
 }
@@ -312,6 +163,9 @@ export function InterestForm({
   submitLabel = 'Have someone reach out',
   typedMetBy = false,
   gender = null,
+  blocked = '',
+  extraNote = '',
+  success,
 }: {
   freeSlots: string[];
   semester?: string;
@@ -321,6 +175,9 @@ export function InterestForm({
   // Outreach volunteers aren't staff, so ask for a typed name instead of the picker.
   typedMetBy?: boolean;
   gender?: StudentGender | null;
+  blocked?: string; // a reason the form can't be sent yet (shown, button disabled)
+  extraNote?: string; // added to the follow-up note
+  success?: React.ReactNode; // replaces the default thank-you
 }) {
   const [form, setForm] = useState({ name: '', phone: '', email: '', year: '', metBy: '', note: '', hpField: '' });
   const [metName, setMetName] = useState('');
@@ -341,6 +198,7 @@ export function InterestForm({
           note: [
             source ? `From ${source}.` : '',
             metName.trim() ? `Talked with ${metName.trim()}.` : '',
+            extraNote,
             picked.size ? `Invite me to: ${invites.filter((i) => picked.has(i)).join(', ')}.` : '',
             form.note.trim(),
           ]
@@ -364,6 +222,7 @@ export function InterestForm({
   }
 
   if (status === 'success') {
+    if (success) return <div className="bg-white rounded-xl border border-gray-200 p-6">{success}</div>;
     return (
       <div className="bg-white rounded-xl border border-gray-200 p-6">
         <p className="font-bold" style={{ color: 'var(--navy)' }}>
@@ -492,12 +351,13 @@ export function InterestForm({
 
       <button
         type="submit"
-        disabled={status === 'loading'}
+        disabled={status === 'loading' || !!blocked}
         className="w-full px-6 py-3 rounded-lg font-semibold transition hover:opacity-90 disabled:opacity-50"
         style={{ backgroundColor: 'var(--gold)', color: 'var(--navy)' }}
       >
         {status === 'loading' ? 'Sending…' : submitLabel}
       </button>
+      {blocked && <p className="text-sm text-[#8a8378] text-center">{blocked}</p>}
 
       {status === 'error' && <p className="text-red-800 text-sm text-center">{message}</p>}
     </form>
@@ -507,212 +367,3 @@ export function InterestForm({
 const inputClass =
   'w-full px-4 py-3 border border-gray-300 rounded-lg text-gray-900 bg-white focus:ring-2 focus:ring-offset-0 focus:border-transparent';
 const YEARS = ['First-year', 'Sophomore', 'Junior', 'Senior', 'Grad', 'Other'];
-
-function StartForm({ semester, freeSlots, gender }: { semester?: string; freeSlots: string[]; gender: StudentGender | null }) {
-  const [groupType, setGroupType] = useState<GroupType>('coed');
-  // Starting a guys' or girls' study only makes sense for your own side.
-  const typeChoices = GROUP_TYPES.filter((t) => groupFits(t, gender));
-  const [form, setForm] = useState({
-    dayOfWeek: '',
-    startTime: '',
-    name: '',
-    phone: '',
-    email: '',
-    year: '',
-    metBy: '',
-    hpField: '',
-  });
-  const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
-  const [message, setMessage] = useState('');
-
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    setStatus('loading');
-    setMessage('');
-    try {
-      const res = await fetch('/api/iowa/studies/start', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...form,
-          dayOfWeek: Number(form.dayOfWeek),
-          semester,
-          freeSlots,
-          gender,
-          groupType: groupFits(groupType, gender) ? groupType : 'coed',
-        }),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (res.ok) {
-        setStatus('success');
-      } else {
-        setStatus('error');
-        setMessage(data.error || 'Something went wrong. Text (319) 359-7117.');
-      }
-    } catch {
-      setStatus('error');
-      setMessage('Something went wrong. Text (319) 359-7117.');
-    }
-  }
-
-  if (status === 'success') {
-    return (
-      <div className="bg-white rounded-xl border border-gray-200 p-6">
-        <p className="font-bold" style={{ color: 'var(--navy)' }}>
-          You’re first in a new study.
-        </p>
-        <p className="text-[#4a4540] mt-1">
-          Travis will text you the location and help get two or three others in with you.
-        </p>
-      </div>
-    );
-  }
-
-  return (
-    <form onSubmit={handleSubmit} className="bg-white rounded-xl border border-gray-200 p-6 space-y-4">
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <label className="block text-sm font-semibold mb-2" style={{ color: 'var(--navy)' }}>
-            Day
-          </label>
-          <select
-            required
-            value={form.dayOfWeek}
-            onChange={(e) => setForm({ ...form, dayOfWeek: e.target.value })}
-            className={inputClass}
-          >
-            <option value="">Pick a day</option>
-            {PICKER_DAYS.map((d) => (
-              <option key={d.value} value={d.value}>
-                {d.label}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div>
-          <label className="block text-sm font-semibold mb-2" style={{ color: 'var(--navy)' }}>
-            Time
-          </label>
-          <input
-            type="time"
-            required
-            value={form.startTime}
-            onChange={(e) => setForm({ ...form, startTime: e.target.value })}
-            className={inputClass}
-          />
-        </div>
-      </div>
-
-      <div>
-        <span className="block text-sm font-semibold mb-2" style={{ color: 'var(--navy)' }}>
-          Who’s it for?
-        </span>
-        <div className="flex flex-wrap gap-2">
-          {typeChoices.map((t) => {
-            const on = (groupFits(groupType, gender) ? groupType : 'coed') === t;
-            return (
-              <button
-                key={t}
-                type="button"
-                onClick={() => setGroupType(t)}
-                className="px-3 py-1.5 rounded-md text-sm font-semibold transition"
-                style={{
-                  backgroundColor: on ? 'var(--gold)' : '#f1ede7',
-                  color: on ? 'var(--navy)' : '#8a8378',
-                  border: on ? '1px solid var(--gold)' : '1px solid #e2ddd5',
-                }}
-              >
-                {GROUP_LABEL[t]}
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
-      <input
-        type="text"
-        required
-        placeholder="Your name"
-        value={form.name}
-        onChange={(e) => setForm({ ...form, name: e.target.value })}
-        className={inputClass}
-      />
-      <input
-        type="tel"
-        required
-        placeholder="A number we can text"
-        value={form.phone}
-        onChange={(e) => setForm({ ...form, phone: e.target.value })}
-        className={inputClass}
-      />
-      <input
-        type="email"
-        required
-        placeholder="you@uiowa.edu"
-        value={form.email}
-        onChange={(e) => setForm({ ...form, email: e.target.value })}
-        className={inputClass}
-      />
-
-      <div className="flex flex-wrap gap-2">
-        {YEARS.map((y) => (
-          <button
-            key={y}
-            type="button"
-            onClick={() => setForm({ ...form, year: form.year === y ? '' : y })}
-            className="px-3 py-1.5 rounded-md text-sm font-semibold transition"
-            style={{
-              backgroundColor: form.year === y ? 'var(--gold)' : '#f1ede7',
-              color: form.year === y ? 'var(--navy)' : '#8a8378',
-              border: form.year === y ? '1px solid var(--gold)' : '1px solid #e2ddd5',
-            }}
-          >
-            {y}
-          </button>
-        ))}
-      </div>
-
-      <MetByPicker value={form.metBy} onChange={(metBy) => setForm({ ...form, metBy })} />
-
-      {/* honeypot — see JoinForm for why it's named this way */}
-      <div aria-hidden="true" style={{ position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0 0 0 0)', whiteSpace: 'nowrap' }}>
-        <label htmlFor="hp-start">Leave this field empty</label>
-        <input
-          id="hp-start"
-          type="text"
-          name="hp_field"
-          tabIndex={-1}
-          autoComplete="off"
-          value={form.hpField}
-          onChange={(e) => setForm({ ...form, hpField: e.target.value })}
-        />
-      </div>
-
-      <button
-        type="submit"
-        disabled={status === 'loading'}
-        className="w-full px-6 py-3 rounded-lg font-semibold transition hover:opacity-90 disabled:opacity-50"
-        style={{ backgroundColor: 'var(--gold)', color: 'var(--navy)' }}
-      >
-        {status === 'loading' ? 'Starting…' : 'Start this study'}
-      </button>
-
-      {status === 'error' && (
-        <p className="text-red-800 text-sm text-center">{message}</p>
-      )}
-    </form>
-  );
-}
-
-// Who a study is for, as a small tag before the time.
-function GroupTag({ type }: { type: GroupType }) {
-  const color = type === 'guys' ? '#1e4e79' : type === 'girls' ? '#8b2f5c' : '#5f6b3a';
-  return (
-    <span
-      className="inline-block align-middle mr-2 px-2 py-0.5 rounded text-xs font-bold uppercase tracking-wide"
-      style={{ backgroundColor: `${color}14`, color, border: `1px solid ${color}40` }}
-    >
-      {GROUP_LABEL[type]}
-    </span>
-  );
-}

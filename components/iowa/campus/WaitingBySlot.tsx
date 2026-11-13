@@ -1,6 +1,6 @@
 'use client';
 
-import { slotLabel } from '@/lib/bibleStudyFormat';
+import { slotLabel, groupFits, GROUP_LABEL, type GroupType, type StudentGender } from '@/lib/bibleStudyFormat';
 import { StudentLink } from '@/components/iowa/campus/StudentLink';
 import { ContactButtons } from '@/components/iowa/campus/ui';
 
@@ -10,8 +10,8 @@ import { ContactButtons } from '@/components/iowa/campus/ui';
 
 export interface WaitingSlot {
   slot: string;
-  open: { id: string; label: string; spotsLeft: number }[]; // live studies in that slot with room
-  students: { contact_id: string; name: string; phone: string | null; email: string | null }[];
+  open: { id: string; label: string; spotsLeft: number; group_type: GroupType }[]; // live studies in that slot with room
+  students: { contact_id: string; name: string; phone: string | null; email: string | null; gender: StudentGender | null }[];
 }
 
 export default function WaitingBySlot({ slots, unplacedNoTimes, semester }: { slots: WaitingSlot[]; unplacedNoTimes: number; semester: string }) {
@@ -22,7 +22,7 @@ export default function WaitingBySlot({ slots, unplacedNoTimes, semester }: { sl
       </h2>
       <p className="text-sm text-[#8a8378] mb-4">
         Students not in a study yet, by the times they said they’re free for {semester} on the signup page.
-        {unplacedNoTimes > 0 && ` ${unplacedNoTimes} more aren’t placed but haven’t picked {semester} times.`}
+        {unplacedNoTimes > 0 && ` ${unplacedNoTimes} more aren’t placed but haven’t picked ${semester} times.`}
       </p>
       {slots.length === 0 ? (
         <p className="text-sm text-[#8a8378]">Nobody waiting with times picked.</p>
@@ -36,19 +36,31 @@ export default function WaitingBySlot({ slots, unplacedNoTimes, semester }: { sl
                 </p>
                 <p className="text-sm" style={{ color: s.open.length ? '#15803d' : '#9d855a' }}>
                   {s.open.length
-                    ? `Open: ${s.open.map((o) => `${o.label} (${o.spotsLeft} spot${o.spotsLeft === 1 ? '' : 's'})`).join(', ')}`
+                    ? `Open: ${s.open.map((o) => `${o.label}${o.group_type !== 'coed' ? ` ${GROUP_LABEL[o.group_type]}` : ''} (${o.spotsLeft} spot${o.spotsLeft === 1 ? '' : 's'})`).join(', ')}`
                     : s.students.length >= 3
                       ? 'No study here yet: enough to start one'
                       : 'No study here yet'}
                 </p>
               </div>
               <ul className="space-y-1.5">
-                {s.students.map((p) => (
+                {s.students.map((p) => {
+                  // Only the open studies this student can join (guys / girls / co-ed).
+                  const fits = s.open.filter((o) => groupFits(o.group_type, p.gender));
+                  return (
                   <li key={p.contact_id} className="flex flex-wrap items-center justify-between gap-2 text-sm">
-                    <StudentLink contactId={p.contact_id} name={p.name} className="text-[#4a4540]" />
+                    <span>
+                      <StudentLink contactId={p.contact_id} name={p.name} className="text-[#4a4540]" />
+                      {p.gender && <span className="text-xs text-[#8a8378]"> · {p.gender === 'guy' ? 'Guys + Co-ed' : 'Girls + Co-ed'}</span>}
+                      {s.open.length > 0 && (
+                        <span className="block text-xs" style={{ color: fits.length ? '#15803d' : '#9d855a' }}>
+                          {fits.length ? `Offer: ${fits.map((o) => o.label).join(', ')}` : 'No open study here fits'}
+                        </span>
+                      )}
+                    </span>
                     <ContactButtons phone={p.phone} email={p.email} size="xs" />
                   </li>
-                ))}
+                  );
+                })}
               </ul>
             </li>
           ))}

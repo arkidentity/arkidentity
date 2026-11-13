@@ -44,6 +44,8 @@ export async function POST(req: Request) {
       year: body.year || null,
       metBy: body.metBy || null,
       note: body.note?.trim().slice(0, 500) || null,
+      freeSlots: cleanFreeSlots(body.freeSlots),
+      gender: cleanGender(body.gender),
     });
     const ctx = await semesterContext();
     const semester = body.semester && ctx.active.includes(body.semester) ? body.semester : ctx.current?.name ?? ctx.active[0] ?? '';

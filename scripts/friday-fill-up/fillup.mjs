@@ -275,7 +275,7 @@ ${sorted.map((c) => `- [x] ${ts(c.start)} -> ${ts(c.end)}  ${c.reason}`).join('\
 function readEditList(dir) {
   const md = fs.readFileSync(path.join(dir, 'edit.md'), 'utf8');
   const keepBlock = md.split(/^## Keep\s*$/m)[1]?.split(/^## /m)[0] ?? '';
-  const sections = [...keepBlock.matchAll(/^- ([\d:.]+)\s*->\s*([\d:.]+)/gm)].map((m) => ({ start: parseTs(m[1]), end: parseTs(m[2]) }));
+  const sections = [...keepBlock.matchAll(/^- ([\d:.]+)\s*->\s*([\d:.]+)[ \t]*(.*)$/gm)].map((m) => ({ start: parseTs(m[1]), end: parseTs(m[2]), label: m[3].trim() }));
   if (!sections.length) throw new Error('edit.md has no lines under "## Keep"');
   const cuts = [...md.matchAll(/^- \[[xX]\]\s*([\d:.]+)\s*->\s*([\d:.]+)/gm)].map((m) => ({
     start: parseTs(m[1]),
@@ -324,15 +324,58 @@ function render(dir) {
   const graph = parts.join('') + segs.map((_, i) => `[v${i}][a${i}]`).join('') + `concat=n=${segs.length}:v=1:a=1[v][a]`;
   const graphFile = path.join(dir, 'filter.txt');
   fs.writeFileSync(graphFile, graph);
-  const out = path.join(dir, 'clip.mp4');
+  const out = path.join(dir, 'body.mp4');
   run('ffmpeg', [
     '-y', '-v', 'error', '-i', video, '-/filter_complex', graphFile, '-map', '[v]', '-map', '[a]',
     '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '20', '-c:a', 'aac', '-b:a', '160k', '-movflags', '+faststart', out,
   ]);
   const kept = segs.reduce((s, [a, b]) => s + b - a, 0);
   const total = plan.sections.reduce((s, r) => s + r.end - r.start, 0);
-  log(`clip.mp4: ${ts(kept)} (kept sections were ${ts(total)}, cut ${ts(total - kept)})`);
-  return out;
+  log(`body.mp4: ${ts(kept)} (kept sections were ${ts(total)}, cut ${ts(total - kept)})`);
+  const hook = /hook/i.test(plan.sections[0].label ?? '') ? keepRange(plan.sections[0].start, plan.sections[0].end, plan.cuts).reduce((s, [a, b]) => s + b - a, 0) : 0;
+  brand(dir, out, hook);
+  return out; // body.mp4: thumbnail times line up with it (no intro inside)
+}
+
+// ---------- intro + music ----------
+// Files in ~/.config/friday-fill-up/brand/ (all optional; without them clip.mp4 = body.mp4):
+//   intro.mp4   silent logo intro (ark-workspace/.../friday-fill-up/intro/ffu-intro-v2.mp4)
+//   music.mp3   Travis's beat; music.json: { "drop": <sec where the beat drops>, "land": <sec into intro where the needle lands> }
+// Order: hook (beat low under the voice) -> intro (beat swells, drop hits as the needle lands on F)
+// -> teaching (beat fades out under the first words).
+const BRAND_DIR = path.join(CONFIG_DIR, 'brand');
+const MUSIC = { under: 0.16, swell: 0.4, full: 0.7, tail: 0.28, fade: 2.5 }; // volumes (1 = full) and fade-out seconds
+
+function brand(dir, body, hook) {
+  const out = path.join(dir, 'clip.mp4');
+  const intro = path.join(BRAND_DIR, 'intro.mp4');
+  if (!fs.existsSync(intro)) { fs.copyFileSync(body, out); return; }
+  const I = duration(intro);
+  const total = duration(body) + I;
+  const music = path.join(BRAND_DIR, 'music.mp3');
+  const cfg = fs.existsSync(path.join(BRAND_DIR, 'music.json')) ? JSON.parse(fs.readFileSync(path.join(BRAND_DIR, 'music.json'), 'utf8')) : null;
+  const H = hook.toFixed(3);
+  // Video: hook, intro, rest. Speech: hook, silence for the intro, rest.
+  let g = `[0:v]trim=0:${H},setpts=PTS-STARTPTS,fps=30,scale=1920:1080,setsar=1[hv];[0:v]trim=${H},setpts=PTS-STARTPTS,fps=30,scale=1920:1080,setsar=1[rv];` +
+    `[1:v]fps=30,scale=1920:1080,setsar=1[iv];[0:a]atrim=0:${H},asetpts=PTS-STARTPTS,aformat=sample_rates=48000:channel_layouts=stereo[ha];` +
+    `[0:a]atrim=${H},asetpts=PTS-STARTPTS,aformat=sample_rates=48000:channel_layouts=stereo[ra];anullsrc=r=48000:cl=stereo,atrim=0:${I.toFixed(3)}[sil];` +
+    `[hv][iv][rv]concat=n=3:v=1:a=0[v];[ha][sil][ra]concat=n=3:v=0:a=1[speech]`;
+  const inputs = ['-i', body, '-i', intro];
+  if (cfg && fs.existsSync(music)) {
+    const land = hook + (cfg.land ?? 1.0); // clip time where the needle lands
+    const start = cfg.drop - land; // where in the beat to start so the drop hits the landing
+    const end = hook + I; // teaching starts
+    const len = end + MUSIC.fade;
+    const lead = start < 0 ? -start : 0;
+    const vol = `if(lt(t,${hook - 0.6}),${MUSIC.under},if(lt(t,${land}),${MUSIC.under}+(t-${hook - 0.6})/${(land - hook + 0.6).toFixed(3)}*${(MUSIC.swell - MUSIC.under).toFixed(3)},if(lt(t,${end - 0.3}),${MUSIC.full},if(lt(t,${end}),${MUSIC.full}-(t-${end - 0.3})/0.3*${(MUSIC.full - MUSIC.tail).toFixed(3)},max(0,${MUSIC.tail}*(1-(t-${end})/${MUSIC.fade}))))))`;
+    inputs.push('-i', music);
+    g += `;[2:a]atrim=${Math.max(0, start).toFixed(3)},asetpts=PTS-STARTPTS,aformat=sample_rates=48000:channel_layouts=stereo,adelay=${Math.round(lead * 1000)}:all=1,atrim=0:${len.toFixed(3)},afade=t=in:d=0.4,volume='${vol}':eval=frame[m];` +
+      `[speech][m]amix=inputs=2:duration=first:normalize=0[a]`;
+    log(`music: beat from ${Math.max(0, start).toFixed(2)}s, drop lands at ${land.toFixed(2)}s, out by ${len.toFixed(1)}s`);
+  } else g += `;[speech]anull[a]`;
+  run('ffmpeg', ['-y', '-v', 'error', ...inputs, '-filter_complex', g, '-map', '[v]', '-map', '[a]', '-t', total.toFixed(3),
+    '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '20', '-c:a', 'aac', '-b:a', '160k', '-movflags', '+faststart', out]);
+  log(`clip.mp4: ${ts(total)} (hook ${hook.toFixed(1)}s + intro ${I.toFixed(1)}s + teaching)`);
 }
 
 // ---------- thumbnail ----------

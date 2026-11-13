@@ -38,6 +38,7 @@ const ADDON_LINE: Record<string, string> = {
 export function Cart() {
   const lines = useCart();
   const [paying, setPaying] = useState(false);
+  const [ready, setReady] = useState(false);
   const [error, setError] = useState('');
   const box = useRef<HTMLDivElement>(null);
   const [src, setSrc] = useState('');
@@ -72,6 +73,7 @@ export function Cart() {
         checkout = await window.Stripe(data.publishableKey).initEmbeddedCheckout({ fetchClientSecret: async () => data.clientSecret as string });
         if (stop) return checkout.destroy();
         checkout.mount(box.current);
+        setReady(true);
       } catch (e) {
         if (stop) return;
         setError(e instanceof Error ? e.message : 'Checkout is unavailable.');
@@ -81,6 +83,7 @@ export function Cart() {
     return () => {
       stop = true;
       checkout?.destroy();
+      setReady(false);
     };
     // Lines can't change while paying (the cart is hidden), so `paying` alone restarts it.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -108,7 +111,7 @@ export function Cart() {
         <button type="button" className={s.back} onClick={() => setPaying(false)}>
           ← Back to cart
         </button>
-        <p className={s.muted}>Opening secure checkout…</p>
+        {!ready && <p className={s.muted}>Opening secure checkout…</p>}
         <div ref={box} />
       </section>
     );

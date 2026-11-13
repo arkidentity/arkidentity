@@ -131,13 +131,13 @@ export default function StudiesBrowser({
           </p>
         </div>
       )}
-      {/* Guy or girl: so we only show studies they can join */}
+      {/* Guys + Co-ed or Girls + Co-ed: still saved as guy/girl so joins can be checked */}
       <div>
         <span className="block text-sm font-semibold mb-1" style={{ color: 'var(--navy)' }}>
-          Are you a guy or a girl?
+          Which studies can you join?
         </span>
         <p className="text-sm text-[#8a8378] mb-3">
-          We have guys’, girls’ and co-ed studies. This shows you the ones you can join.
+          We have guys’, girls’ and co-ed studies. Pick one to see just those.
         </p>
         <div className="flex gap-2">
           {(['guy', 'girl'] as StudentGender[]).map((g) => (
@@ -152,7 +152,7 @@ export default function StudiesBrowser({
                 border: gender === g ? '1px solid var(--gold)' : '1px solid #e2ddd5',
               }}
             >
-              {g === 'guy' ? 'Guy' : 'Girl'}
+              {g === 'guy' ? 'Guys + Co-ed' : 'Girls + Co-ed'}
             </button>
           ))}
         </div>

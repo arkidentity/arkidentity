@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { currentStaff } from '@/lib/iowaStaff';
+import { can } from '@/lib/iowaPerms';
 import { listOutreachSignups } from '@/lib/outreach';
 import { TRICK_OR_TRUTH } from '@/lib/outreachFormat';
 import { listInterested, listRegistrations } from '@/lib/trips';
@@ -12,7 +13,11 @@ export const metadata: Metadata = { title: 'ARK Iowa — events' };
 // Admin → Events (Travis 10/24): special events with sign-ups, one home for each. The calendar still schedules;
 // this is where you see who signed up, share the links and manage people.
 export default async function EventsPage() {
-  if (!(await currentStaff())) redirect('/iowa/admin/login');
+  const me = await currentStaff();
+  if (!me) redirect('/iowa/admin/login');
+  // Sign-up lists are event work (students' names and numbers): staff, interns and
+  // leaders with the Calendar & events job. The nav hides the tab; this stops a bookmark.
+  if (!can(me, 'manageEvents')) redirect('/iowa/admin');
   const [tot, interested, going] = await Promise.all([
     listOutreachSignups(TRICK_OR_TRUTH).catch(() => []),
     listInterested('baja-2027').catch(() => []),

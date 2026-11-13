@@ -1,6 +1,7 @@
 import { cookies } from 'next/headers';
 import type { NotifyMode } from '@/lib/campusFormat';
 import { NOTIFY_MODES } from '@/lib/campusFormat';
+import { JOB_KEYS, type JobKey } from '@/lib/iowaJobs';
 import { getSupabaseAdmin } from '@/lib/supabaseAdmin';
 import { IOWA_ADMIN_COOKIE, hashPassword, verifySession } from '@/lib/iowaAdminAuth';
 
@@ -21,11 +22,12 @@ export interface IowaStaff {
   phone: string | null;
   role: StaffRole; // migration 013 — all roles have full access in Phase 1
   notify_mode: NotifyMode; // migration 026 — how they hear about task activity
+  jobs: string[]; // migration 059 — extra jobs on a leader's login (lib/iowaJobs)
   active: boolean;
   created_at: string;
 }
 
-const PUBLIC_COLS = 'id, name, email, phone, role, active, notify_mode, created_at';
+const PUBLIC_COLS = 'id, name, email, phone, role, jobs, active, notify_mode, created_at';
 export const MIN_PASSWORD = 8;
 
 export async function listStaff(): Promise<IowaStaff[]> {
@@ -102,7 +104,7 @@ export async function createStaff(input: {
 
 export async function updateStaff(
   id: string,
-  patch: { name?: string; phone?: string; role?: string; active?: boolean; password?: string; notify_mode?: string }
+  patch: { name?: string; phone?: string; role?: string; jobs?: string[]; active?: boolean; password?: string; notify_mode?: string }
 ): Promise<IowaStaff> {
   const update: Record<string, unknown> = {};
   if (typeof patch.name === 'string' && patch.name.trim()) update.name = patch.name.trim();
@@ -111,6 +113,10 @@ export async function updateStaff(
   if (patch.role !== undefined) {
     if (!STAFF_ROLES.includes(patch.role as StaffRole)) throw new Error('Unknown role.');
     update.role = patch.role;
+  }
+  if (patch.jobs !== undefined) {
+    if (!Array.isArray(patch.jobs) || patch.jobs.some((j) => !JOB_KEYS.includes(j as JobKey))) throw new Error('Unknown job.');
+    update.jobs = [...new Set(patch.jobs)];
   }
   if (patch.notify_mode !== undefined) {
     if (!NOTIFY_MODES.some((m) => m.key === patch.notify_mode)) throw new Error('Unknown email setting.');

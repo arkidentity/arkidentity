@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { currentStaff, type IowaStaff, type StaffRole } from '@/lib/iowaStaff';
+import { jobGrants } from '@/lib/iowaJobs';
 
 // What each role may do. Until now every role had full access (migration 013
 // said so out loud), which was fine while the only logins were Travis and an
@@ -32,7 +33,7 @@ const RULES: Record<StaffRole, Permission[]> = {
 };
 
 export function can(person: IowaStaff | null, permission: Permission): boolean {
-  return !!person?.active && RULES[person.role].includes(permission);
+  return !!person?.active && (RULES[person.role].includes(permission) || jobGrants(person.jobs).includes(permission));
 }
 
 export const isLeader = (person: IowaStaff | null): boolean => person?.role === 'leader';

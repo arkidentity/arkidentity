@@ -5,11 +5,12 @@ import { useRouter } from 'next/navigation';
 import type { IowaStaff } from '@/lib/iowaStaff';
 import { StaffDailyDnaLink } from '@/components/iowa/StaffDailyDnaLink';
 import { NOTIFY_MODES } from '@/lib/campusFormat';
+import { JOBS } from '@/lib/iowaJobs';
 
 const input = 'w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-gray-900 bg-white';
 
-// Staff logins for the Iowa admin. Everyone here has full access; this page is
-// only for adding people, resetting passwords, and turning a login off when an
+// Logins for the Iowa admin (what each role can do: lib/iowaPerms.ts). This page is
+// for adding people, resetting passwords, and turning a login off when an
 // internship ends (history and study assignments are kept).
 // selfOnly: an intern's view — just their own row (name, phone, emails,
 // password), no roles, no logins on/off, no adding people.
@@ -139,6 +140,7 @@ function StaffRow({
     phone: p.phone ?? '',
     role: p.role as string,
     notify_mode: p.notify_mode as string,
+    jobs: p.jobs ?? [],
   });
 
   return (
@@ -149,7 +151,13 @@ function StaffRow({
             {p.name}
           </span>
           {isMe && ' (you)'}
-          <span className="ml-1 text-xs font-semibold px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 capitalize">{p.role}</span>
+          <span className="ml-1 text-xs font-semibold px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 capitalize">{p.role === 'leader' ? 'Student leader' : p.role}</span>
+          {p.role === 'leader' &&
+            JOBS.filter((j) => p.jobs?.includes(j.key)).map((j) => (
+              <span key={j.key} className="ml-1 text-xs font-semibold px-1.5 py-0.5 rounded bg-blue-50 text-blue-800">
+                + {j.label}
+              </span>
+            ))}
           <span className="text-[#8a8378]"> · {[p.email, p.phone].filter(Boolean).join(' · ')}</span>
           {!p.active && ' · login off'}
           {p.notify_mode !== 'digest' && (
@@ -159,7 +167,7 @@ function StaffRow({
         <span className="flex gap-1 shrink-0">
           <button
             onClick={() => {
-              setDetails({ name: p.name, phone: p.phone ?? '', role: p.role, notify_mode: p.notify_mode });
+              setDetails({ name: p.name, phone: p.phone ?? '', role: p.role, notify_mode: p.notify_mode, jobs: p.jobs ?? [] });
               setEditing((v) => !v);
             }}
             disabled={busy}
@@ -217,11 +225,43 @@ function StaffRow({
               </option>
             ))}
           </select>
+          {/* Extra jobs (migration 059): a student leader leads their own study
+              from Daily DNA; the admin only opens up for a job they take on.
+              Staff and interns already have all of these. */}
+          {!selfOnly && details.role === 'leader' && (
+            <fieldset className="sm:col-span-4 rounded-md border border-gray-200 px-3 py-2">
+              <legend className="px-1 text-xs font-semibold text-[#8a8378]">Extra jobs in the admin</legend>
+              <div className="flex flex-col gap-1.5">
+                {JOBS.map((j) => (
+                  <label key={j.key} className="flex items-start gap-2 text-sm text-gray-700">
+                    <input
+                      type="checkbox"
+                      className="mt-0.5"
+                      checked={details.jobs.includes(j.key)}
+                      onChange={(e) =>
+                        setDetails({
+                          ...details,
+                          jobs: e.target.checked ? [...details.jobs, j.key] : details.jobs.filter((k) => k !== j.key),
+                        })
+                      }
+                    />
+                    <span>
+                      <span className="font-semibold">{j.label}</span>
+                      <span className="text-[#8a8378]"> · {j.hint}</span>
+                    </span>
+                  </label>
+                ))}
+              </div>
+            </fieldset>
+          )}
           <button
             disabled={busy || !details.name.trim()}
             onClick={async () => {
-              const { role, ...mine } = details;
-              if (await call(`/api/iowa/admin/staff/${p.id}`, 'PATCH', selfOnly ? mine : { ...mine, role })) {
+              const { role, jobs, ...mine } = details;
+              // Jobs only mean something on a leader; changing someone to staff
+              // or intern clears them so they don't linger if they go back.
+              const body = { ...mine, role, jobs: role === 'leader' ? jobs : [] };
+              if (await call(`/api/iowa/admin/staff/${p.id}`, 'PATCH', selfOnly ? mine : body)) {
                 setEditing(false);
                 onNotice(`Saved ${details.name.trim()}.`);
               }
@@ -261,8 +301,8 @@ function StaffRow({
   );
 }
 
-// Everyone has full access for now; the role labels who's who and is what
-// permissions will key off once student leaders get logins.
+// Staff: everything. Intern: the daily work, not logins or settings. Student
+// leader: their own study and tasks, plus any extra jobs ticked below it.
 function RoleSelect({ value, onChange }: { value: string; onChange: (v: string) => void }) {
   return (
     <select className={input} value={value} onChange={(e) => onChange(e.target.value)}>

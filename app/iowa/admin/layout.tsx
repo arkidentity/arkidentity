@@ -16,7 +16,7 @@ export const metadata: Metadata = {
 // Shared chrome for every /iowa/admin screen. The nav hides itself on /login.
 export default async function IowaAdminLayout({ children }: { children: React.ReactNode }) {
   const me = await currentStaff().catch(() => null);
-  const allowed = (['viewAllStudies', 'viewStudents', 'manageStaff', 'manageSettings'] as Permission[]).filter((p) =>
+  const allowed = (['viewAllStudies', 'viewStudents', 'manageEvents', 'manageStaff', 'manageSettings'] as Permission[]).filter((p) =>
     can(me, p)
   );
   return (

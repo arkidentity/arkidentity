@@ -4,7 +4,7 @@ import { currentStaff, updateStaff } from '@/lib/iowaStaff';
 
 export const dynamic = 'force-dynamic';
 
-// PATCH /api/iowa/admin/staff/:id — { name?, phone?, role?, active?, password?, notify_mode? }
+// PATCH /api/iowa/admin/staff/:id — { name?, phone?, role?, jobs?, active?, password?, notify_mode? }
 // Staff can edit anyone. Anyone else (interns, leaders) can edit only
 // themselves, and only their own details: name, phone, password, emails —
 // never their role or whether their login is on. Nobody can switch off their
@@ -22,12 +22,13 @@ export async function PATCH(
     name?: string;
     phone?: string;
     role?: string;
+    jobs?: string[];
     active?: boolean;
     password?: string;
     notify_mode?: string;
   };
-  if (!admin && (patch.role !== undefined || patch.active !== undefined)) {
-    return NextResponse.json({ error: 'Only staff can change roles or logins.' }, { status: 403 });
+  if (!admin && (patch.role !== undefined || patch.jobs !== undefined || patch.active !== undefined)) {
+    return NextResponse.json({ error: 'Only staff can change roles, jobs or logins.' }, { status: 403 });
   }
   if (me.id === id && patch.active === false) {
     return NextResponse.json({ error: 'You can’t turn off your own login.' }, { status: 400 });

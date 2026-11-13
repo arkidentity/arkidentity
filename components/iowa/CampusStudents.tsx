@@ -17,6 +17,7 @@ import { DailyDnaLink } from '@/components/iowa/DailyDnaLink';
 const input = 'px-3 py-2 border border-gray-300 rounded-md text-sm text-gray-900 bg-white';
 
 const STATUS_LABEL: Record<StudentStatus, string> = {
+  new: 'New',
   active: 'Active',
   dormant: 'Dormant',
   graduated: 'Graduated',
@@ -25,6 +26,7 @@ const STATUS_LABEL: Record<StudentStatus, string> = {
 };
 
 const STATUS_COLOR: Record<StudentStatus, string> = {
+  new: '#c2410c',
   active: '#15803d',
   dormant: '#9d855a',
   graduated: '#143348',
@@ -124,7 +126,7 @@ export function CampusStudents({
 
   const visible = useMemo(() => {
     const q = search.trim().toLowerCase();
-    // Active first, then dormant, then everyone else — A–Z within each.
+    // New first (they need a study), then active, dormant, the rest — A–Z within each.
     const rank = (st: StudentStatus) => Object.keys(STATUS_LABEL).indexOf(st);
     return students
       .filter((s) => {
@@ -215,7 +217,7 @@ export function CampusStudents({
 
   const counts = useMemo(() => ({
     total: students.length,
-    unplaced: students.filter((s) => s.studies.length === 0 && s.status === 'active').length,
+    unplaced: students.filter((s) => s.status === 'new').length,
   }), [students]);
 
   return (
@@ -356,6 +358,11 @@ export function CampusStudents({
                       <a href={`mailto:${s.email}`} className="hover:underline" style={{ color: '#6b6459' }}>{s.email}</a>
                     )}
                   </p>
+                  {s.added_at && (
+                    <p className="text-xs mt-0.5" style={{ color: '#8a8378' }}>
+                      Added {new Date(s.added_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'America/Chicago' })}
+                    </p>
+                  )}
                   {s.free_slots.length > 0 && (
                     <p className="text-xs mt-0.5" style={{ color: '#8a8378' }}>
                       Free{s.free_slots_semester ? ` (${s.free_slots_semester})` : ''}: {sortSlots(s.free_slots).map(slotLabel).join(', ')}
@@ -397,9 +404,13 @@ export function CampusStudents({
                   className={`${input} w-full sm:w-auto`}
                   style={{ color: STATUS_COLOR[s.status], fontWeight: 600 }}
                 >
-                  {(Object.keys(STATUS_LABEL) as StudentStatus[]).map((st) => (
-                    <option key={st} value={st}>{STATUS_LABEL[st]}</option>
-                  ))}
+                  {/* Active = in a study, New = met but not in one. The roster
+                      decides which, so only the one that's true is offered. */}
+                  {(Object.keys(STATUS_LABEL) as StudentStatus[])
+                    .filter((st) => (st === 'active' ? s.studies.length > 0 : st === 'new' ? s.studies.length === 0 : true))
+                    .map((st) => (
+                      <option key={st} value={st}>{STATUS_LABEL[st]}</option>
+                    ))}
                 </select>
 
                 <button

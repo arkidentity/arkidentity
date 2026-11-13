@@ -3,24 +3,30 @@ import { getStudyWithMembers, type StudyWithMembers } from '@/lib/bibleStudies';
 import { addDays, chicagoToday, isValidDate, studyMeetsOn } from '@/lib/campusFormat';
 import { semesterContext } from '@/lib/semesters';
 import { listAttendance, saveAttendance } from '@/lib/studyAttendance';
+import { listCheckins, saveCheckin, type CheckinMet } from '@/lib/studyCheckins';
 import { leaderAccountId } from '@/lib/studyLeader';
 
 export const dynamic = 'force-dynamic';
 
-// /api/partner/study-attendance — the "Who came?" check on a Bible study table in Daily DNA.
+// /api/partner/study-attendance — "How'd it go?" on a Bible study table in Daily DNA.
 // Auth: Bearer PARTNER_SYNC_SECRET (same value in both apps), plus the Daily DNA account
 // asking. Only the study's own student leader (their linked Daily DNA account, the one
 // the roster sync sends as leaderAccountId) gets in; Daily DNA also checks they're the
 // table's host before calling.
 //
 // GET  ?study=<bible_studies.id>&account=<Daily DNA account id>
-//      → { name, dates: last meetings newest first, roster: [{ contact_id, name }], marks: [{ occurrence, contact_id, present }] }
-// POST { study, account, occurrence, marks: [{ contact_id, present }] } → same shape
+//      → { dates (newest first), roster: [{ contact_id, name }],
+//          checkins: [{ occurrence, met, headcount, note }], marks: [{ occurrence, contact_id, present }] }
+// POST { study, account, occurrence,
+//        checkin?: { met: yes|no|cancelled, headcount?, note? },   — the weekly check-in (migration 060)
+//        marks?: [{ contact_id, present }] }                       — optional: who came, by name (037)
+//      → same as GET
 //
-// The roster is the admin's, not the table's: students who never linked Daily DNA
-// still get checked off. Only the last few meetings can be marked, so a leader fixes
-// last week but can't rewrite the semester.
+// The roster is the admin's, not the table's: students who never linked Daily DNA can
+// still be ticked. Only the last few meetings can be changed, so a leader fixes last
+// week but can't rewrite the semester. Didn't meet or a note → task for the staff on point.
 const RECENT = 4;
+const MET: CheckinMet[] = ['yes', 'no', 'cancelled'];
 
 function authorized(req: Request) {
   const secret = process.env.PARTNER_SYNC_SECRET;
@@ -53,10 +59,17 @@ async function view(s: StudyWithMembers) {
     .filter((m) => m.status === 'active')
     .map((m) => ({ contact_id: m.contact_id, name: m.name }))
     .sort((a, b) => a.name.localeCompare(b.name));
-  const marks = (await listAttendance([s.id]))
-    .filter((r) => dates.includes(r.occurrence))
-    .map((r) => ({ occurrence: r.occurrence, contact_id: r.contact_id, present: r.present }));
-  return { name: s.leader_name ? `${s.leader_name}'s study` : 'Bible study', dates, roster, marks };
+  const [rows, checkins] = await Promise.all([listAttendance([s.id]), listCheckins([s.id])]);
+  return {
+    dates,
+    roster,
+    checkins: checkins
+      .filter((c) => dates.includes(c.occurrence))
+      .map((c) => ({ occurrence: c.occurrence, met: c.met, headcount: c.headcount, note: c.note })),
+    marks: rows
+      .filter((r) => dates.includes(r.occurrence))
+      .map((r) => ({ occurrence: r.occurrence, contact_id: r.contact_id, present: r.present })),
+  };
 }
 
 export async function GET(req: Request) {
@@ -73,6 +86,7 @@ export async function POST(req: Request) {
     study?: string;
     account?: string;
     occurrence?: string;
+    checkin?: { met?: unknown; headcount?: unknown; note?: unknown };
     marks?: { contact_id?: unknown; present?: unknown }[];
   };
   const s = await studyFor(b.study, b.account);
@@ -80,13 +94,26 @@ export async function POST(req: Request) {
   if (!b.occurrence || !isValidDate(b.occurrence) || !(await recentMeetings(s)).includes(b.occurrence)) {
     return NextResponse.json({ error: 'That isn’t one of the last few meetings.' }, { status: 400 });
   }
-  // Everyone on the roster gets a mark (unticked = didn't come), so a re-save is a clean fix.
-  const here = new Set((b.marks ?? []).filter((m) => m.present === true).map((m) => String(m.contact_id)));
-  const marks = s.members
-    .filter((m) => m.status === 'active')
-    .map((m) => ({ contact_id: m.contact_id, present: here.has(m.contact_id) }));
+  const active = s.members.filter((m) => m.status === 'active');
   try {
-    await saveAttendance(s.id, b.occurrence, marks, null); // recorded_by null = from Daily DNA
+    // Names first, so a check-in with no headcount can use the count.
+    let ticked: number | null = null;
+    if (Array.isArray(b.marks)) {
+      // Everyone on the roster gets a mark (unticked = didn't come), so a re-save is a clean fix.
+      const here = new Set(b.marks.filter((m) => m.present === true).map((m) => String(m.contact_id)));
+      const marks = active.map((m) => ({ contact_id: m.contact_id, present: here.has(m.contact_id) }));
+      await saveAttendance(s.id, b.occurrence, marks, null); // recorded_by null = from Daily DNA
+      ticked = marks.filter((m) => m.present).length;
+    }
+    if (b.checkin) {
+      const met = MET.find((m) => m === b.checkin!.met);
+      if (!met) return NextResponse.json({ error: 'Did you meet?' }, { status: 400 });
+      const raw = b.checkin.headcount;
+      const n = raw === null || raw === undefined || raw === '' ? NaN : Number(raw); // Number(null) is 0, not "not given"
+      const headcount = Number.isFinite(n) && n >= 0 ? Math.min(200, Math.round(n)) : ticked;
+      const note = typeof b.checkin.note === 'string' ? b.checkin.note : null;
+      await saveCheckin(s, b.occurrence, { met, headcount, note });
+    }
     return NextResponse.json(await view(s));
   } catch (e) {
     return NextResponse.json({ error: (e as Error).message }, { status: 500 });

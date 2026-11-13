@@ -58,7 +58,7 @@ export async function notifyTaskAssigned(taskId: string, by: IowaStaff | null) {
   await notify({
     to: [task.owner_id],
     kind: 'task_assigned',
-    title: `${by?.name?.split(' ')[0] ?? 'Someone'} gave you: ${task.title}`,
+    title: by ? `${by.name.split(' ')[0]} gave you: ${task.title}` : `New for you: ${task.title}`, // by null = made by the app (e.g. a leader's check-in)
     body: task.due_date ? `Due ${formatDate(task.due_date)}` : null,
     link: taskLink(task.id),
     taskId: task.id,

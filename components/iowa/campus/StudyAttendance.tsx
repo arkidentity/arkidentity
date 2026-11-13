@@ -32,6 +32,8 @@ export default function StudyAttendance({ studyId, date, members }: { studyId: s
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [saved, setSaved] = useState(false);
+  // The student leader's "How'd it go?" for this date, from Daily DNA (migration 060)
+  const [checkin, setCheckin] = useState<{ met: string; headcount: number | null; note: string | null } | null>(null);
   const future = date > chicagoToday();
 
   useEffect(() => {
@@ -43,6 +45,7 @@ export default function StudyAttendance({ studyId, date, members }: { studyId: s
         const rs = (j.rows ?? []) as AttendanceRow[];
         setRows(rs);
         setHealth(j.health ?? null);
+        setCheckin(((j.checkins ?? []) as { occurrence: string; met: string; headcount: number | null; note: string | null }[]).find((c) => c.occurrence === date) ?? null);
         const today = rs.filter((r) => r.occurrence === date);
         setHere(new Set(today.filter((r) => r.present).map((r) => r.contact_id)));
         setOpen(today.length === 0 && !future && (!j.health || stillLaunching(j.health)));
@@ -93,6 +96,16 @@ export default function StudyAttendance({ studyId, date, members }: { studyId: s
           : 'Solid group. Attendance is optional now.'}
         {saved && <span className="ml-1 font-semibold text-green-700">Saved ✓</span>}
       </p>
+      {checkin && (
+        <p className="text-sm mt-2 text-[#4a4540]">
+          <span className="font-semibold" style={{ color: checkin.met === 'yes' ? '#15803d' : '#b91c1c' }}>
+            {checkin.met === 'yes' ? '✓ Met' : checkin.met === 'cancelled' ? '✗ Cancelled' : '✗ Didn’t meet'}
+          </span>
+          {checkin.met === 'yes' && checkin.headcount !== null && ` · about ${checkin.headcount} came`}
+          <span className="text-[#8a8378]"> · leader checked in</span>
+          {checkin.note && <span className="block text-[#4a4540] whitespace-pre-wrap">“{checkin.note}”</span>}
+        </p>
+      )}
       {error && <p className="text-xs text-red-700 mt-1">{error}</p>}
       {open && (
         <div className="mt-2">

@@ -66,7 +66,7 @@ async function studyPayload(s: StudyWithMembers) {
     starts,
     minutes: 60,
     members,
-    // Daily DNA seats them as the table's host: the Who came? check on the table (/api/partner/study-attendance).
+    // Daily DNA seats them as the table's host: the How'd it go? check-in on the table (/api/partner/study-attendance).
     // Hosts can't rename, remove people from or end a campus table (Daily DNA Mig 292, 314).
     leaderAccountId: await leaderAccountId(s),
   };

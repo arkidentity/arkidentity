@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { currentStaff } from '@/lib/iowaStaff';
 import { isValidDate } from '@/lib/campusFormat';
 import { listAttendance, saveAttendance } from '@/lib/studyAttendance';
+import { listCheckins } from '@/lib/studyCheckins';
 import { studyHealth } from '@/lib/studyHealthFormat';
 
 export const dynamic = 'force-dynamic';
@@ -14,8 +15,9 @@ export const dynamic = 'force-dynamic';
 export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   if (!(await currentStaff())) return NextResponse.json({ error: 'Sign in again.' }, { status: 401 });
   const { id } = await params;
-  const rows = await listAttendance([id]);
-  return NextResponse.json({ rows, health: studyHealth(rows) });
+  // checkins: the student leader's "How'd it go?" from Daily DNA (migration 060)
+  const [rows, checkins] = await Promise.all([listAttendance([id]), listCheckins([id])]);
+  return NextResponse.json({ rows, health: studyHealth(rows), checkins });
 }
 
 // POST { occurrence, marks: [{ contact_id, present }] } → { rows, health }

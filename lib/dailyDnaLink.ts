@@ -4,6 +4,7 @@ import { getStudyWithMembers, type StudyWithMembers } from '@/lib/bibleStudies';
 import { semesterContext } from '@/lib/semesters';
 import { addDays, chicagoToday, eventDatesInRange, nextMeetingOnOrAfter, studyMeetsOn } from '@/lib/campusFormat';
 import { DAY_NAMES, formatTime } from '@/lib/bibleStudyFormat';
+import { leaderAccountId } from '@/lib/studyLeader';
 
 // ARK Iowa → Daily DNA (docs/IOWA-DAILY-DNA-LINK.md, Daily DNA Mig 255).
 // The admin is the only source of truth. For every study, Daily DNA gets the study and the
@@ -65,6 +66,9 @@ async function studyPayload(s: StudyWithMembers) {
     starts,
     minutes: 60,
     members,
+    // Daily DNA seats them as the table's host: the Who came? check on the table (/api/partner/study-attendance).
+    // Hosts can't rename, remove people from or end a campus table (Daily DNA Mig 292, 314).
+    leaderAccountId: await leaderAccountId(s),
   };
 }
 

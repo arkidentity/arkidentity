@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { addTaskComment, deleteTask, setHelper, setHelpers, updateTask, type TaskInput } from '@/lib/campusTasks';
 import { currentStaff } from '@/lib/iowaStaff';
-import { can } from '@/lib/iowaPerms';
+import { can, requirePermission } from '@/lib/iowaPerms';
 import { getTask } from '@/lib/campusTasks';
 import { notifyAddedToTask, notifyHelpOffered, notifyTaskAssigned, notifyTaskComment } from '@/lib/taskNotify';
 
@@ -56,6 +56,8 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
 }
 
 export async function DELETE(_req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const guard = await requirePermission('manageTasks');
+  if (guard instanceof NextResponse) return guard;
   const { id } = await params;
   try {
     await deleteTask(id);

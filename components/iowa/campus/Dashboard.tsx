@@ -4,9 +4,10 @@ import { useState, type ComponentProps } from 'react';
 import { chicagoToday, formatDate, isOverdue, weekDays } from '@/lib/campusFormat';
 import CampusCalendar from '@/components/iowa/campus/CampusCalendar';
 import TaskList, { TaskPopup, type TaskListProps } from '@/components/iowa/campus/TaskList';
-import { PageShell, Section } from '@/components/iowa/campus/ui';
+import { CanProvider, PageShell, Section } from '@/components/iowa/campus/ui';
 import PendingInvites from '@/components/iowa/campus/PendingInvites';
 import type { PendingInvite } from '@/lib/eventInvites';
+import type { Permission } from '@/lib/iowaPerms';
 
 // The one working screen: counts that show trouble early, the week calendar
 // (events, studies, tasks due; + New event), and the full task list (filters,
@@ -16,7 +17,9 @@ export default function Dashboard({
   tasks: taskProps,
   thisWeekStart,
   pending = [],
+  allowed,
 }: {
+  allowed: Permission[];
   pending?: PendingInvite[];
   calendar: ComponentProps<typeof CampusCalendar>;
   tasks: TaskListProps;
@@ -31,11 +34,18 @@ export default function Dashboard({
 
   const open = tasks.filter((t) => t.status !== 'done');
   const mine = open.filter((t) => t.owner_id === meId);
+  // A student leader only sees their own tasks, so the team-wide counts and
+  // "Who's carrying what" would just be zeros about other people.
+  const team = allowed.includes('manageTasks');
   const stats = [
     { label: 'Mine overdue', value: mine.filter((t) => isOverdue(t, today)).length, alert: true },
     { label: 'Mine, 7 days', value: mine.filter((t) => t.due_date && t.due_date >= today && t.due_date <= endOfWeek).length },
-    { label: 'Unowned', value: open.filter((t) => !t.owner_id).length, alert: true },
-    { label: 'All overdue', value: open.filter((t) => isOverdue(t, today)).length, alert: true },
+    ...(team
+      ? [
+          { label: 'Unowned', value: open.filter((t) => !t.owner_id).length, alert: true },
+          { label: 'All overdue', value: open.filter((t) => isOverdue(t, today)).length, alert: true },
+        ]
+      : []),
   ];
   const workload = staff
     .filter((s) => s.active)
@@ -49,6 +59,7 @@ export default function Dashboard({
     }));
 
   return (
+    <CanProvider allowed={allowed}>
     <PageShell>
       <h1 className="text-3xl font-bold mb-1" style={{ color: 'var(--navy)' }}>
         {me ? `Hey ${me.name.split(' ')[0]}` : 'Dashboard'}
@@ -57,7 +68,7 @@ export default function Dashboard({
 
       {/* Four across even on a phone: the numbers are short, and two rows of
           two pushed the calendar below the fold. */}
-      <div className="grid grid-cols-4 gap-2 sm:gap-3 mb-6">
+      <div className={`grid ${stats.length === 4 ? 'grid-cols-4' : 'grid-cols-2'} gap-2 sm:gap-3 mb-6`}>
         {stats.map((st) => {
           const hot = st.alert && st.value > 0;
           return (
@@ -87,6 +98,7 @@ export default function Dashboard({
             <TaskList {...taskProps} title="Tasks" />
           </section>
         </div>
+        {team && (
         <div>
           <Section title="Who's carrying what">
             <ul className="rounded-lg border border-gray-200 bg-white divide-y divide-gray-100">
@@ -107,7 +119,9 @@ export default function Dashboard({
             </ul>
           </Section>
         </div>
+        )}
       </div>
     </PageShell>
+    </CanProvider>
   );
 }

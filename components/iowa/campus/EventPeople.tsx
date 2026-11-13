@@ -7,7 +7,7 @@ import type { Rsvp } from '@/lib/eventInvites';
 import { chicagoToday, formatDate } from '@/lib/campusFormat';
 import DeclineForm from '@/components/iowa/DeclineForm';
 import { ReminderListEditor } from '@/components/iowa/campus/ReminderList';
-import { useCall, type StaffOption } from '@/components/iowa/campus/ui';
+import { useCall, useCan, type StaffOption } from '@/components/iowa/campus/ui';
 
 // Who's coming to an event:
 //   Team — staff invites (✓ in / ✗ can't / ? waiting), your own answer, and
@@ -38,6 +38,9 @@ export default function EventPeople({
   const awayOn = (id: string) => event.absences.find((a) => a.staff_id === id && a.occurrence === occ);
   const respond = (body: object) => call(`/api/iowa/admin/events/${event.id}/respond`, 'POST', body);
   const past = occ < chicagoToday();
+  // Inviting the team and running student RSVPs (names, phone numbers) is for
+  // staff and interns; a student leader just answers their own invite.
+  const runsEvents = useCan()('manageEvents');
 
   return (
     <div className="mt-4 rounded-lg border border-gray-200 bg-white p-4 space-y-5">
@@ -49,7 +52,7 @@ export default function EventPeople({
           Team{event.repeat_weekly ? ` · ${formatDate(occ, { month: 'short', day: 'numeric' })}` : ''}
         </p>
         {/* Invite from here on any event (Google ones too — their form is read-only). */}
-        <div className="flex flex-wrap gap-1.5 mb-2">
+        {runsEvents && <div className="flex flex-wrap gap-1.5 mb-2">
           {staff
             .filter((p) => p.active)
             .map((p) => {
@@ -74,9 +77,9 @@ export default function EventPeople({
                 </button>
               );
             })}
-        </div>
+        </div>}
         {event.invites.length === 0 ? (
-          <p className="text-sm text-[#8a8378]">Nobody invited yet. Tap a name to invite them.</p>
+          <p className="text-sm text-[#8a8378]">Nobody invited yet.{runsEvents ? ' Tap a name to invite them.' : ''}</p>
         ) : (
           <ul className="text-[15px] md:text-sm space-y-1">
             {event.invites.map((i) => {
@@ -139,7 +142,7 @@ export default function EventPeople({
         )}
       </div>
 
-      <Rsvps event={event} occ={occ} rsvps={rsvps} students={students} />
+      {runsEvents && <Rsvps event={event} occ={occ} rsvps={rsvps} students={students} />}
     </div>
   );
 }

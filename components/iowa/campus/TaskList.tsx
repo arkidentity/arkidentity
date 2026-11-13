@@ -33,6 +33,7 @@ import {
   btnSmall,
   input,
   useCall,
+  useCan,
   type CallFn,
   type Option,
   type StaffOption,
@@ -70,7 +71,10 @@ export default function TaskList(props: TaskListProps) {
   const [personFilter, setPersonFilter] = useState('');
   const [search, setSearch] = useState('');
   const [expanded, setExpanded] = useState<string | null>(openTaskId ?? null);
-  const [showNew, setShowNew] = useState(!!prefill);
+  // Making and assigning tasks is staff + intern; a student leader works the
+  // tasks they're on (finish, comment, help) and only ever sees those.
+  const assigns = useCan()('manageTasks');
+  const [showNew, setShowNew] = useState(!!prefill && assigns);
 
   const isMine = (t: CampusTask) => t.owner_id === meId || (!!meId && t.helper_ids.includes(meId));
 
@@ -126,9 +130,11 @@ export default function TaskList(props: TaskListProps) {
               <h2 className="text-lg font-bold" style={{ color: 'var(--navy)' }}>
                 {props.title}
               </h2>
-              <button onClick={() => setShowNew((v) => !v)} className={btnPrimary} style={{ backgroundColor: 'var(--navy)' }}>
-                {showNew ? 'Close' : '+ New task'}
-              </button>
+              {assigns && (
+                <button onClick={() => setShowNew((v) => !v)} className={btnPrimary} style={{ backgroundColor: 'var(--navy)' }}>
+                  {showNew ? 'Close' : '+ New task'}
+                </button>
+              )}
             </div>
           )}
           <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
@@ -141,7 +147,7 @@ export default function TaskList(props: TaskListProps) {
                   ['overdue', `Overdue (${counts.overdue})`],
                   ['done', 'Done'],
                 ] as [View, string][]
-              ).map(([v, label]) => (
+              ).filter(([v]) => assigns || v !== 'unowned').map(([v, label]) => (
                 <button
                   key={v}
                   onClick={() => setView(v)}
@@ -156,7 +162,7 @@ export default function TaskList(props: TaskListProps) {
                 </button>
               ))}
             </div>
-            {!props.title && (
+            {!props.title && assigns && (
               <button onClick={() => setShowNew((v) => !v)} className={btnPrimary} style={{ backgroundColor: 'var(--navy)' }}>
                 {showNew ? 'Close' : '+ New task'}
               </button>
@@ -600,6 +606,7 @@ function TaskForm(
   // Its own request state, so a failed save shows right here by the button
   // instead of at the top of the list, off-screen.
   const { call, busy, error } = useCall();
+  const canDelete = useCan()('manageTasks');
   const [helpers, setHelpers] = useState<string[]>(task?.helper_ids ?? []);
   const [f, setF] = useState({
     title: task?.title ?? '',
@@ -725,7 +732,7 @@ function TaskForm(
           {busy ? 'Saving…' : task ? 'Save changes' : 'Create task'}
         </button>
         {error && <span className="text-sm text-red-700">Didn’t save: {error}</span>}
-        {task && (
+        {task && canDelete && (
           <button
             disabled={busy}
             onClick={() => {

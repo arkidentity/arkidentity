@@ -11,7 +11,7 @@ import { DAY_NAMES, formatTime, GROUP_LABEL, GROUP_TYPES, type GroupType } from 
 import { formatDate } from '@/lib/campusFormat';
 import { DROP_REASONS, STUDY_ROLES, roleVerb, teamOn, type StudyRole, type StudyTeamRow } from '@/lib/campusFormat';
 import DeclineForm from '@/components/iowa/DeclineForm';
-import { Modal, useCall, type CallFn, type StaffOption } from '@/components/iowa/campus/ui';
+import { Modal, useCall, useCan, type CallFn, type StaffOption } from '@/components/iowa/campus/ui';
 
 const tel = (p: string) => `tel:${p.replace(/[^\d+]/g, '')}`;
 const sms = (p: string) => `sms:${p.replace(/[^\d+]/g, '')}`;
@@ -39,6 +39,11 @@ export default function StudyCard({
   onClose: () => void;
 }) {
   const { call, busy, error } = useCall();
+  // A student leader opens their own table read-only: roster, call/text,
+  // attendance. Editing the study, moving/dropping/adding students and the
+  // student profile popup are staff + intern (the API refuses them otherwise).
+  const can = useCan();
+  const manages = can('viewAllStudies');
   const nameOf = (id: string | null) => (id ? staff.find((p) => p.id === id)?.name ?? null : null);
   const active = s.members.filter((m) => m.status === 'active');
   // The study's leader, matched to a roster seat by phone (or email). "Make leader" fills leader_*
@@ -99,9 +104,9 @@ export default function StudyCard({
 
       <StudyAttendance studyId={s.id} date={date} members={active} />
 
-      <DetailsEditor s={s} staff={staff} />
+      {manages && <DetailsEditor s={s} staff={staff} />}
 
-      <TeamSection s={s} date={date} staff={staff} team={team} meId={meId} busy={busy} call={call} />
+      <TeamSection s={s} date={date} staff={staff} team={team} meId={meId} busy={busy} call={call} manages={manages} />
 
       <p className="text-sm font-bold mb-2" style={{ color: 'var(--navy)' }}>Roster</p>
       {error && <p className="text-sm text-red-700 mb-2">{error}</p>}
@@ -136,23 +141,23 @@ export default function StudyCard({
                     <a href={`mailto:${m.email}`} className="underline text-[#4a4540] break-all">{m.email}</a>
                   )}
                 </div>
-                {!isLeader(m) && (
+                {manages && !isLeader(m) && (
                   <button disabled={busy} className="mt-1.5 text-sm font-semibold disabled:opacity-50" style={{ color: 'var(--navy)' }}
                     onClick={() => call(`/api/iowa/admin/studies/${s.id}`, 'PATCH', { leader_name: m.name, leader_phone: m.phone || null, leader_email: m.email || null })}>
                     Make leader
                   </button>
                 )}
-                <SeatActions m={m} studyId={s.id} others={others} busy={busy} call={call} />
+                {manages && <SeatActions m={m} studyId={s.id} others={others} busy={busy} call={call} />}
               </li>
             );
           })}
         </ul>
       )}
 
-      <AddStudent studyId={s.id} seatedIds={active.map((m) => m.contact_id).sort().join(',')}
-        full={active.length >= s.capacity} busy={busy} call={call} />
+      {manages && <AddStudent studyId={s.id} seatedIds={active.map((m) => m.contact_id).sort().join(',')}
+        full={active.length >= s.capacity} busy={busy} call={call} />}
 
-      {dropped.length > 0 && (
+      {manages && dropped.length > 0 && (
         <details className="mb-4">
           <summary className="text-sm text-[#8a8378] cursor-pointer">Dropped ({dropped.length})</summary>
           <ul className="mt-2 text-sm text-[#8a8378] space-y-1">
@@ -177,9 +182,11 @@ export default function StudyCard({
         </details>
       )}
 
-      <a href="/iowa/admin/studies" className="text-sm text-[#8a8378] underline">
-        All studies →
-      </a>
+      {manages && (
+        <a href="/iowa/admin/studies" className="text-sm text-[#8a8378] underline">
+          All studies →
+        </a>
+      )}
     </Modal>
   );
 }
@@ -275,6 +282,7 @@ function TeamSection({
   meId,
   busy,
   call,
+  manages,
 }: {
   s: StudyWithMembers;
   date: string;
@@ -283,6 +291,7 @@ function TeamSection({
   meId: string | null;
   busy: boolean;
   call: CallFn;
+  manages: boolean; // add / remove people (staff + interns); everyone can answer their own invite
 }) {
   const [f, setF] = useState({ staff_id: '', role: 'shadow' as StudyRole, scope: 'once' as 'once' | 'weekly' });
   const [declining, setDeclining] = useState(false);
@@ -312,9 +321,11 @@ function TeamSection({
               {t.response === 'pending' ? ' · hasn’t answered' : ''}
               {t.response === 'declined' ? ` · can’t${t.note ? `: ${t.note}` : ''}` : ''}
             </span>
-            <button disabled={busy} onClick={() => call(`/api/iowa/admin/study-team?id=${t.id}`, 'DELETE')} className="text-xs text-[#b0a99e]" title="Remove">
-              ✕
-            </button>
+            {manages && (
+              <button disabled={busy} onClick={() => call(`/api/iowa/admin/study-team?id=${t.id}`, 'DELETE')} className="text-xs text-[#b0a99e]" title="Remove">
+                ✕
+              </button>
+            )}
           </li>
         ))}
       </ul>
@@ -339,7 +350,7 @@ function TeamSection({
         </div>
       )}
 
-      <div className="flex flex-wrap items-center gap-2">
+      {manages && <div className="flex flex-wrap items-center gap-2">
         <select className={field} value={f.staff_id} onChange={(e) => setF({ ...f, staff_id: e.target.value })}>
           <option value="">Add someone…</option>
           {staff
@@ -371,7 +382,7 @@ function TeamSection({
         >
           Invite
         </button>
-      </div>
+      </div>}
     </div>
   );
 }

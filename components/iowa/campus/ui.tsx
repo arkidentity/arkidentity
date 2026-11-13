@@ -1,8 +1,9 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { createContext, useContext, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { PRIORITY, TASK_STATUSES, type TaskPriority, type TaskStatus } from '@/lib/campusFormat';
+import type { Permission } from '@/lib/iowaPerms';
 
 // Shared bits for the campus dashboard, tasks and calendar screens.
 
@@ -235,4 +236,17 @@ export function ContactButtons({ phone, email, size = 'sm' }: { phone?: string |
       )}
     </span>
   );
+}
+
+// What the signed-in person may do, so a screen can hide buttons the API would
+// refuse (a student leader tapping Drop and getting "You can only see your own
+// study"). No provider means everything — the staff-only pages don't need one.
+// The API still enforces every rule; this only keeps dead buttons off screen.
+const CanContext = createContext<Permission[] | null>(null);
+export function CanProvider({ allowed, children }: { allowed: Permission[]; children: React.ReactNode }) {
+  return <CanContext.Provider value={allowed}>{children}</CanContext.Provider>;
+}
+export function useCan(): (p: Permission) => boolean {
+  const allowed = useContext(CanContext);
+  return (p) => allowed === null || allowed.includes(p);
 }

@@ -2,7 +2,7 @@ import { after } from 'next/server';
 import type { Metadata } from 'next';
 import { loadCampusContext } from '@/lib/campusAdminData';
 import { currentStaff } from '@/lib/iowaStaff';
-import { can, filterStudies } from '@/lib/iowaPerms';
+import { allowedFor, can, filterStudies } from '@/lib/iowaPerms';
 import { listEvents } from '@/lib/campusTasks';
 import { SPAN_DAYS, addDays, chicagoToday, isValidDate, type CalendarSpan } from '@/lib/campusFormat';
 import { listHeld, pullIfStale, syncStatus } from '@/lib/calendarSync';
@@ -75,6 +75,7 @@ export default async function IowaDashboardPage({
 
   return (
     <Dashboard
+      allowed={allowedFor(me)}
       pending={pending}
       key={start}
       thisWeekStart={thisWeek}

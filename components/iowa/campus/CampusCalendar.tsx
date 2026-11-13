@@ -33,6 +33,7 @@ import {
   btnPrimary,
   input,
   useCall,
+  useCan,
   type CallFn,
   type StaffOption,
   type TypeOption,
@@ -89,6 +90,10 @@ export default function CampusCalendar({
   const [studyOpen, setStudyOpen] = useState<{ id: string; date: string } | null>(null);
   const [editOpen, setEditOpen] = useState(false);
   const { call, busy, error } = useCall();
+  // Student leaders see the calendar but don't run it: no new/edit event, no
+  // Google sync controls (the API refuses them anyway).
+  const can = useCan();
+  const runsEvents = can('manageEvents');
   const days = weekDays(weekStart, SPAN_DAYS[span]);
   const items = useMemo(
     () => {
@@ -140,9 +145,9 @@ export default function CampusCalendar({
 
       <ErrorBox error={error} />
 
-      <SyncBar sync={sync} busy={busy} onSync={() => call('/api/iowa/admin/calendar-sync', 'POST', {})} />
+      {runsEvents && <SyncBar sync={sync} busy={busy} onSync={() => call('/api/iowa/admin/calendar-sync', 'POST', {})} />}
 
-      {held.length > 0 && (
+      {runsEvents && held.length > 0 && (
         <div className="mb-6 rounded-lg border border-amber-300 bg-amber-50 p-4">
           <p className="font-bold text-amber-900 mb-1">Looks like a duplicate ({held.length})</p>
           <p className="text-sm text-amber-900 mb-3">
@@ -196,13 +201,15 @@ export default function CampusCalendar({
             {span === 'week' ? 'Show 5 days' : 'Show the week'}
           </a>
         </div>
-        <button
-          onClick={() => setEditing(editing === 'new' ? null : 'new')}
-          className={`${btnPrimary} shrink-0`}
-          style={{ backgroundColor: 'var(--navy)' }}
-        >
-          {editing === 'new' ? 'Close' : '+ New event'}
-        </button>
+        {runsEvents && (
+          <button
+            onClick={() => setEditing(editing === 'new' ? null : 'new')}
+            className={`${btnPrimary} shrink-0`}
+            style={{ backgroundColor: 'var(--navy)' }}
+          >
+            {editing === 'new' ? 'Close' : '+ New event'}
+          </button>
+        )}
       </div>
       <WeekView
         days={days}
@@ -254,7 +261,7 @@ export default function CampusCalendar({
               Join meeting ↗
             </a>
           )}
-          <DailyDnaToggle key={editingEvent.id} eventId={editingEvent.id} on={!!editingEvent.show_in_daily_dna} signupUrl={editingEvent.signup_url} description={editingEvent.daily_dna_description} />
+          {runsEvents && <DailyDnaToggle key={editingEvent.id} eventId={editingEvent.id} on={!!editingEvent.show_in_daily_dna} signupUrl={editingEvent.signup_url} description={editingEvent.daily_dna_description} />}
           {editingEvent.notes && editingEvent.source !== 'google' && <p className="text-[15px] md:text-sm text-[#4a4540] whitespace-pre-wrap mb-3">{editingEvent.notes}</p>}
           {editingEvent.source === 'google' && <GoogleEventDetails event={editingEvent} />}
 
@@ -292,7 +299,7 @@ export default function CampusCalendar({
             call={call}
           />
 
-          {(editingEvent.source !== 'google' || editingEvent.repeat_weekly) && (
+          {runsEvents && (editingEvent.source !== 'google' || editingEvent.repeat_weekly) && (
             <div className="mt-4">
               <button
                 onClick={() => setEditOpen((v) => !v)}
@@ -505,6 +512,7 @@ function weekRange(from: string, to: string): string {
 function GoogleEventDetails({ event }: { event: CampusEvent }) {
   const { call, busy, error } = useCall();
   const [confirming, setConfirming] = useState(false);
+  const runsEvents = useCan()('manageEvents');
   const when = [
     event.repeat_weekly ? `Weekly from ${formatDate(event.event_date)}` : formatDate(event.event_date),
     event.start_time ? `${formatTime(event.start_time)}${event.end_time ? `–${formatTime(event.end_time)}` : ''}` : 'All day',
@@ -526,7 +534,7 @@ function GoogleEventDetails({ event }: { event: CampusEvent }) {
           </>
         )}
       </p>
-      <div className="pt-2 border-t border-gray-100">
+      {runsEvents && <div className="pt-2 border-t border-gray-100">
         {!confirming ? (
           <button onClick={() => setConfirming(true)} className="text-sm font-semibold underline" style={{ color: 'var(--navy)' }}>
             Manage it here instead
@@ -552,7 +560,7 @@ function GoogleEventDetails({ event }: { event: CampusEvent }) {
           </div>
         )}
         {error && <p className="text-xs text-red-700 mt-2">{error}</p>}
-      </div>
+      </div>}
     </div>
   );
 }
@@ -705,6 +713,7 @@ function EventChecklist({
   call: CallFn;
 }) {
   const [pick, setPick] = useState(event.checklist_template_id ?? '');
+  const can = useCan();
   const [f, setF] = useState({ title: '', days: '7', when: 'before', owner_id: meId ?? '' });
   const current = templates.find((t) => t.id === event.checklist_template_id);
   const when = (n: number | null) =>
@@ -723,7 +732,7 @@ function EventChecklist({
               : 'Tasks due before or after this event. They move if the event moves.'}
           </p>
         </div>
-        <span className="flex gap-2">
+        {can('manageEvents') && <span className="flex gap-2">
           <select value={pick} onChange={(e) => setPick(e.target.value)} className="px-2 py-1.5 border border-gray-300 rounded-md text-sm bg-white">
             <option value="">No template</option>
             {templates.map((t) => (
@@ -741,7 +750,7 @@ function EventChecklist({
           >
             {pick ? (current ? 'Switch' : 'Apply') : 'Remove'}
           </button>
-        </span>
+        </span>}
       </div>
 
       {open.length === 0 ? (
@@ -774,7 +783,7 @@ function EventChecklist({
 
       <EventNotes event={event} occurrence={occurrence} tasks={tasks} activity={activity} staff={staff} onTaskClick={onTaskClick} />
 
-      <div className="pt-3 border-t border-gray-100 flex flex-wrap items-center gap-2 text-sm">
+      {can('manageTasks') && <div className="pt-3 border-t border-gray-100 flex flex-wrap items-center gap-2 text-sm">
         <input
           className="flex-1 min-w-[12rem] px-2 py-1.5 border border-gray-300 rounded-md bg-white"
           placeholder="Add a task, e.g. Book the vans"
@@ -813,7 +822,7 @@ function EventChecklist({
         >
           Add
         </button>
-      </div>
+      </div>}
     </div>
   );
 }

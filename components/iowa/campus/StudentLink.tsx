@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { StudentHistory } from '@/components/iowa/StudentHistory';
 import { slotLabel, sortSlots } from '@/lib/bibleStudyFormat';
+import { useCan } from '@/components/iowa/campus/ui';
 
 // A student's name, anywhere in the admin, that opens their card: Text/Email,
 // year + status, the studies they're in, notes, and their full history. A
@@ -31,7 +32,10 @@ const STATUS: Record<string, { label: string; color: string }> = {
 
 export function StudentLink({ contactId, name, className }: { contactId: string | null; name: string; className?: string }) {
   const [open, setOpen] = useState(false);
-  if (!contactId) return <span className={className}>{name}</span>;
+  // The card comes from the student directory (staff + interns); a student
+  // leader just sees the name, not a link that would answer "not allowed".
+  const seesProfiles = useCan()('viewStudents');
+  if (!contactId || !seesProfiles) return <span className={className}>{name}</span>;
   return (
     <>
       <button

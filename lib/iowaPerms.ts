@@ -86,3 +86,9 @@ export function filterStudies<T extends { id: string; leader_email: string | nul
   const ids = visibleStudyIds(person, studies, teamStudyIds);
   return ids === 'all' ? studies : studies.filter((s) => ids.includes(s.id));
 }
+
+// Everything this person may do, for screens to hide what they can't (the
+// dashboard passes it down through CanProvider in components/iowa/campus/ui).
+export function allowedFor(person: IowaStaff | null): Permission[] {
+  return RULES.staff.filter((p) => can(person, p));
+}

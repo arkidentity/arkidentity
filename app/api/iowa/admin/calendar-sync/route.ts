@@ -27,6 +27,8 @@ export async function POST(req: Request) {
       await setBusyStaff(body.busyStaffId || null);
       return NextResponse.json({ ok: true });
     }
+    const guard = await requirePermission('manageEvents');
+    if (guard instanceof NextResponse) return guard;
     if (body.heldId) {
       if (body.decision !== 'import' && body.decision !== 'ignore') {
         return NextResponse.json({ error: 'Decision must be import or ignore.' }, { status: 400 });

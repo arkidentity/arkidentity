@@ -1,12 +1,15 @@
 import { NextResponse } from 'next/server';
 import { addEventTask } from '@/lib/eventChecklists';
 import { currentStaff } from '@/lib/iowaStaff';
+import { requirePermission } from '@/lib/iowaPerms';
 
 export const dynamic = 'force-dynamic';
 
 // POST /api/iowa/admin/events/:id/tasks — { title, offset_days, owner_id?, priority?, occurrence? }
 // A task timed relative to the event; it moves when the event moves.
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const guard = await requirePermission('manageTasks');
+  if (guard instanceof NextResponse) return guard;
   const { id } = await params;
   const body = (await req.json().catch(() => ({}))) as Parameters<typeof addEventTask>[1];
   try {

@@ -1,3 +1,4 @@
+import { cleanGroupType } from '@/lib/bibleStudyFormat';
 import { NextResponse } from 'next/server';
 import { requirePermission } from '@/lib/iowaPerms';
 import { listStudies, createStudy } from '@/lib/bibleStudies';
@@ -36,6 +37,7 @@ export async function POST(req: Request) {
     addLeaderAsMember?: boolean;
     pointStaffId?: string;
     online?: boolean;
+    groupType?: string;
     semester?: string; // the tab it was created from; must be current or open
   };
 
@@ -60,6 +62,7 @@ export async function POST(req: Request) {
       addLeaderAsMember: body.addLeaderAsMember,
       point_staff_id: body.pointStaffId || null,
       online: !!body.online,
+      group_type: cleanGroupType(body.groupType),
     });
     if (study.point_staff_id) notifyAssignment(study.id, study.point_staff_id, await currentStaff());
     queueStudySync(study.id);

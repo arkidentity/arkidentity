@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server';
 import { recordInterest } from '@/lib/campusAutomation';
 import { semesterContext } from '@/lib/semesters';
-import { saveFreeSlots } from '@/lib/bibleStudies';
-import { cleanFreeSlots } from '@/lib/bibleStudyFormat';
+import { saveFreeSlots, saveGender } from '@/lib/bibleStudies';
+import { cleanFreeSlots, cleanGender } from '@/lib/bibleStudyFormat';
 
 export const dynamic = 'force-dynamic';
 
@@ -19,6 +19,7 @@ export async function POST(req: Request) {
     note?: string;
     semester?: string; // the semester tab they were on
     freeSlots?: unknown; // the "When are you free?" boxes they ticked
+    gender?: unknown; // 'guy' | 'girl'
     hpField?: string; // honeypot — real users leave it empty
   };
 
@@ -47,6 +48,7 @@ export async function POST(req: Request) {
     const ctx = await semesterContext();
     const semester = body.semester && ctx.active.includes(body.semester) ? body.semester : ctx.current?.name ?? ctx.active[0] ?? '';
     await saveFreeSlots(contactId, cleanFreeSlots(body.freeSlots), semester);
+    await saveGender(contactId, cleanGender(body.gender));
     return NextResponse.json({ ok: true });
   } catch (e) {
     console.error('[iowa interest]', e);

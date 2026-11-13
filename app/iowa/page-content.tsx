@@ -9,6 +9,7 @@ const PHONE_DISPLAY = '(319) 359-7117';
 const PHONE_HREF = 'tel:+13193597117';
 
 interface PublicStudy {
+  group_type?: 'guys' | 'girls' | 'coed';
   id: string;
   day_of_week: number;
   start_time: string;

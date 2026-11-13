@@ -7,6 +7,11 @@ import {
   blockOf,
   formatTime,
   spotsLabel,
+  groupFits,
+  GROUP_LABEL,
+  GROUP_TYPES,
+  type GroupType,
+  type StudentGender,
 } from '@/lib/bibleStudyFormat';
 import JoinForm from '@/components/iowa/JoinForm';
 import SlotGrid from '@/components/iowa/SlotGrid';
@@ -20,6 +25,7 @@ interface PublicStudy {
   capacity: number;
   spotsLeft: number;
   leader_name: string | null;
+  group_type?: GroupType;
 }
 
 // During a school break (Settings → School calendar) signups stay open; `pause`
@@ -38,6 +44,7 @@ export default function StudiesBrowser({
   const [tab, setTab] = useState(tabs[0]?.name ?? '');
   const [studies, setStudies] = useState<PublicStudy[]>(tabs[0]?.studies ?? initial);
   const [cells, setCells] = useState<Set<string>>(new Set());
+  const [gender, setGender] = useState<StudentGender | null>(null);
   const [openJoin, setOpenJoin] = useState<string | null>(null);
   const [showStart, setShowStart] = useState(false);
   const [showInterest, setShowInterest] = useState(false);
@@ -63,14 +70,14 @@ export default function StudiesBrowser({
   }
 
   const filtered = useMemo(() => {
-    const list =
-      cells.size === 0
-        ? studies
-        : studies.filter((s) => cells.has(`${s.day_of_week}-${blockOf(s.start_time)}`));
+    // A guy never sees a girls' study and the other way round; co-ed is open to all.
+    const list = studies
+      .filter((s) => groupFits(s.group_type, gender))
+      .filter((s) => cells.size === 0 || cells.has(`${s.day_of_week}-${blockOf(s.start_time)}`));
     return [...list].sort(
       (a, b) => a.day_of_week - b.day_of_week || a.start_time.localeCompare(b.start_time)
     );
-  }, [studies, cells]);
+  }, [studies, cells, gender]);
 
   const byDay = useMemo(() => {
     const map = new Map<number, PublicStudy[]>();
@@ -124,6 +131,33 @@ export default function StudiesBrowser({
           </p>
         </div>
       )}
+      {/* Guy or girl: so we only show studies they can join */}
+      <div>
+        <span className="block text-sm font-semibold mb-1" style={{ color: 'var(--navy)' }}>
+          Are you a guy or a girl?
+        </span>
+        <p className="text-sm text-[#8a8378] mb-3">
+          We have guys’, girls’ and co-ed studies. This shows you the ones you can join.
+        </p>
+        <div className="flex gap-2">
+          {(['guy', 'girl'] as StudentGender[]).map((g) => (
+            <button
+              key={g}
+              type="button"
+              onClick={() => { setGender(gender === g ? null : g); setOpenJoin(null); }}
+              className="px-5 py-2.5 rounded-lg text-sm font-semibold transition"
+              style={{
+                backgroundColor: gender === g ? 'var(--gold)' : '#f1ede7',
+                color: gender === g ? 'var(--navy)' : '#8a8378',
+                border: gender === g ? '1px solid var(--gold)' : '1px solid #e2ddd5',
+              }}
+            >
+              {g === 'guy' ? 'Guy' : 'Girl'}
+            </button>
+          ))}
+        </div>
+      </div>
+
       {/* Filter grid */}
       <div>
         <span className="block text-sm font-semibold mb-1" style={{ color: 'var(--navy)' }}>
@@ -169,6 +203,7 @@ export default function StudiesBrowser({
                       <div className="flex items-center justify-between gap-4 px-5 py-4">
                         <div>
                           <p className="font-bold" style={{ color: 'var(--navy)' }}>
+                            <GroupTag type={s.group_type ?? 'coed'} />
                             {formatTime(s.start_time)}
                             <span className="font-normal text-[#8a8378]">
                               {s.location ? ` · ${s.location}` : ''}
@@ -197,6 +232,7 @@ export default function StudiesBrowser({
                             capacity={s.capacity}
                             onJoined={refresh}
                             freeSlots={[...cells]}
+                            gender={gender}
                           />
                         </div>
                       )}
@@ -230,7 +266,7 @@ export default function StudiesBrowser({
         </div>
         {showStart && (
           <div className="mt-5">
-            <StartForm semester={tabs.length > 1 ? tab : undefined} freeSlots={[...cells]} />
+            <StartForm semester={tabs.length > 1 ? tab : undefined} freeSlots={[...cells]} gender={gender} />
           </div>
         )}
       </div>
@@ -257,7 +293,7 @@ export default function StudiesBrowser({
         </div>
         {showInterest && (
           <div className="mt-5">
-            <InterestForm freeSlots={[...cells]} semester={tabs.length > 1 ? tab : undefined} />
+            <InterestForm freeSlots={[...cells]} semester={tabs.length > 1 ? tab : undefined} gender={gender} />
           </div>
         )}
       </div>
@@ -275,6 +311,7 @@ export function InterestForm({
   invites = [],
   submitLabel = 'Have someone reach out',
   typedMetBy = false,
+  gender = null,
 }: {
   freeSlots: string[];
   semester?: string;
@@ -283,6 +320,7 @@ export function InterestForm({
   submitLabel?: string;
   // Outreach volunteers aren't staff, so ask for a typed name instead of the picker.
   typedMetBy?: boolean;
+  gender?: StudentGender | null;
 }) {
   const [form, setForm] = useState({ name: '', phone: '', email: '', year: '', metBy: '', note: '', hpField: '' });
   const [metName, setMetName] = useState('');
@@ -310,6 +348,7 @@ export function InterestForm({
             .join(' '),
           freeSlots,
           semester,
+          gender,
         }),
       });
       const data = await res.json().catch(() => ({}));
@@ -469,7 +508,10 @@ const inputClass =
   'w-full px-4 py-3 border border-gray-300 rounded-lg text-gray-900 bg-white focus:ring-2 focus:ring-offset-0 focus:border-transparent';
 const YEARS = ['First-year', 'Sophomore', 'Junior', 'Senior', 'Grad', 'Other'];
 
-function StartForm({ semester, freeSlots }: { semester?: string; freeSlots: string[] }) {
+function StartForm({ semester, freeSlots, gender }: { semester?: string; freeSlots: string[]; gender: StudentGender | null }) {
+  const [groupType, setGroupType] = useState<GroupType>('coed');
+  // Starting a guys' or girls' study only makes sense for your own side.
+  const typeChoices = GROUP_TYPES.filter((t) => groupFits(t, gender));
   const [form, setForm] = useState({
     dayOfWeek: '',
     startTime: '',
@@ -496,6 +538,8 @@ function StartForm({ semester, freeSlots }: { semester?: string; freeSlots: stri
           dayOfWeek: Number(form.dayOfWeek),
           semester,
           freeSlots,
+          gender,
+          groupType: groupFits(groupType, gender) ? groupType : 'coed',
         }),
       });
       const data = await res.json().catch(() => ({}));
@@ -556,6 +600,32 @@ function StartForm({ semester, freeSlots }: { semester?: string; freeSlots: stri
             onChange={(e) => setForm({ ...form, startTime: e.target.value })}
             className={inputClass}
           />
+        </div>
+      </div>
+
+      <div>
+        <span className="block text-sm font-semibold mb-2" style={{ color: 'var(--navy)' }}>
+          Who’s it for?
+        </span>
+        <div className="flex flex-wrap gap-2">
+          {typeChoices.map((t) => {
+            const on = (groupFits(groupType, gender) ? groupType : 'coed') === t;
+            return (
+              <button
+                key={t}
+                type="button"
+                onClick={() => setGroupType(t)}
+                className="px-3 py-1.5 rounded-md text-sm font-semibold transition"
+                style={{
+                  backgroundColor: on ? 'var(--gold)' : '#f1ede7',
+                  color: on ? 'var(--navy)' : '#8a8378',
+                  border: on ? '1px solid var(--gold)' : '1px solid #e2ddd5',
+                }}
+              >
+                {GROUP_LABEL[t]}
+              </button>
+            );
+          })}
         </div>
       </div>
 
@@ -631,5 +701,18 @@ function StartForm({ semester, freeSlots }: { semester?: string; freeSlots: stri
         <p className="text-red-800 text-sm text-center">{message}</p>
       )}
     </form>
+  );
+}
+
+// Who a study is for, as a small tag before the time.
+function GroupTag({ type }: { type: GroupType }) {
+  const color = type === 'guys' ? '#1e4e79' : type === 'girls' ? '#8b2f5c' : '#5f6b3a';
+  return (
+    <span
+      className="inline-block align-middle mr-2 px-2 py-0.5 rounded text-xs font-bold uppercase tracking-wide"
+      style={{ backgroundColor: `${color}14`, color, border: `1px solid ${color}40` }}
+    >
+      {GROUP_LABEL[type]}
+    </span>
   );
 }

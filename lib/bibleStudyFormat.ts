@@ -78,3 +78,23 @@ export function sortSlots(slots: string[]): string[] {
     return dayRank(Number(da)) - dayRank(Number(db)) || blockRank(ba) - blockRank(bb);
   });
 }
+
+// Guys / Girls / Co-ed studies (migration 058). Client-safe: the public page and the
+// admin both use these.
+export type GroupType = 'guys' | 'girls' | 'coed';
+export type StudentGender = 'guy' | 'girl';
+export const GROUP_TYPES: GroupType[] = ['coed', 'guys', 'girls'];
+export const GROUP_LABEL: Record<GroupType, string> = { guys: 'Guys', girls: 'Girls', coed: 'Co-ed' };
+
+// Can a student of this gender join a study of this type? Unknown gender sees everything.
+export function groupFits(type: GroupType | null | undefined, gender: StudentGender | null | undefined): boolean {
+  if (!gender || !type || type === 'coed') return true;
+  return (type === 'guys') === (gender === 'guy');
+}
+
+export function cleanGender(v: unknown): StudentGender | null {
+  return v === 'guy' || v === 'girl' ? v : null;
+}
+export function cleanGroupType(v: unknown): GroupType {
+  return v === 'guys' || v === 'girls' ? v : 'coed';
+}

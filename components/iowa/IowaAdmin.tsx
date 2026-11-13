@@ -9,7 +9,7 @@ import { StudentLink } from '@/components/iowa/campus/StudentLink';
 import { createContext, useContext, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import type { StudyWithMembers, StudyMember, StudyStatus } from '@/lib/bibleStudies';
-import { DAY_NAMES, PICKER_DAYS, formatTime } from '@/lib/bibleStudyFormat';
+import { DAY_NAMES, PICKER_DAYS, formatTime, GROUP_LABEL, GROUP_TYPES, type GroupType } from '@/lib/bibleStudyFormat';
 import { DROP_REASONS, formatDate, isOverdue, type TaskPriority, type TaskStatus } from '@/lib/campusFormat';
 import { OverdueTag, PriorityBadge, StatusPill } from '@/components/iowa/campus/ui';
 import { clashAt, type BusyBlock } from '@/lib/availabilityFormat';
@@ -403,6 +403,7 @@ function StudyEditor({
     break_plan: s.break_plan ?? '',
     point_staff_id: s.point_staff_id ?? '',
     online: s.online,
+    group_type: s.group_type ?? 'coed',
   });
 
   function studyPatch() {
@@ -501,6 +502,11 @@ function StudyEditor({
             />
             Listed to students when a seat is open
           </label>
+        </Field>
+        <Field label="Who it's for">
+          <select className={input} value={draft.group_type} onChange={(e) => setDraft({ ...draft, group_type: e.target.value as GroupType })}>
+            {GROUP_TYPES.map((t) => <option key={t} value={t}>{GROUP_LABEL[t]}</option>)}
+          </select>
         </Field>
         <Field label="Online">
           <OnlineBox checked={draft.online} onChange={(online) => setDraft({ ...draft, online })} />
@@ -955,6 +961,7 @@ function NewStudyForm({
     addLeaderAsMember: true,
     pointStaffId: meId ?? '',
     online: false,
+    groupType: 'coed' as GroupType,
   });
 
   const leaderFilled = !!(f.leaderName.trim() && f.leaderPhone.trim() && f.leaderEmail.trim());
@@ -999,6 +1006,11 @@ function NewStudyForm({
           value={f.capacity}
           onChange={(e) => setF({ ...f, capacity: Number(e.target.value) })}
         />
+      </Field>
+      <Field label="Who it's for">
+        <select className={input} value={f.groupType} onChange={(e) => setF({ ...f, groupType: e.target.value as GroupType })}>
+            {GROUP_TYPES.map((t) => <option key={t} value={t}>{GROUP_LABEL[t]}</option>)}
+          </select>
       </Field>
       <Field label="Online">
         <OnlineBox checked={f.online} onChange={(online) => setF({ ...f, online })} />

@@ -1,7 +1,7 @@
 import { getSupabaseAdmin } from '@/lib/supabaseAdmin';
 import { findOrCreateContact, ensureTag } from '@/lib/contacts';
 // Re-exported below for callers, but also needed locally.
-import { DAY_NAMES as DAYS, formatTime as fmtTime } from '@/lib/bibleStudyFormat';
+import { DAY_NAMES as DAYS, formatTime as fmtTime, groupFits, cleanGroupType, type GroupType, type StudentGender } from '@/lib/bibleStudyFormat';
 import { listPeriods } from '@/lib/schoolCalendar';
 import { currentSemesterName, semesterContext } from '@/lib/semesters';
 import { addDays, chicagoToday } from '@/lib/campusFormat';
@@ -57,6 +57,7 @@ export interface BibleStudy {
   activated_at: string | null;
   point_staff_id: string | null; // staff member who has to be there (migration 011)
   google_event_id: string | null; // mirrored ARK Campus calendar event (migration 014)
+  group_type: GroupType; // migration 058 — guys / girls / coed
   online: boolean; // Google Meet study — keeps meeting through breaks and summer (migration 017)
   plan_token: string | null; // semester turnover (migration 018) — leader's private plan link
   plan_sent_at: string | null;
@@ -106,6 +107,7 @@ export interface PublicStudy {
   spotsLeft: number;
   leader_name: string | null;
   online: boolean;
+  group_type: GroupType;
   semester: string;
   resumes: string | null; // in-person study during a school break: first day back
 }
@@ -278,6 +280,7 @@ function toPublicStudy(s: StudyWithMembers): PublicStudy {
     spotsLeft: spotsLeft(s.capacity, s.activeCount),
     leader_name: s.leader_name,
     online: s.online,
+    group_type: s.group_type ?? 'coed',
     semester: s.semester,
     resumes: null,
   };
@@ -385,6 +388,7 @@ export async function getPublicStudy(id: string): Promise<PublicStudy | null> {
     spotsLeft: spotsLeft(s.capacity, s.activeCount),
     leader_name: s.leader_name,
     online: s.online,
+    group_type: s.group_type ?? 'coed',
     semester: s.semester,
     resumes: pause?.resumes ?? null,
   };
@@ -421,6 +425,7 @@ export interface JoinInput {
   email: string;
   year?: string | null;
   metBy?: string | null;
+  gender?: StudentGender | null;
 }
 
 export interface JoinResult {
@@ -436,6 +441,9 @@ export async function joinStudy(input: JoinInput): Promise<JoinResult> {
   if (!study) throw new Error('That study no longer exists.');
   if (!isListable(study, study.activeCount)) {
     throw new Error('That study just filled — pick another open time or start one.');
+  }
+  if (!groupFits(study.group_type, input.gender)) {
+    throw new Error(study.group_type === 'guys' ? 'That one is a guys’ study — pick another time.' : 'That one is a girls’ study — pick another time.');
   }
   const contact = await contactForStudent(input);
   if (study.members.some((m) => m.status === 'active' && m.contact_id === contact.id)) {
@@ -563,6 +571,7 @@ export interface StartInput {
   year?: string | null;
   metBy?: string | null;
   semester?: string;
+  group_type?: GroupType;
 }
 
 export async function startStudy(
@@ -577,6 +586,7 @@ export async function startStudy(
       start_time: input.start_time,
       status: 'pending_setup',
       location: null,
+      group_type: input.group_type ?? 'coed',
     })
     .select('*')
     .single();
@@ -611,6 +621,7 @@ export interface CreateStudyInput {
   notes?: string;
   point_staff_id?: string | null;
   online?: boolean;
+  group_type?: GroupType;
   parent_study_id?: string | null; // a group continuing / multiplying from last semester
   semester?: string;
   // When the leader is one of the four students (not Travis facilitating),
@@ -639,6 +650,7 @@ export async function createStudy(input: CreateStudyInput): Promise<BibleStudy> 
       notes: input.notes?.trim() || null,
       point_staff_id: input.point_staff_id || null,
       online: !!input.online,
+      group_type: input.group_type ?? 'coed',
       parent_study_id: input.parent_study_id || null,
     })
     .select('*')
@@ -654,7 +666,7 @@ export async function createStudy(input: CreateStudyInput): Promise<BibleStudy> 
 
 const EDITABLE_FIELDS = [
   'day_of_week', 'start_time', 'location', 'capacity', 'status', 'accepting_signups',
-  'leader_name', 'leader_phone', 'leader_email', 'notes', 'break_plan', 'point_staff_id', 'online',
+  'leader_name', 'leader_phone', 'leader_email', 'notes', 'break_plan', 'point_staff_id', 'online', 'group_type',
 ] as const;
 
 export async function updateStudy(
@@ -683,6 +695,7 @@ export async function updateStudy(
   }
   if (typeof update.location === 'string') update.location = update.location.trim() || null;
   if ('point_staff_id' in update) update.point_staff_id = update.point_staff_id || null;
+  if ('group_type' in update) update.group_type = cleanGroupType(update.group_type);
 
   const { data, error } = await db
     .from('bible_studies')
@@ -1028,6 +1041,19 @@ export async function setMemberStatus(
 // Save the "When are you free?" boxes a student ticked on the public page
 // (migration 034). An empty pick leaves what we had. Never fatal: the signup
 // already worked, this is a nice-to-have on top.
+// What they told us on the signup page (migration 058). Only written when they
+// answered, so a blank later signup never erases it. Never fatal.
+export async function saveGender(contactId: string, gender: StudentGender | null): Promise<void> {
+  if (!gender) return;
+  try {
+    await ensureCampusStudent(contactId);
+    const { error } = await getSupabaseAdmin().from('campus_students').update({ gender }).eq('contact_id', contactId);
+    if (error) throw error;
+  } catch (e) {
+    console.error('[iowa saveGender]', e);
+  }
+}
+
 export async function saveFreeSlots(contactId: string, slots: string[], semester: string): Promise<void> {
   if (slots.length === 0) return;
   try {

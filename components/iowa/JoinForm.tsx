@@ -18,6 +18,7 @@ interface Props {
   capacity: number;
   onJoined?: () => void;
   freeSlots?: string[]; // the "When are you free?" boxes, saved for follow-up
+  gender?: 'guy' | 'girl' | null; // from the Guy/Girl pick above the grid
 }
 
 const YEARS = ['First-year', 'Sophomore', 'Junior', 'Senior', 'Grad', 'Other'];
@@ -38,6 +39,7 @@ export default function JoinForm({
   capacity,
   onJoined,
   freeSlots = [],
+  gender = null,
 }: Props) {
   const [form, setForm] = useState({ name: '', phone: '', email: '', year: '', metBy: '', hpField: '' });
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
@@ -53,7 +55,7 @@ export default function JoinForm({
       const res = await fetch('/api/iowa/studies/join', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...form, studyId, freeSlots }),
+        body: JSON.stringify({ ...form, studyId, freeSlots, gender }),
       });
       const data = await res.json().catch(() => ({}));
       if (res.ok) {

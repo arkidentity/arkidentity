@@ -1,6 +1,6 @@
 import { NextResponse, after } from 'next/server';
-import { startStudy, formatSlot, saveFreeSlots } from '@/lib/bibleStudies';
-import { cleanFreeSlots } from '@/lib/bibleStudyFormat';
+import { startStudy, formatSlot, saveFreeSlots, saveGender } from '@/lib/bibleStudies';
+import { cleanFreeSlots, cleanGender, cleanGroupType } from '@/lib/bibleStudyFormat';
 import { sendStudyAdminAlert } from '@/lib/email';
 import { semesterContext } from '@/lib/semesters';
 import { queueSeated } from '@/lib/campusAutomation';
@@ -21,6 +21,8 @@ export async function POST(req: Request) {
     metBy?: string; // staff id | friend | self | other — "Who did you meet?"
     semester?: string; // the tab they were on (current, or next once open)
     freeSlots?: unknown; // the "When are you free?" boxes they ticked
+    gender?: unknown; // 'guy' | 'girl'
+    groupType?: unknown; // 'guys' | 'girls' | 'coed'
     hpField?: string; // honeypot — real users leave it empty
   };
 
@@ -41,6 +43,12 @@ export async function POST(req: Request) {
   if (!phone || phone.replace(/\D/g, '').length < 10) return bad('Please enter a phone number we can text.');
   if (!email || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return bad('Please enter an email we can reach you at.');
 
+  const gender = cleanGender(body.gender);
+  const groupType = cleanGroupType(body.groupType);
+  if (gender && groupType !== 'coed' && (groupType === 'guys') !== (gender === 'guy')) {
+    return bad('Pick co-ed or your own group.');
+  }
+
   try {
     const { active } = await semesterContext();
     const { study, member } = await startStudy({
@@ -52,8 +60,10 @@ export async function POST(req: Request) {
       email,
       year: body.year,
       metBy: body.metBy,
+      group_type: groupType,
     });
     await saveFreeSlots(member.contact_id, cleanFreeSlots(body.freeSlots), study.semester);
+    await saveGender(member.contact_id, gender);
     queueSeated(member.id); // first-ever seat → welcome-text task
     const slot = formatSlot(study);
     after(async () => {

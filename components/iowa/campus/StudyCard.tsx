@@ -7,7 +7,7 @@ import { StudentLink } from '@/components/iowa/campus/StudentLink';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import type { StudyMember, StudyStatus, StudyWithMembers } from '@/lib/bibleStudies';
-import { DAY_NAMES, formatTime } from '@/lib/bibleStudyFormat';
+import { DAY_NAMES, formatTime, GROUP_LABEL, GROUP_TYPES, type GroupType } from '@/lib/bibleStudyFormat';
 import { formatDate } from '@/lib/campusFormat';
 import { DROP_REASONS, STUDY_ROLES, roleVerb, teamOn, type StudyRole, type StudyTeamRow } from '@/lib/campusFormat';
 import DeclineForm from '@/components/iowa/DeclineForm';
@@ -58,6 +58,7 @@ export default function StudyCard({
         <>
           {formatDate(date, { weekday: 'long', month: 'long', day: 'numeric' })}
           {s.location ? ` · ${s.location}` : ''}
+          {s.group_type && s.group_type !== 'coed' ? ` · ${GROUP_LABEL[s.group_type]}` : ''}
           {s.online ? ' · online' : ''}
         </>
       }
@@ -400,6 +401,7 @@ function DetailsEditor({ s, staff }: { s: StudyWithMembers; staff: StaffOption[]
     start_time: s.start_time.slice(0, 5),
     location: s.location ?? '',
     online: s.online,
+    group_type: (s.group_type ?? 'coed') as GroupType,
     capacity: s.capacity,
     accepting_signups: s.accepting_signups,
     notes: s.notes ?? '',
@@ -475,6 +477,12 @@ function DetailsEditor({ s, staff }: { s: StudyWithMembers; staff: StaffOption[]
           <div className="col-span-2">
             <span className={label}>Location</span>
             <input className={field} placeholder="Where they meet" value={f.location} onChange={(e) => set({ location: e.target.value })} />
+          </div>
+          <div>
+            <span className={label}>Who it&rsquo;s for</span>
+            <select className={field} value={f.group_type} onChange={(e) => set({ group_type: e.target.value as GroupType })}>
+              {GROUP_TYPES.map((t) => <option key={t} value={t}>{GROUP_LABEL[t]}</option>)}
+            </select>
           </div>
           <div>
             <span className={label}>Capacity</span>

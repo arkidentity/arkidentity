@@ -7,9 +7,12 @@
 // set in prod). Runs in both the Edge proxy and Node route handlers — Web Crypto
 // only, no Node crypto.
 
-import { sha256Hex } from '@/lib/adminAuth';
-
-export { sha256Hex };
+export async function sha256Hex(input: string): Promise<string> {
+  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(input));
+  return Array.from(new Uint8Array(digest))
+    .map((b) => b.toString(16).padStart(2, '0'))
+    .join('');
+}
 
 export const IOWA_ADMIN_COOKIE = 'iowa_staff_session';
 export const SESSION_MAX_AGE = 60 * 60 * 24 * 30; // seconds
@@ -55,24 +58,33 @@ async function hmac(secret: string, message: string): Promise<string> {
 // Sessions
 // ---------------------------------------------------------------------------
 
+// Generic signed token `<id>.<expiresMs>.<hmac>` — shared with the /admin
+// named logins (lib/arkAdminAuth.ts), which pass their own secret.
+export async function signToken(secret: string, id: string, maxAgeSec: number): Promise<string> {
+  const payload = `${id}.${Date.now() + maxAgeSec * 1000}`;
+  return `${payload}.${await hmac(secret, payload)}`;
+}
+
+export async function verifyToken(secret: string | null, token: string | undefined): Promise<string | null> {
+  if (!secret || !token) return null;
+  const parts = token.split('.');
+  if (parts.length !== 3) return null;
+  const [id, expires, sig] = parts;
+  if (!safeEqual(sig, await hmac(secret, `${id}.${expires}`))) return null;
+  if (!(Number(expires) > Date.now())) return null;
+  return id;
+}
+
 export async function signSession(staffId: string): Promise<string> {
   const secret = sessionSecret();
   if (!secret) throw new Error('IOWA_SESSION_SECRET (or IOWA_ADMIN_PASSWORD) is not configured.');
-  const payload = `${staffId}.${Date.now() + SESSION_MAX_AGE * 1000}`;
-  return `${payload}.${await hmac(secret, payload)}`;
+  return signToken(secret, staffId, SESSION_MAX_AGE);
 }
 
 // Returns the staff id if the cookie is authentic and unexpired, else null.
 // Does NOT check that the staff member is still active — callers do that.
 export async function verifySession(token: string | undefined): Promise<string | null> {
-  const secret = sessionSecret();
-  if (!secret || !token) return null;
-  const parts = token.split('.');
-  if (parts.length !== 3) return null;
-  const [staffId, expires, sig] = parts;
-  if (!safeEqual(sig, await hmac(secret, `${staffId}.${expires}`))) return null;
-  if (!(Number(expires) > Date.now())) return null;
-  return staffId;
+  return verifyToken(sessionSecret(), token);
 }
 
 // ---------------------------------------------------------------------------

@@ -14,6 +14,7 @@ export default function AdminLoginPage() {
 function LoginForm() {
   const router = useRouter();
   const params = useSearchParams();
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -25,7 +26,7 @@ function LoginForm() {
     const res = await fetch('/api/admin/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ password }),
+      body: JSON.stringify({ email, password }),
     });
     setLoading(false);
     if (res.ok) {
@@ -48,14 +49,24 @@ function LoginForm() {
         style={{ backgroundColor: '#FFFFFF' }}
       >
         <h1 className="text-2xl font-bold mb-6" style={{ color: 'var(--navy)' }}>
-          Feed Admin
+          ARK Admin
         </h1>
+        <input
+          type="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          placeholder="Email"
+          autoFocus
+          autoComplete="username"
+          className="w-full px-4 py-3 rounded-lg border mb-3"
+          style={{ borderColor: '#d1d5db', color: '#111827' }}
+        />
         <input
           type="password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           placeholder="Password"
-          autoFocus
+          autoComplete="current-password"
           className="w-full px-4 py-3 rounded-lg border mb-4"
           style={{ borderColor: '#d1d5db', color: '#111827' }}
         />

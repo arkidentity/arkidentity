@@ -1,10 +1,10 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
-import { ADMIN_COOKIE, expectedAdminToken } from '@/lib/adminAuth';
+import { ADMIN_COOKIE, verifyAdminSession } from '@/lib/adminAuth';
 import { IOWA_ADMIN_COOKIE, verifySession } from '@/lib/iowaAdminAuth';
 
 // Gate admin pages and APIs. Two independent realms:
-//   - the ministry-feed admin (/admin): one shared password + cookie
+//   - the ARK admin (/admin): named logins (admin_users, migration 061)
 //   - the ARK Iowa admin (/iowa/admin): per-staff logins (iowa_staff)
 // Login surfaces are exempt so an unauthenticated user can sign in.
 
@@ -15,23 +15,26 @@ import { IOWA_ADMIN_COOKIE, verifySession } from '@/lib/iowaAdminAuth';
 const ACTIVE_TTL_MS = 60_000;
 const activeCache = new Map<string, { ok: boolean; at: number }>();
 
-async function iowaStaffActive(staffId: string): Promise<boolean> {
-  const hit = activeCache.get(staffId);
+type LoginTable = 'iowa_staff' | 'admin_users';
+
+async function loginActive(table: LoginTable, id: string): Promise<boolean> {
+  const cacheKey = `${table}:${id}`;
+  const hit = activeCache.get(cacheKey);
   if (hit && Date.now() - hit.at < ACTIVE_TTL_MS) return hit.ok;
-  const ok = await checkStaffActive(staffId);
+  const ok = await checkActive(table, id);
   // Only a positive answer is cached: a locked-out person retries against the
   // database, and a transient fetch failure doesn't stick for a minute.
-  if (ok) activeCache.set(staffId, { ok, at: Date.now() });
-  else activeCache.delete(staffId);
+  if (ok) activeCache.set(cacheKey, { ok, at: Date.now() });
+  else activeCache.delete(cacheKey);
   return ok;
 }
 
-async function checkStaffActive(staffId: string): Promise<boolean> {
+async function checkActive(table: LoginTable, id: string): Promise<boolean> {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!url || !key || !/^[0-9a-f-]{36}$/i.test(staffId)) return false;
+  if (!url || !key || !/^[0-9a-f-]{36}$/i.test(id)) return false;
   const res = await fetch(
-    `${url}/rest/v1/iowa_staff?id=eq.${staffId}&active=eq.true&select=id`,
+    `${url}/rest/v1/${table}?id=eq.${id}&active=eq.true&select=id`,
     { headers: { apikey: key, Authorization: `Bearer ${key}` }, cache: 'no-store' }
   );
   if (!res.ok) return false;
@@ -61,10 +64,10 @@ export async function proxy(req: NextRequest) {
   let authed: boolean;
   if (iowa) {
     const staffId = await verifySession(req.cookies.get(IOWA_ADMIN_COOKIE)?.value);
-    authed = !!staffId && (await iowaStaffActive(staffId));
+    authed = !!staffId && (await loginActive('iowa_staff', staffId));
   } else {
-    const expected = await expectedAdminToken();
-    authed = !!expected && req.cookies.get(ADMIN_COOKIE)?.value === expected;
+    const userId = await verifyAdminSession(req.cookies.get(ADMIN_COOKIE)?.value);
+    authed = !!userId && (await loginActive('admin_users', userId));
   }
 
   if (!authed) {

@@ -8,6 +8,7 @@ const TABS = [
   { href: '/admin/contacts', label: 'Contacts', match: (p: string) => p.startsWith('/admin/contacts') },
   { href: '/admin/prayer', label: 'Prayer', match: (p: string) => p.startsWith('/admin/prayer') },
   { href: '/admin/orders', label: 'Orders', match: (p: string) => p.startsWith('/admin/orders') },
+  { href: '/admin/users', label: 'Users', match: (p: string) => p.startsWith('/admin/users') },
 ];
 
 const CONTACT_TABS = [
@@ -67,6 +68,17 @@ export function AdminNav({ openPrayer }: { openPrayer: number }) {
             >
               + Quick add
             </Link>
+            <button
+              type="button"
+              onClick={async () => {
+                await fetch('/api/admin/logout', { method: 'POST' });
+                window.location.href = '/admin/login';
+              }}
+              className="text-sm hover:underline"
+              style={{ color: '#8a8378' }}
+            >
+              Sign out
+            </button>
           </div>
         </div>
         {inContacts && (

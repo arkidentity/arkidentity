@@ -358,9 +358,11 @@ export function CampusStudents({
                       <a href={`mailto:${s.email}`} className="hover:underline" style={{ color: '#6b6459' }}>{s.email}</a>
                     )}
                   </p>
-                  {s.added_at && (
+                  {(s.added_at || s.gender) && (
                     <p className="text-xs mt-0.5" style={{ color: '#8a8378' }}>
-                      Added {new Date(s.added_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'America/Chicago' })}
+                      {s.added_at && `Added ${new Date(s.added_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'America/Chicago' })}`}
+                      {s.added_at && s.gender && ' · '}
+                      {s.gender && (s.gender === 'guy' ? 'Guys + Co-ed' : 'Girls + Co-ed')}
                     </p>
                   )}
                   {s.free_slots.length > 0 && (

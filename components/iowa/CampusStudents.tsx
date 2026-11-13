@@ -17,7 +17,7 @@ import { DailyDnaLink } from '@/components/iowa/DailyDnaLink';
 const input = 'px-3 py-2 border border-gray-300 rounded-md text-sm text-gray-900 bg-white';
 
 const STATUS_LABEL: Record<StudentStatus, string> = {
-  new: 'New',
+  unplaced: 'Needs a study',
   active: 'Active',
   dormant: 'Dormant',
   graduated: 'Graduated',
@@ -26,7 +26,7 @@ const STATUS_LABEL: Record<StudentStatus, string> = {
 };
 
 const STATUS_COLOR: Record<StudentStatus, string> = {
-  new: '#c2410c',
+  unplaced: '#c2410c',
   active: '#15803d',
   dormant: '#9d855a',
   graduated: '#143348',
@@ -126,7 +126,7 @@ export function CampusStudents({
 
   const visible = useMemo(() => {
     const q = search.trim().toLowerCase();
-    // New first (they need a study), then active, dormant, the rest — A–Z within each.
+    // Needs a study first, then active, dormant, the rest — A–Z within each.
     const rank = (st: StudentStatus) => Object.keys(STATUS_LABEL).indexOf(st);
     return students
       .filter((s) => {
@@ -217,7 +217,7 @@ export function CampusStudents({
 
   const counts = useMemo(() => ({
     total: students.length,
-    unplaced: students.filter((s) => s.status === 'new').length,
+    unplaced: students.filter((s) => s.status === 'unplaced').length,
   }), [students]);
 
   return (
@@ -404,10 +404,10 @@ export function CampusStudents({
                   className={`${input} w-full sm:w-auto`}
                   style={{ color: STATUS_COLOR[s.status], fontWeight: 600 }}
                 >
-                  {/* Active = in a study, New = met but not in one. The roster
+                  {/* Active = in a study, Needs a study = met but not in one. The roster
                       decides which, so only the one that's true is offered. */}
                   {(Object.keys(STATUS_LABEL) as StudentStatus[])
-                    .filter((st) => (st === 'active' ? s.studies.length > 0 : st === 'new' ? s.studies.length === 0 : true))
+                    .filter((st) => (st === 'active' ? s.studies.length > 0 : st === 'unplaced' ? s.studies.length === 0 : true))
                     .map((st) => (
                       <option key={st} value={st}>{STATUS_LABEL[st]}</option>
                     ))}

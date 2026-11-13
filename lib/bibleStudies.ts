@@ -23,7 +23,7 @@ export type MemberStatus = 'active' | 'dropped';
 // Where a student sits in the ministry's life cycle. Whether they're currently
 // in a study is NOT here — that's derived from an active seat, so the two can't
 // disagree. This covers only what the roster can't tell you.
-export type StudentStatus = 'new' | 'active' | 'dormant' | 'graduated' | 'transferred' | 'left_school';
+export type StudentStatus = 'unplaced' | 'active' | 'dormant' | 'graduated' | 'transferred' | 'left_school';
 export type PulseStatus = 'green' | 'yellow' | 'red';
 // Non-staff answers to "Who did you meet?" on the signup form (migration 015).
 export type MetByOther = 'friend' | 'self' | 'other';
@@ -921,7 +921,7 @@ export async function listCampusStudents(): Promise<CampusStudent[]> {
         phone: p.contacts!.phone,
         email: p.contacts!.email,
         year: c?.year ?? null,
-        status: c?.status ?? ((seatsByContact.has(p.contact_id) ? 'active' : 'new') as StudentStatus),
+        status: c?.status ?? ((seatsByContact.has(p.contact_id) ? 'active' : 'unplaced') as StudentStatus),
         notes: c?.notes ?? null,
         met_by_staff_id: c?.met_by_staff_id ?? null,
         met_by_other: c?.met_by_other ?? null,
@@ -957,15 +957,15 @@ export async function updateCampusStudent(
   const update: Record<string, unknown> = { updated_at: new Date().toISOString() };
   if ('year' in patch) update.year = patch.year?.trim() || null;
   if ('status' in patch) {
-    // Active means "in a Bible study", so New vs Active comes from the roster,
+    // Active means "in a Bible study", so Needs a study vs Active comes from the roster,
     // whichever of the two staff picked (migration 057 keeps it in step after).
-    if (patch.status === 'new' || patch.status === 'active') {
+    if (patch.status === 'unplaced' || patch.status === 'active') {
       const { count } = await db
         .from('bible_study_members')
         .select('id', { count: 'exact', head: true })
         .eq('contact_id', contactId)
         .eq('status', 'active');
-      patch = { ...patch, status: count ? 'active' : 'new' };
+      patch = { ...patch, status: count ? 'active' : 'unplaced' };
     }
     update.status = patch.status;
     // Dormant stamps when it started (the check-in report counts from it);

@@ -29,8 +29,10 @@ const PLAYLIST_ID = 'PLbNdNOkBi1PmoyMVth2kuFleM5ROAkjzU';
 const MODEL = 'claude-opus-5-5';
 
 // Edit tuning
-const PAUSE_MIN = 0.9; // gaps longer than this (seconds) get shortened
-const PAUSE_KEEP = 0.35; // ...down to this much silence
+// Gentle on purpose (11/13): Travis's pauses are part of how he teaches. Only long dead air gets
+// shortened, never a pause in the middle of a sentence.
+const PAUSE_MIN = 2.0; // gaps longer than this (seconds) get shortened
+const PAUSE_KEEP = 0.8; // ...down to this much silence
 const FILLER = /^(u+m+|u+h+|uhm|umm|er+|ah+|hmm+)[,.!?]*$/i;
 
 const NAVY = '#1a2b3c';
@@ -162,6 +164,9 @@ function mechanicalCuts(words, video) {
     if (a) start = Number(a[1]);
     if (b && start !== null) {
       const pad = PAUSE_KEEP / 2;
+      // Skip pauses inside a sentence: the last word before the silence must end one.
+      const before = words.filter((w) => w.t0 <= start + 0.2 && !/^[\[\]]$|Pause/.test(w.w)).at(-1);
+      if (before && !/[.?!]["']?$/.test(before.w)) { start = null; continue; }
       cuts.push({ start: start + pad, end: Number(b[1]) - pad, reason: `pause ${Number(b[2]).toFixed(1)}s` });
       start = null;
     }
@@ -308,7 +313,7 @@ function render(dir) {
   const segs = keepSegments(plan);
   const video = path.join(dir, 'source.mp4');
   log(`rendering ${segs.length} segments`);
-  const f = 0.012; // tiny audio fade on each join so cuts don't click
+  const f = 0.04; // short audio fade on each join so cuts don't click or clip a breath
   const parts = segs.map(([a, b], i) => {
     const d = (b - a).toFixed(3);
     return (

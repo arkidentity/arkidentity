@@ -81,8 +81,10 @@ export default function IowaAdmin({
   students = [],
   busyBlocks = [],
   health = {},
+  top = null,
 }: {
   health?: Record<string, StudyHealth>;
+  top?: React.ReactNode; // Who's waiting — first thing on the page, under the title
   busyBlocks?: BusyBlock[];
   students?: { id: string; label: string }[];
   planning?: { name: string; starts_on: string }[];
@@ -166,6 +168,7 @@ export default function IowaAdmin({
             <span className="text-sm text-[#8a8378]">{semester}</span>
           </span>
         </div>
+        {top && <div className="-mx-4 sm:-mx-6 lg:-mx-8 mb-6">{top}</div>}
         <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
           <div className="inline-flex rounded-lg border border-gray-300 overflow-hidden text-sm font-semibold">
             {[

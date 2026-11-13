@@ -31,8 +31,8 @@ export default async function IowaStudiesPage({ searchParams }: { searchParams: 
     listStudentOptions(),
     listCampusStudents(),
   ]);
-  // Who's waiting (migration 034): active, not in a study, grouped by free slot.
-  const unplaced = everyone.filter((p) => p.status === 'active' && p.studies.length === 0);
+  // Who's waiting (migration 034): needs a study (057; 'active' before it ran), grouped by free slot.
+  const unplaced = everyone.filter((p) => (p.status === 'unplaced' || p.status === 'active') && p.studies.length === 0);
   const bySlot = new Map<string, WaitingSlot>();
   for (const p of unplaced) {
     if (p.free_slots_semester !== semester) continue; // last semester's answers don't count
@@ -103,6 +103,7 @@ export default async function IowaStudiesPage({ searchParams }: { searchParams: 
       students={students}
       busyBlocks={busyBlocks}
       health={health}
+      top={<WaitingBySlot slots={waiting} unplacedNoTimes={unplacedNoTimes} semester={semester} />}
     />
       {ctx.next && (
         <div style={{ background: '#FAF8F5' }}>
@@ -115,9 +116,6 @@ export default async function IowaStudiesPage({ searchParams }: { searchParams: 
           </section>
         </div>
       )}
-      <div style={{ background: '#FAF8F5' }}>
-        <WaitingBySlot slots={waiting} unplacedNoTimes={unplacedNoTimes} semester={semester} />
-      </div>
     </>
   );
 }

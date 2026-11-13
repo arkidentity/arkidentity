@@ -16,7 +16,7 @@ export interface WaitingSlot {
 
 export default function WaitingBySlot({ slots, unplacedNoTimes, semester }: { slots: WaitingSlot[]; unplacedNoTimes: number; semester: string }) {
   return (
-    <section className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pb-12">
+    <section className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
       <h2 className="text-lg font-bold mb-1" style={{ color: 'var(--navy)' }}>
         Who’s waiting
       </h2>

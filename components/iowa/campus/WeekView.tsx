@@ -73,7 +73,8 @@ export function buildWeekItems(opts: {
 
   for (const s of studies) {
     if (!LIVE_STUDY.includes(s.status)) continue;
-    const date = days.find((d) => dayOfWeek(d) === s.day_of_week)!;
+    const date = days.find((d) => dayOfWeek(d) === s.day_of_week);
+    if (!date) continue; // its day isn't shown (Today asks for one day only)
     // Outside its semester (a spring study in December) → not on the grid.
     const sem = semesters.find((x) => x.name === s.semester);
     if (sem && (date < sem.starts_on || date > sem.ends_on)) continue;

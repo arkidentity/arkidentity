@@ -7,7 +7,8 @@ import type { CampusTask } from '@/lib/campusTasks';
 import CampusCalendar from '@/components/iowa/campus/CampusCalendar';
 import { buildWeekItems, type WeekItem } from '@/components/iowa/campus/WeekView';
 import { TaskPopup, type TaskListProps } from '@/components/iowa/campus/TaskList';
-import { OpenItemProvider, type OpenItem, CanProvider, ScreenHeader, NAVY, ON_NAVY_MUTED } from '@/components/iowa/campus/ui';
+import { OpenItemProvider, type OpenItem, CanProvider, ScreenHeader, Modal, NAVY, ON_NAVY_MUTED } from '@/components/iowa/campus/ui';
+import StudentPanel from '@/components/iowa/campus/StudentPanel';
 import PendingInvites from '@/components/iowa/campus/PendingInvites';
 import type { PendingInvite } from '@/lib/eventInvites';
 import type { Permission } from '@/lib/iowaPerms';
@@ -33,6 +34,17 @@ function dueLabel(today: string, d: string | null) {
   return formatDate(d, { weekday: 'short' });
 }
 const RANK = { urgent: 0, high: 1, normal: 2, low: 3 } as const;
+
+// Auto tasks carry "Name · phone", "met Keilor" and a reason in their
+// description. The row shows who met them + why instead of the name again.
+function why(t: CampusTask, reason: boolean) {
+  const lines = (t.description ?? '').split('\n').map((l) => l.trim()).filter(Boolean);
+  if (t.contact_name && lines[0]?.startsWith(t.contact_name)) lines.shift();
+  if (!t.auto_kind) return '';
+  const out = lines.map((l) => l.replace(/^met (\S+)$/, '$1 met them')).filter((l, i) => reason || i === 0 && /met them|invited|on their own/.test(l));
+  const str = out.join(' · ');
+  return str ? str[0].toUpperCase() + str.slice(1) : '';
+}
 
 const FIRST = 5; // tasks shown in Do now before "Show more"
 
@@ -71,6 +83,7 @@ export default function Dashboard({
   const [finishing, setFinishing] = useState<string | null>(null);
   const [note, setNote] = useState('');
   const [toast, setToast] = useState<string | null>(null);
+  const [profile, setProfile] = useState<CampusTask | null>(null);
   const [gone, setGone] = useState<string[]>([]); // finished here, before the refresh lands
   const today = chicagoToday();
   const me = staff.find((s) => s.id === meId);
@@ -143,15 +156,17 @@ export default function Dashboard({
     router.refresh();
   }
 
-  const sub = (t: CampusTask) => {
+  const sub = (t: CampusTask, person = false) => {
     const linked = t.study_id
       ? taskProps.studies.find((s) => s.id === t.study_id)?.label
       : t.event_id
         ? taskProps.events.find((e) => e.id === t.event_id)?.label
         : null;
     const helpers = t.helper_ids.filter((h) => h !== meId).map(nameOf).filter(Boolean);
+    const nameInTitle = !!t.contact_name && (person || t.title.includes(t.contact_name));
     return [
-      t.contact_name,
+      why(t, !person),
+      !nameInTitle && t.contact_name,
       linked && `for ${linked}`,
       t.owner_id && t.owner_id !== meId && `${nameOf(t.owner_id)}’s`,
       helpers.length > 0 && `with ${helpers.join(', ')}`,
@@ -194,7 +209,7 @@ export default function Dashboard({
               </button>
               {isOpen && (
                 <ul className="mx-3 mb-3 rounded-lg overflow-hidden" style={{ border: `1px solid ${LINE}` }}>
-                  {r.tasks.map((t, j) => row(t, j))}
+                  {r.tasks.map((t, j) => row(t, j, true))}
                 </ul>
               )}
             </li>
@@ -204,18 +219,23 @@ export default function Dashboard({
     );
   };
 
-  const row = (t: CampusTask, i: number) => {
+  // person = a row inside a folded group: the group says what to do, so the
+  // row is the student (tap the name for their profile) with a Text button.
+  const row = (t: CampusTask, i: number, person = false) => {
         const isOpen = rowOpen === t.id;
         const late = !!t.due_date && t.due_date < today;
-        const s = sub(t);
+        const s = sub(t, person);
+        const toggle = () => setRowOpen(isOpen ? null : t.id);
+        const phone = t.contact_phone?.replace(/[^\d+]/g, '');
         return (
           <li key={t.id} style={{ borderTop: i ? `1px solid ${LINE}` : 'none' }}>
+            <div className="flex items-start gap-2 pr-3">
             <button
-              className="w-full text-left px-4 py-3 flex items-start justify-between gap-3"
-              onClick={() => setRowOpen(isOpen ? null : t.id)}
-              aria-expanded={isOpen}
+              className="flex-1 min-w-0 text-left pl-4 py-3"
+              onClick={person && t.contact_id ? () => setProfile(t) : toggle}
+              aria-expanded={person ? undefined : isOpen}
             >
-              <span className="min-w-0">
+              <span className="block min-w-0">
                 <span className="block font-semibold leading-snug">
                   {(t.priority === 'urgent' || t.priority === 'high') && (
                     <span
@@ -224,14 +244,30 @@ export default function Dashboard({
                       aria-label={t.priority === 'urgent' ? 'Urgent' : 'High priority'}
                     />
                   )}
-                  {t.title}
+                  {person ? t.contact_name ?? t.title : t.title}
                 </span>
-                {s && <span className="block text-sm mt-0.5" style={{ color: MUTED }}>{s}</span>}
-              </span>
-              <span className="text-sm font-semibold shrink-0 text-right" style={{ color: late ? LATE : MUTED }}>
-                {dueLabel(today, t.due_date)}
+                {s && <span className="block text-sm mt-0.5 line-clamp-2" style={{ color: MUTED }}>{s}</span>}
               </span>
             </button>
+            {phone && (
+              <a
+                href={`sms:${phone}`}
+                className="shrink-0 mt-2.5 px-3 py-1 rounded-full text-sm font-semibold"
+                style={{ border: `1.5px solid ${NAVY}`, color: NAVY }}
+              >
+                Text
+              </a>
+            )}
+            <button
+              className="shrink-0 py-3 pl-1 text-sm font-semibold text-right"
+              style={{ color: late ? LATE : MUTED }}
+              onClick={toggle}
+              aria-expanded={isOpen}
+              aria-label="Task actions"
+            >
+              {dueLabel(today, t.due_date) || 'More'}
+            </button>
+            </div>
             {isOpen && finishing === t.id && (
               <div className="px-4 pb-3">
                 <label className="block text-sm font-semibold mb-1" htmlFor={`note-${t.id}`}>
@@ -261,6 +297,7 @@ export default function Dashboard({
             {isOpen && finishing !== t.id && (
               <div className="px-4 pb-3 flex items-center justify-end gap-1 flex-wrap">
                 <Btn kind="quiet" onClick={() => { setRowOpen(null); setPopup([t.id]); }}>Open</Btn>
+                {!person && t.contact_id && <Btn kind="quiet" onClick={() => setProfile(t)}>Profile</Btn>}
                 <Btn
                   disabled={busy === t.id}
                   onClick={() => patch(t, { due_date: addDays(t.due_date && t.due_date > today ? t.due_date : today, 7) }, 'Moved to next week')}
@@ -324,6 +361,12 @@ export default function Dashboard({
                 </>
               )}
             </>
+          )}
+
+          {profile && profile.contact_id && (
+            <Modal title={profile.contact_name ?? 'Student'} onClose={() => setProfile(null)}>
+              <StudentPanel contactId={profile.contact_id} fallbackName={profile.contact_name ?? undefined} />
+            </Modal>
           )}
 
           <h2 className="text-lg font-bold mt-7 mb-1">On campus today</h2>

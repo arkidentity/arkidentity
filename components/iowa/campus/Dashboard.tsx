@@ -33,6 +33,8 @@ function dueLabel(today: string, d: string | null) {
 }
 const RANK = { urgent: 0, high: 1, normal: 2, low: 3 } as const;
 
+const FIRST = 5; // tasks shown in Do now before "Show more"
+
 export default function Dashboard({
   calendar,
   tasks: taskProps,
@@ -61,6 +63,8 @@ export default function Dashboard({
   };
   const [rowOpen, setRowOpen] = useState<string | null>(null);
   const [showLater, setShowLater] = useState(false);
+  const [showAllNow, setShowAllNow] = useState(false);
+  const [showStale, setShowStale] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
   const [finishing, setFinishing] = useState<string | null>(null);
   const [note, setNote] = useState('');
@@ -87,7 +91,12 @@ export default function Dashboard({
         Math.abs(daysFrom(today, a.due_date ?? today)) - Math.abs(daysFrom(today, b.due_date ?? today))
     );
   const isNow = (t: CampusTask) => (t.due_date ? t.due_date <= today : t.priority === 'urgent');
-  const now = mine.filter(isNow);
+  // Do now stays short: today, this past week and anything urgent. Older than two
+  // weeks goes under "Old" (closed) so a pile of stale tasks can't bury today's.
+  const STALE = addDays(today, -14);
+  const isStale = (t: CampusTask) => !!t.due_date && t.due_date < STALE && t.priority !== 'urgent';
+  const now = mine.filter((t) => isNow(t) && !isStale(t));
+  const stale = mine.filter(isStale);
   const later = mine.filter((t) => !isNow(t) && t.due_date && t.due_date <= addDays(today, 7));
   const unowned = open.filter((t) => !t.owner_id).sort((a, b) => (a.due_date ?? '9') .localeCompare(b.due_date ?? '9'));
 
@@ -217,6 +226,7 @@ export default function Dashboard({
             <h1 className="text-[32px] leading-tight font-bold mt-1">{me ? `Hey ${me.name.split(' ')[0]}` : 'Today'}</h1>
             <p className="text-base mt-1" style={{ color: MUTED }}>
               {now.length === 0 ? 'Nothing waiting on you.' : `${now.length} thing${now.length === 1 ? '' : 's'} to do now.`}
+              {stale.length > 0 && ` ${stale.length} old.`}
             </p>
           </header>
 
@@ -228,7 +238,29 @@ export default function Dashboard({
               All clear. Go love on some students.
             </p>
           ) : (
-            list(now)
+            <>
+              {list(showAllNow ? now : now.slice(0, FIRST))}
+              {now.length > FIRST && (
+                <button className="w-full py-3 text-sm font-semibold" style={{ color: MUTED }} onClick={() => setShowAllNow((v) => !v)}>
+                  {showAllNow ? 'Show fewer' : `Show ${now.length - FIRST} more`}
+                </button>
+              )}
+            </>
+          )}
+
+          {stale.length > 0 && (
+            <>
+              <button className="w-full flex items-center justify-between pt-4 pb-2 text-left" onClick={() => setShowStale((v) => !v)}>
+                <span className="font-bold">Old, over 2 weeks</span>
+                <span className="text-sm font-semibold" style={{ color: MUTED }}>{showStale ? 'Hide' : `${stale.length} to sort out`}</span>
+              </button>
+              {showStale && (
+                <>
+                  <p className="text-sm mb-2" style={{ color: MUTED }}>Do it, push it to next week, or mark it done if it’s not happening.</p>
+                  {list(stale)}
+                </>
+              )}
+            </>
           )}
 
           <h2 className="text-lg font-bold mt-7 mb-1">On campus today</h2>

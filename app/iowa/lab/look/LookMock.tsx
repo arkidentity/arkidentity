@@ -64,25 +64,28 @@ export default function LookMock() {
 
 /* ---------- shared pieces (these become real components) ---------- */
 
-function Header({ kicker, title, children }: { kicker?: string; title: string; children?: React.ReactNode }) {
+// Title on the left, your numbers top-right (Travis 11/13: more balanced).
+function Header({ kicker, title, numbers, children }: { kicker?: string; title: string; numbers?: [string, string, boolean?][]; children?: React.ReactNode }) {
   return (
     <header className="px-5 pt-6 pb-5" style={{ background: C.navy, color: '#fff' }}>
-      {kicker && <p className="text-sm" style={{ color: C.onNavyMuted }}>{kicker}</p>}
-      <h1 className="text-[28px] font-bold leading-tight">{title}</h1>
+      <div className="flex items-start justify-between gap-4">
+        <div className="min-w-0">
+          {kicker && <p className="text-sm" style={{ color: C.onNavyMuted }}>{kicker}</p>}
+          <h1 className="text-[28px] font-bold leading-tight">{title}</h1>
+        </div>
+        {numbers && (
+          <div className="flex gap-4 shrink-0 pt-1 text-right">
+            {numbers.map(([n, l, warn]) => (
+              <div key={l}>
+                <p className="text-[22px] font-bold leading-none" style={{ color: warn ? '#ffb3a7' : '#fff' }}>{n}</p>
+                <p className="text-[13px] mt-1 leading-tight" style={{ color: C.onNavyMuted }}>{l}</p>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
       {children}
     </header>
-  );
-}
-function Numbers({ items }: { items: [string, string, boolean?][] }) {
-  return (
-    <div className="flex gap-6 mt-3">
-      {items.map(([n, l, warn]) => (
-        <div key={l}>
-          <p className="text-[22px] font-bold leading-none" style={{ color: warn ? '#ffb3a7' : '#fff' }}>{n}</p>
-          <p className="text-sm mt-1" style={{ color: C.onNavyMuted }}>{l}</p>
-        </div>
-      ))}
-    </div>
   );
 }
 function NavyChips({ options, value, onChange }: { options: string[]; value: string; onChange: (v: string) => void }) {
@@ -140,9 +143,7 @@ function Seats({ n, cap = 5 }: { n: number; cap?: number }) {
 function Today() {
   return (
     <>
-      <Header kicker="Friday, November 13" title="Hey Travis">
-        <Numbers items={[['4', 'to do now'], ['1', 'late', true], ['3', 'on campus']]} />
-      </Header>
+      <Header kicker="Friday, November 13" title="Hey Travis" numbers={[['4', 'to do'], ['1', 'late', true], ['3', 'today']]} />
       <Section title="Do now">
         {TASKS.map((t, i) => (
           <Row key={i} first={!i} title={t.t} sub={t.s} dot={t.urgent} right={t.due} rightColor={t.late ? C.late : undefined} />
@@ -168,8 +169,7 @@ function Studies({ open }: { open: () => void }) {
   const days = [...new Set(list.map((s) => s.day))];
   return (
     <>
-      <Header kicker="Fall 2026" title="Studies">
-        <Numbers items={[['5', 'studies'], ['10', 'open seats'], ['2', 'no staff', true]]} />
+      <Header kicker="Fall 2026" title="Studies" numbers={[['10', 'open'], ['2', 'no staff', true]]}>
         <NavyChips options={['All', 'Mine', 'Has room', 'No staff']} value={f} onChange={setF} />
       </Header>
       <section className="mx-4 mt-5 rounded-2xl p-4" style={{ background: '#fff7e6', boxShadow: `inset 0 0 0 1px ${C.gold}` }}>

@@ -94,16 +94,27 @@ function walk(dir, out = []) {
   return out;
 }
 
+// Streamlabs/OBS saves Travis's own full-quality recording here (see LOCAL-RECORDING.md in ark-workspace).
+// When a local file exists for a date, it wins over Meet's Drive recording.
+const LOCAL_DIR = path.join(HOME, 'Movies/Friday Fill Up');
 function findRecordings() {
-  return walk(RECORDINGS_DIR)
+  const local = walk(LOCAL_DIR)
+    .filter((p) => /\.(mp4|mov|mkv)$/i.test(p) && fs.statSync(p).size > 50e6)
+    .map((p) => {
+      const m = path.basename(p).match(/(\d{4})-(\d{2})-(\d{2})/);
+      const d = fs.statSync(p).mtime;
+      const date = m ? `${m[1]}-${m[2]}-${m[3]}` : `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+      return { path: p, date, local: true };
+    });
+  const drive = walk(RECORDINGS_DIR)
     // Synced names look like "Friday Fill Up - 2026 10 09 07:55 CDT - Recording" (often no extension).
     .filter((p) => /Friday Fill Up/i.test(path.basename(p)) && /- Recording(\.(mp4|mov|webm))?$/i.test(path.basename(p)))
     .map((p) => {
       const m = path.basename(p).match(/(\d{4})[ /:-](\d{2})[ /:-](\d{2})/);
       const date = m ? `${m[1]}-${m[2]}-${m[3]}` : fs.statSync(p).mtime.toISOString().slice(0, 10);
       return { path: p, date };
-    })
-    .sort((a, b) => b.date.localeCompare(a.date));
+    });
+  return [...local, ...drive].sort((a, b) => b.date.localeCompare(a.date) || (b.local ? 1 : 0) - (a.local ? 1 : 0));
 }
 
 // ---------- transcribe ----------

@@ -239,6 +239,10 @@ export default function TaskList(props: TaskListProps) {
                         key={t.id}
                         t={t}
                         {...props}
+                        inGroup={{
+                          priority: [...item.tasks].sort((a, b) => compareTasks(a, b))[0].priority,
+                          due: item.tasks.map((x) => x.due_date).filter(Boolean).sort()[0] ?? undefined,
+                        }}
                         expanded={expanded === t.id}
                         onToggle={() => setExpanded(expanded === t.id ? null : t.id)}
                         busy={busy}
@@ -414,9 +418,13 @@ function splitStudentLine(t: CampusTask): { body: string | null; year: string | 
 }
 
 function TaskRow(
-  props: TaskListProps & { t: CampusTask; expanded: boolean; onToggle: () => void; busy: boolean; call: CallFn }
+  props: TaskListProps & { t: CampusTask; expanded: boolean; onToggle: () => void; busy: boolean; call: CallFn; inGroup?: { priority: string; due?: string } }
 ) {
-  const { t, staff, types, expanded, onToggle } = props;
+  const { t, staff, types, expanded, onToggle, inGroup } = props;
+  // Inside a cluster the header already shows priority + overdue + date; a row
+  // repeats them only when it differs (11/14, Travis).
+  const showPriority = !inGroup || t.priority !== inGroup.priority;
+  const showDate = !inGroup || t.due_date !== inGroup.due;
   const owner = staff.find((s) => s.id === t.owner_id);
   const type = types.find((x) => x.id === t.type_id);
   const link = linkLabel(t, props);
@@ -424,11 +432,13 @@ function TaskRow(
   const done = t.status === 'done';
 
   return (
-    <li className="rounded-lg border bg-white" style={{ borderColor: overdue ? '#fca5a5' : '#e5e7eb' }}>
+    <li className="rounded-lg border bg-white" style={{ borderColor: overdue && !inGroup ? '#fca5a5' : '#e5e7eb' }}>
       <button onClick={onToggle} className="w-full px-4 py-3 text-left flex items-start gap-3">
-        <span className="mt-0.5">
-          <PriorityBadge priority={t.priority} />
-        </span>
+        {showPriority && (
+          <span className="mt-0.5">
+            <PriorityBadge priority={t.priority} />
+          </span>
+        )}
         <span className="min-w-0 flex-1">
           <span
             className={`block font-semibold ${done ? 'line-through text-[#8a8378]' : ''}`}
@@ -450,8 +460,8 @@ function TaskRow(
           </span>
         </span>
         <span className="flex flex-col items-end gap-1 shrink-0">
-          {overdue ? <OverdueTag /> : t.status !== 'open' && <StatusPill status={t.status} />}
-          {t.due_date && (
+          {overdue ? !inGroup && <OverdueTag /> : t.status !== 'open' && <StatusPill status={t.status} />}
+          {t.due_date && showDate && (
             <span className="text-sm md:text-xs" style={{ color: overdue ? '#b91c1c' : '#8a8378' }}>
               {formatDate(t.due_date)}
             </span>

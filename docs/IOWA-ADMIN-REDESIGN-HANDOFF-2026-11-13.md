@@ -16,6 +16,7 @@ tap to act, and every task, study, event and student editable from wherever you 
 | c4e6155 | Studies tab: Waiting for a study (Place → Put in, `WaitingList.tsx`), seat dots, filters, study opens full screen, + New study button |
 | c06fa76 | Events with sign-ups: list rows, Baja board tap-a-person (checks, raised, Not going), no browser prompts |
 | d225aa4 | Staff + Settings: ‹ More back link, tighter phone header |
+| 26b1543 | Study's Add a student offers waiting students who fit (free at that time first); task-list buckets count only their own tasks (Overdue bug fixed) |
 | abe8e29 | Speed: profile loads one student (`listCampusStudents(id)`), `app/iowa/admin/loading.tsx`, page queries start together, `currentStaff` + `semesterContext` cached per request |
 
 ## Waiting on Travis
@@ -26,9 +27,6 @@ tap to act, and every task, study, event and student editable from wherever you 
 
 ## Next, in order
 1. Optional: placing a student could create a welcome-text task for the study's staff on point (Travis hasn't said yes).
-2. Known gap: "Add a student" inside a study card still uses its old inline form.
-3. Old bug (now hidden from Today): the task list's Overdue bucket counted whole groups
-   (`bucketize` uses the group's first task), so "Overdue (36)" vs "Overdue (23)".
 
 ## Rules Travis gave
 - Mock in `/iowa/lab/...` first for new layouts; he taps it on his phone, then build.

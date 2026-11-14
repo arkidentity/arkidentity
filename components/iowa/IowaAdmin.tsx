@@ -12,7 +12,7 @@ import type { StudyWithMembers, StudyMember, StudyStatus } from '@/lib/bibleStud
 import { DAY_NAMES, PICKER_DAYS, blockOf, formatTime, groupFits, slotLabel, GROUP_LABEL, GROUP_TYPES, type GroupType } from '@/lib/bibleStudyFormat';
 import type { WaitingStudent } from '@/components/iowa/campus/WaitingList';
 import { DROP_REASONS, formatDate, isOverdue, type TaskPriority, type TaskStatus } from '@/lib/campusFormat';
-import { Modal, OverdueTag, PriorityBadge, StatusPill } from '@/components/iowa/campus/ui';
+import { Disclosure, Modal, OverdueTag, PriorityBadge, StatusPill } from '@/components/iowa/campus/ui';
 import { clashAt, type BusyBlock } from '@/lib/availabilityFormat';
 import PlanForm from '@/components/iowa/PlanForm';
 
@@ -486,7 +486,25 @@ function StudyEditor({
   }
 
   return (
-    <div className="border-t border-gray-100 px-4 py-4 space-y-4">
+    <div className="space-y-5">
+      {/* Who's in it first: the roster is what you open a study for. */}
+      <div>
+        <p className="font-bold mb-2" style={{ color: 'var(--navy)' }}>
+          Students
+        </p>
+        {s.members.length === 0 && <p className="text-sm text-[#8a8378]">No students yet.</p>}
+        <ul className="space-y-1.5">
+          {s.members.map((m) => (
+            <MemberRow key={m.id} m={m} studyId={s.id} others={all} staff={staff} busy={busy} call={call} />
+          ))}
+        </ul>
+        <AddMemberForm s={s} staff={staff} students={useContext(Students)} busy={busy} call={call} />
+      </div>
+
+      <LinkedTasks studyId={s.id} />
+
+      <Disclosure title="Edit study" hint="Day, time, place, status, staff on point, leader, notes" defaultOpen={s.status === 'pending_setup' || !s.location}>
+      <div className="space-y-4 pt-2">
       <div className="grid sm:grid-cols-2 gap-3">
         <Field label="Day">
           <select
@@ -609,34 +627,23 @@ function StudyEditor({
         </Field>
       )}
 
-      <button
-        onClick={save}
-        disabled={busy}
-        className="px-4 py-2 rounded-md text-sm font-semibold text-white transition hover:opacity-90 disabled:opacity-50"
-        style={{ backgroundColor: 'var(--navy)' }}
-      >
-        Save study
-      </button>
+      <div className="flex justify-end">
+        <button
+          onClick={save}
+          disabled={busy}
+          className="px-5 min-h-11 rounded-lg text-sm font-semibold text-white transition hover:opacity-90 disabled:opacity-50"
+          style={{ backgroundColor: 'var(--navy)' }}
+        >
+          Save study
+        </button>
+      </div>
 
-      <DeleteStudy s={s} busy={busy} call={call} />
+      </div>
+      </Disclosure>
 
       <NextSemester s={s} staff={staff} />
 
-      <LinkedTasks studyId={s.id} />
-
-      {/* Roster */}
-      <div className="pt-3 border-t border-gray-100">
-        <p className="text-sm font-bold mb-2" style={{ color: 'var(--navy)' }}>
-          Roster
-        </p>
-        {s.members.length === 0 && <p className="text-sm text-[#8a8378]">No students yet.</p>}
-        <ul className="space-y-1.5">
-          {s.members.map((m) => (
-            <MemberRow key={m.id} m={m} studyId={s.id} others={all} staff={staff} busy={busy} call={call} />
-          ))}
-        </ul>
-        <AddMemberForm s={s} staff={staff} students={useContext(Students)} busy={busy} call={call} />
-      </div>
+      <DeleteStudy s={s} busy={busy} call={call} />
     </div>
   );
 }

@@ -1,3 +1,4 @@
+import Script from 'next/script';
 import type { Metadata, Viewport } from "next";
 import { Archivo, Public_Sans, Geist_Mono } from "next/font/google";
 import { ToastProvider } from "@/components/ui/Toast";
@@ -82,6 +83,8 @@ export default function RootLayout({
             <BottomTabBar />
           </ToastProvider>
         </ThemeProvider>
+        {/* Groundwork Note button: only people signed in through Review this site see it. */}
+        <Script src="https://groundwork.chat/notes.js" data-site="arkidentity" strategy="afterInteractive" />
       </body>
     </html>
   );

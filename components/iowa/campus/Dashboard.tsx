@@ -8,7 +8,7 @@ import type { CampusTask } from '@/lib/campusTasks';
 import CampusCalendar from '@/components/iowa/campus/CampusCalendar';
 import { buildWeekItems, type WeekItem } from '@/components/iowa/campus/WeekView';
 import { TaskPopup, type TaskListProps } from '@/components/iowa/campus/TaskList';
-import { OpenItemProvider, type OpenItem, CanProvider, ScreenHeader, Modal, NAVY, ON_NAVY_MUTED } from '@/components/iowa/campus/ui';
+import { OpenItemProvider, type OpenItem, CanProvider, ScreenHeader, Modal, AssignSelect, NAVY, ON_NAVY_MUTED } from '@/components/iowa/campus/ui';
 import StudentPanel from '@/components/iowa/campus/StudentPanel';
 import PendingInvites from '@/components/iowa/campus/PendingInvites';
 import type { PendingInvite } from '@/lib/eventInvites';
@@ -38,20 +38,20 @@ const RANK = { urgent: 0, high: 1, normal: 2, low: 3 } as const;
 
 // Auto tasks carry "Name · phone", "met Keilor" and a reason in their
 // description. The row shows who met them + why instead of the name again.
-function details(t: CampusTask, person: boolean): { facts: string[]; note: string | null } {
+function details(t: CampusTask, person: boolean, meFirst: string): { facts: string[]; note: string | null } {
   if (!t.auto_kind) return { facts: [], note: null };
   const lines = (t.description ?? '').split('\n').map((l) => l.trim()).filter(Boolean);
   const facts: string[] = [];
   let note: string | null = null;
   for (const l of lines) {
     const met = l.match(/^(?:How they came: )?met (\S+)$/);
-    if (met) { facts.unshift(`${met[1]} met them`); continue; }
+    if (met) { facts.unshift(met[1] === meFirst ? 'You met them' : `${met[1]} met them`); continue; }
     if (/^(?:How they came: )?(a friend invited them|found it on their own)$/.test(l)) {
       const x = l.replace(/^How they came: /, ''); facts.unshift(x[0].toUpperCase() + x.slice(1)); continue;
     }
     if (person) continue;
     let m;
-    if ((m = l.match(/^Dropped for being unresponsive(?: \((.*)\))? 30\+ days ago/))) { facts.push('Stopped responding, dropped 30+ days ago'); note = m[1] ?? null; }
+    if ((m = l.match(/^Dropped for being unresponsive(?: \((.*)\))? 30\+ days ago/))) { facts.push('No reply, dropped 30+ days ago'); note = m[1] ?? null; }
     else if ((m = l.match(/^Dropped in (.+?) because their schedule changed(?: \((.*)\))?\./))) { facts.push(`Schedule changed in ${m[1]}`); note = m[2] ?? null; }
     else if (/^Marked dormant/.test(l)) facts.push('Marked dormant');
     else if (/^Met 2\+ weeks ago/.test(l)) facts.push('Met 2+ weeks ago, no study yet');
@@ -166,7 +166,7 @@ export default function Dashboard({
     setRowOpen(null);
     setFinishing(null);
     setNote('');
-    if (body.status === 'done' || body.due_date) setGone((g) => [...g, t.id]);
+    if (body.status === 'done' || body.due_date || (body.owner_id && body.owner_id !== meId)) setGone((g) => [...g, t.id]);
     setToast(msg);
     router.refresh();
   }
@@ -187,7 +187,7 @@ export default function Dashboard({
     ]
       .filter(Boolean)
       .join(' · ');
-    const d = details(t, person);
+    const d = details(t, person, me?.name.split(' ')[0] ?? '');
     return { facts: extra ? [...d.facts, extra] : d.facts, note: d.note };
   };
 
@@ -266,7 +266,7 @@ export default function Dashboard({
                 {(s.facts.length > 1 || s.note) && (
                   <span className="block text-sm mt-1 space-y-0.5" style={{ color: MUTED }}>
                     {s.facts.map((f) => (
-                      <span key={f} className="flex gap-2"><span aria-hidden>•</span><span className="truncate">{f}</span></span>
+                      <span key={f} className="flex gap-2"><span aria-hidden>•</span><span>{f}</span></span>
                     ))}
                     {s.note && <span className="block italic pl-4 overflow-hidden" style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>“{s.note}”</span>}
                   </span>
@@ -321,6 +321,15 @@ export default function Dashboard({
             {isOpen && finishing !== t.id && (
               <div className="px-4 pb-3 flex items-center justify-end gap-1 flex-wrap">
                 <Btn kind="quiet" onClick={() => { setRowOpen(null); setPopup([t.id]); }}>Open</Btn>
+                {team && (
+                  <AssignSelect
+                    staff={staff}
+                    ownerId={t.owner_id}
+                    meId={meId}
+                    disabled={busy === t.id}
+                    onPick={(id) => patch(t, { owner_id: id }, id === meId ? 'It’s yours' : `Given to ${nameOf(id)}`)}
+                  />
+                )}
                 <Btn
                   disabled={busy === t.id}
                   onClick={() => patch(t, { due_date: addDays(t.due_date && t.due_date > today ? t.due_date : today, 7) }, 'Moved to next week')}

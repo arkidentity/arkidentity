@@ -33,6 +33,7 @@ import {
   input,
   useCall,
   useCan,
+  AssignSelect,
   type CallFn,
   type Option,
   type StaffOption,
@@ -473,6 +474,7 @@ function TaskDetail(props: TaskListProps & { t: CampusTask; busy: boolean; call:
   const url = `/api/iowa/admin/tasks/${t.id}`;
   const mineOwned = t.owner_id === meId;
   const helping = !!meId && t.helper_ids.includes(meId);
+  const assigns = useCan()('manageTasks');
   // Activity with no person is the automation (welcome, confirm, reconnect…).
   const nameOf = (id: string | null) => (id ? staff.find((s) => s.id === id)?.name ?? 'Someone' : 'Auto:');
   const log = activity.filter((a) => a.task_id === t.id);
@@ -494,7 +496,7 @@ function TaskDetail(props: TaskListProps & { t: CampusTask; busy: boolean; call:
           (11/13, Travis: no trip to the Students tab to update someone). */}
       {t.contact_id && (
         <div className="rounded-lg border border-gray-200 bg-[#FAF8F5] p-3">
-          <StudentPanel contactId={t.contact_id} fallbackName={t.contact_name ?? undefined} />
+          <StudentPanel contactId={t.contact_id} fallbackName={t.contact_name ?? undefined} staff={staff.filter((p) => p.active)} />
         </div>
       )}
       <div className="flex flex-wrap items-center gap-2">
@@ -574,7 +576,9 @@ function TaskDetail(props: TaskListProps & { t: CampusTask; busy: boolean; call:
                     {helping ? 'Stop helping' : 'I can help'}
                   </button>
                 )}
-                {!mineOwned && meId && (
+                {assigns ? (
+                  <AssignSelect staff={staff} ownerId={t.owner_id} meId={meId} disabled={busy} onPick={(id) => call(url, 'PATCH', { owner_id: id })} />
+                ) : !mineOwned && meId && (
                   <button disabled={busy} onClick={() => call(url, 'PATCH', { owner_id: meId })} className={`${btnSmall} min-h-11 px-4`}>
                     Take it
                   </button>

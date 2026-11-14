@@ -460,7 +460,7 @@ async function staleStudents(
       if (await createAutoTask({ ...base, key: `reconnect:${c.contact_id}:${semester}`, kind: 'reconnect', title: `Reconnect with ${c.contacts.name}`, description: [who, met, 'Marked dormant on the Students page.'].filter((x) => x !== null).join('\n') })) counts.reconnect++;
       continue;
     }
-    if (c.status !== 'active' && c.status !== 'unplaced') continue; // graduated, transferred, left school
+    if (c.status !== 'active' && c.status !== 'unplaced') continue; // graduated, left Iowa, …
 
     const dropped = mine.filter((s) => s.status === 'dropped').sort((a, b) => (b.left_at ?? '').localeCompare(a.left_at ?? ''));
     const last = dropped[0];

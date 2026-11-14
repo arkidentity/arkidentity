@@ -9,8 +9,7 @@ export const STATUS_LABEL: Record<StudentStatus, string> = {
   elsewhere: 'In a study elsewhere',
   not_interested: 'Not interested',
   graduated: 'Graduated',
-  transferred: 'Transferred',
-  left_school: 'Left school',
+  left_school: 'Left Iowa', // transferred or left school (merged 11/13, mig 064)
 };
 
 export const STATUS_COLOR: Record<StudentStatus, string> = {
@@ -20,7 +19,6 @@ export const STATUS_COLOR: Record<StudentStatus, string> = {
   elsewhere: '#2f6f5e',
   not_interested: '#8a8378',
   graduated: '#143348',
-  transferred: '#2563eb',
   left_school: '#8a8378',
 };
 

@@ -2,7 +2,7 @@
 
 import { useEffect, useState, type ComponentProps } from 'react';
 import { useRouter } from 'next/navigation';
-import { addDays, chicagoToday, formatDate } from '@/lib/campusFormat';
+import { addDays, chicagoToday, formatDate, taskGroupKey, taskGroupTitle } from '@/lib/campusFormat';
 import type { CampusTask } from '@/lib/campusTasks';
 import CampusCalendar from '@/components/iowa/campus/CampusCalendar';
 import { TaskPopup, type TaskListProps } from '@/components/iowa/campus/TaskList';
@@ -65,6 +65,7 @@ export default function Dashboard({
   const [showLater, setShowLater] = useState(false);
   const [showAllNow, setShowAllNow] = useState(false);
   const [showStale, setShowStale] = useState(false);
+  const [groupOpen, setGroupOpen] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [finishing, setFinishing] = useState<string | null>(null);
   const [note, setNote] = useState('');
@@ -97,6 +98,9 @@ export default function Dashboard({
   const isStale = (t: CampusTask) => !!t.due_date && t.due_date < STALE && t.priority !== 'urgent';
   const now = mine.filter((t) => isNow(t) && !isStale(t));
   const stale = mine.filter(isStale);
+  // Rows Do now shows once same-kind tasks fold together (for "Show N more").
+  const nowRows = now.filter((t) => !(t.auto_kind === 'welcome' ? 'welcome' : taskGroupKey(t))).length +
+    new Set(now.map((t) => (t.auto_kind === 'welcome' ? 'welcome' : taskGroupKey(t))).filter(Boolean)).size;
   const later = mine.filter((t) => !isNow(t) && t.due_date && t.due_date <= addDays(today, 7));
   const unowned = open.filter((t) => !t.owner_id).sort((a, b) => (a.due_date ?? '9') .localeCompare(b.due_date ?? '9'));
 
@@ -138,9 +142,51 @@ export default function Dashboard({
       .join(' · ');
   };
 
-  const list = (items: CampusTask[]) => (
-    <ul className="rounded-xl overflow-hidden bg-white" style={{ border: `1px solid ${LINE}` }}>
-      {items.map((t, i) => {
+  // Same-kind auto tasks (welcome texts, reconnects, placements…) fold into one
+  // line that opens, so five welcome texts don't take five rows.
+  const list = (items: CampusTask[], limit = Infinity) => {
+    type Row = { t: CampusTask } | { key: string; tasks: CampusTask[] };
+    const rows: Row[] = [];
+    const byKey = new Map<string, CampusTask[]>();
+    for (const t of items) {
+      const k = t.auto_kind === 'welcome' ? 'welcome' : taskGroupKey(t);
+      if (!k) { rows.push({ t }); continue; }
+      const g = byKey.get(k);
+      if (g) g.push(t);
+      else { const arr = [t]; byKey.set(k, arr); rows.push({ key: k, tasks: arr }); }
+    }
+    return (
+      <ul className="rounded-xl overflow-hidden bg-white" style={{ border: `1px solid ${LINE}` }}>
+        {rows.slice(0, limit).map((r, i) => {
+          if ('t' in r) return row(r.t, i);
+          if (r.tasks.length === 1) return row(r.tasks[0], i);
+          const isOpen = groupOpen === r.key;
+          const late = r.tasks.some((t) => !!t.due_date && t.due_date < today);
+          const names = r.tasks.map((t) => (t.contact_name ?? '').split(' ')[0]).filter(Boolean);
+          return (
+            <li key={r.key} style={{ borderTop: i ? `1px solid ${LINE}` : 'none' }}>
+              <button className="w-full text-left px-4 py-3 flex items-start justify-between gap-3" onClick={() => setGroupOpen(isOpen ? null : r.key)} aria-expanded={isOpen}>
+                <span className="min-w-0">
+                  <span className="block font-semibold leading-snug">{taskGroupTitle(r.key, r.tasks.length)}</span>
+                  <span className="block text-sm mt-0.5" style={{ color: MUTED }}>
+                    {names.slice(0, 4).join(', ')}{names.length > 4 ? ` +${names.length - 4}` : ''}
+                  </span>
+                </span>
+                <span className="text-sm font-semibold shrink-0" style={{ color: late ? LATE : MUTED }}>{isOpen ? 'Hide' : r.tasks.length}</span>
+              </button>
+              {isOpen && (
+                <ul className="mx-3 mb-3 rounded-lg overflow-hidden" style={{ border: `1px solid ${LINE}` }}>
+                  {r.tasks.map((t, j) => row(t, j))}
+                </ul>
+              )}
+            </li>
+          );
+        })}
+      </ul>
+    );
+  };
+
+  const row = (t: CampusTask, i: number) => {
         const isOpen = rowOpen === t.id;
         const late = !!t.due_date && t.due_date < today;
         const s = sub(t);
@@ -210,9 +256,7 @@ export default function Dashboard({
             )}
           </li>
         );
-      })}
-    </ul>
-  );
+  };
 
   return (
     <CanProvider allowed={allowed}>
@@ -239,10 +283,10 @@ export default function Dashboard({
             </p>
           ) : (
             <>
-              {list(showAllNow ? now : now.slice(0, FIRST))}
-              {now.length > FIRST && (
+              {list(now, showAllNow ? Infinity : FIRST)}
+              {nowRows > FIRST && (
                 <button className="w-full py-3 text-sm font-semibold" style={{ color: MUTED }} onClick={() => setShowAllNow((v) => !v)}>
-                  {showAllNow ? 'Show fewer' : `Show ${now.length - FIRST} more`}
+                  {showAllNow ? 'Show fewer' : `Show ${nowRows - FIRST} more`}
                 </button>
               )}
             </>

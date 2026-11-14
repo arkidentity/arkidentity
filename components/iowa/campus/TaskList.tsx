@@ -219,7 +219,7 @@ export default function TaskList(props: TaskListProps) {
           ))}
         </ul>
       ) : (
-        bucketize(groupTasks(shown), today).map((b) => (
+        bucketize(shown, today).map((b) => (
           <Bucket key={b.key} bucket={b} forceOpen={!!openTaskId && b.items.some((i) => hasTask(i, openTaskId))}>
             <ul className="space-y-2">
               {b.items.map((item) =>
@@ -269,7 +269,6 @@ type Item = { kind: 'task'; t: CampusTask } | Group;
 const FOLLOW_UP = FOLLOW_UP_TITLES;
 
 const hasTask = (i: Item, id: string) => (i.kind === 'task' ? i.t.id === id : i.tasks.some((t) => t.id === id));
-const firstOf = (i: Item) => (i.kind === 'task' ? i.t : i.tasks[0]);
 
 // Input is already sorted; a group sits where its most pressing task would.
 function groupTasks(sorted: CampusTask[]): Item[] {
@@ -318,15 +317,18 @@ function bucketOf(t: CampusTask, today: string): BucketKey {
   return 'later';
 }
 
-function bucketize(items: Item[], today: string): BucketData[] {
-  const by = new Map<BucketKey, Item[]>();
-  for (const i of items) {
-    const k = bucketOf(firstOf(i), today);
-    by.set(k, [...(by.get(k) ?? []), i]);
+// Each task goes in its own bucket first, then groups form inside a bucket, so
+// "Overdue (n)" counts only overdue tasks (a group used to land whole in its
+// first task's bucket and count its later tasks as overdue too).
+function bucketize(sorted: CampusTask[], today: string): BucketData[] {
+  const by = new Map<BucketKey, CampusTask[]>();
+  for (const t of sorted) {
+    const k = bucketOf(t, today);
+    by.set(k, [...(by.get(k) ?? []), t]);
   }
   return BUCKETS.filter((b) => by.has(b.key)).map((b) => {
-    const list = by.get(b.key)!;
-    return { ...b, items: list, count: list.reduce((n, i) => n + (i.kind === 'task' ? 1 : i.tasks.length), 0) };
+    const tasks = by.get(b.key)!;
+    return { ...b, items: groupTasks(tasks), count: tasks.length };
   });
 }
 

@@ -108,6 +108,7 @@ export default async function IowaStudiesPage({ searchParams }: { searchParams: 
       students={students}
       busyBlocks={busyBlocks}
       health={health}
+      waiting={waiting}
       top={<WaitingList students={waiting} studies={openStudies} />}
     />
       {ctx.next && (

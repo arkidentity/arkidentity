@@ -9,7 +9,8 @@ import { StudentLink } from '@/components/iowa/campus/StudentLink';
 import { createContext, useContext, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import type { StudyWithMembers, StudyMember, StudyStatus } from '@/lib/bibleStudies';
-import { DAY_NAMES, PICKER_DAYS, formatTime, GROUP_LABEL, GROUP_TYPES, type GroupType } from '@/lib/bibleStudyFormat';
+import { DAY_NAMES, PICKER_DAYS, blockOf, formatTime, groupFits, slotLabel, GROUP_LABEL, GROUP_TYPES, type GroupType } from '@/lib/bibleStudyFormat';
+import type { WaitingStudent } from '@/components/iowa/campus/WaitingList';
 import { DROP_REASONS, formatDate, isOverdue, type TaskPriority, type TaskStatus } from '@/lib/campusFormat';
 import { Modal, OverdueTag, PriorityBadge, StatusPill } from '@/components/iowa/campus/ui';
 import { clashAt, type BusyBlock } from '@/lib/availabilityFormat';
@@ -29,6 +30,8 @@ const StudyTasks = createContext<Record<string, StudyTask[]>>({});
 const Planning = createContext<{ name: string; starts_on: string }[]>([]);
 // Everyone already tagged ARK Iowa, for "add a student who's already here".
 const Students = createContext<{ id: string; label: string }[]>([]);
+// Students not in a study yet, so Add a student offers them first.
+const Waiting = createContext<WaitingStudent[]>([]);
 // This semester's busy blocks, so picking someone for a study can say "Keilor
 // has class then" instead of letting you find out from him later.
 const Busy = createContext<BusyBlock[]>([]);
@@ -83,7 +86,9 @@ export default function IowaAdmin({
   health = {},
   top = null,
   startNew = false,
+  waiting = [],
 }: {
+  waiting?: WaitingStudent[];
   startNew?: boolean; // ?new=1 (the + button's "A study")
   health?: Record<string, StudyHealth>;
   top?: React.ReactNode; // Who's waiting — first thing on the page, under the title
@@ -161,6 +166,7 @@ export default function IowaAdmin({
   return (
     <Health.Provider value={health}>
     <Busy.Provider value={busyBlocks}>
+    <Waiting.Provider value={waiting}>
     <Students.Provider value={students}>
     <StudyTasks.Provider value={tasksByStudy}>
     <Planning.Provider value={planning}>
@@ -303,6 +309,7 @@ export default function IowaAdmin({
     </Planning.Provider>
     </StudyTasks.Provider>
     </Students.Provider>
+    </Waiting.Provider>
     </Busy.Provider>
     </Health.Provider>
   );
@@ -628,7 +635,7 @@ function StudyEditor({
             <MemberRow key={m.id} m={m} studyId={s.id} others={all} staff={staff} busy={busy} call={call} />
           ))}
         </ul>
-        <AddMemberForm studyId={s.id} staff={staff} students={useContext(Students)} busy={busy} call={call} />
+        <AddMemberForm s={s} staff={staff} students={useContext(Students)} busy={busy} call={call} />
       </div>
     </div>
   );
@@ -837,13 +844,13 @@ function MemberRow({
 // semester is underway), or type in a brand-new student. Retyping details we
 // already hold was the only option before.
 function AddMemberForm({
-  studyId,
+  s: study,
   staff,
   students,
   busy,
   call,
 }: {
-  studyId: string;
+  s: StudyWithMembers;
   staff: Map<string, StaffOption>;
   students: { id: string; label: string }[];
   busy: boolean;
@@ -853,12 +860,18 @@ function AddMemberForm({
   const [open, setOpen] = useState(false);
   const [mode, setMode] = useState<'existing' | 'new'>('existing');
   const [query, setQuery] = useState('');
+  const studyId = study.id;
+  const slot = `${study.day_of_week}-${blockOf(study.start_time)}`;
+  // Waiting students who fit this study (guys / girls / co-ed), the ones free at this time first.
+  const fits = useContext(Waiting)
+    .filter((w) => groupFits(study.group_type, w.gender))
+    .sort((a, b) => Number(b.free.includes(slot)) - Number(a.free.includes(slot)));
 
   if (!open) {
     return (
       <button
         onClick={() => setOpen(true)}
-        className="mt-3 text-sm font-semibold hover:underline"
+        className="mt-3 px-4 min-h-11 rounded-lg border border-gray-300 bg-white text-sm font-semibold"
         style={{ color: 'var(--navy)' }}
       >
         + Add a student
@@ -891,10 +904,36 @@ function AddMemberForm({
 
       {mode === 'existing' ? (
         <div>
+          {!query.trim() && fits.length > 0 && (
+            <>
+              <p className="text-sm text-[#8a8378] mb-1">Waiting for a study:</p>
+              <ul className="mb-3 rounded-md border border-gray-200 bg-white divide-y divide-gray-100 max-h-72 overflow-y-auto">
+                {fits.map((w) => (
+                  <li key={w.contact_id} className="flex items-center justify-between gap-3 px-3 py-2">
+                    <span className="min-w-0">
+                      <span className="block font-semibold text-sm" style={{ color: 'var(--navy)' }}>{w.name}</span>
+                      <span className="block text-xs text-[#8a8378]">
+                        {w.free.includes(slot) ? 'Free at this time' : w.free.length ? `Free ${w.free.map(slotLabel).join(', ')}` : 'No times picked'}
+                      </span>
+                    </span>
+                    <button
+                      disabled={busy}
+                      onClick={async () => {
+                        if (await call('/api/iowa/admin/members', 'POST', { studyId, contactId: w.contact_id })) setOpen(false);
+                      }}
+                      className="shrink-0 px-3 min-h-11 rounded-lg text-sm font-semibold text-white disabled:opacity-50"
+                      style={{ background: '#2f6f5e' }}
+                    >
+                      Put in
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
           <input
             className={input}
-            autoFocus
-            placeholder="Type a name"
+            placeholder="Or search everyone by name"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
           />

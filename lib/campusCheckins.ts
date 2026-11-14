@@ -22,7 +22,7 @@ import {
 // check-in log, so it can't drift from what actually happened.
 
 // Past the ministry's reach — not someone to check in on.
-const GONE = new Set(['elsewhere', 'graduated', 'transferred', 'left_school']);
+const GONE = new Set(['elsewhere', 'not_interested', 'graduated', 'transferred', 'left_school']);
 
 interface SeatRow {
   contact_id: string;

@@ -1,11 +1,11 @@
 import { randomBytes } from 'node:crypto';
 import { getSupabaseAdmin } from '@/lib/supabaseAdmin';
-import { saveFreeSlots, formatSlot, type StudyWithMembers } from '@/lib/bibleStudies';
+import { saveFreeSlots, formatSlot, updateCampusStudent, type StudyWithMembers } from '@/lib/bibleStudies';
 import { addDays, chicagoToday } from '@/lib/campusFormat';
 import { cleanFreeSlots } from '@/lib/bibleStudyFormat';
 import { dismissedAutoKeys } from '@/lib/campusTasks';
 import { sendSemesterCheckin, siteUrl } from '@/lib/email';
-import type { SemesterContext } from '@/lib/semesters';
+import { semesterContext, type SemesterContext } from '@/lib/semesters';
 
 // Semester check-in (migration 038). When next semester's signup opens, each
 // active student in a current group gets a personal link: in / not / not sure,
@@ -90,6 +90,19 @@ export async function answerCheckin(token: string, input: { response?: string; s
     .eq('id', c.id);
   if (error) throw error;
   if (slots.length) await saveFreeSlots(c.contact_id, slots, c.semester);
+  // "Not right now" on a THIS-semester link (someone waiting for a study, migration 063):
+  // they're Not interested, so they leave Waiting for a study and stop getting placement tasks.
+  if (response === 'no') {
+    const ctx = await semesterContext();
+    if (c.semester === ctx.current?.name) {
+      const { data: cur } = await getSupabaseAdmin().from('campus_students').select('status').eq('contact_id', c.contact_id).maybeSingle();
+      if (cur?.status === 'unplaced') {
+        await updateCampusStudent(c.contact_id, { status: 'not_interested' }).catch((e) =>
+          console.error('[iowa checkin] not-interested failed (migration 063 run?)', e)
+        );
+      }
+    }
+  }
 }
 
 // Who gets one: active students holding a seat in a live current-semester group.

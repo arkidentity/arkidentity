@@ -23,7 +23,7 @@ export type MemberStatus = 'active' | 'dropped';
 // Where a student sits in the ministry's life cycle. Whether they're currently
 // in a study is NOT here — that's derived from an active seat, so the two can't
 // disagree. This covers only what the roster can't tell you.
-export type StudentStatus = 'unplaced' | 'active' | 'dormant' | 'elsewhere' | 'graduated' | 'transferred' | 'left_school';
+export type StudentStatus = 'unplaced' | 'active' | 'dormant' | 'elsewhere' | 'not_interested' | 'graduated' | 'transferred' | 'left_school';
 export type PulseStatus = 'green' | 'yellow' | 'red';
 // Non-staff answers to "Who did you meet?" on the signup form (migration 015).
 export type MetByOther = 'friend' | 'self' | 'other';

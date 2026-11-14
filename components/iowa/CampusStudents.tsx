@@ -133,6 +133,7 @@ export function CampusStudents({
               { v: 'active', label: 'Active' },
               { v: 'dormant', label: 'Dormant' },
               { v: 'elsewhere', label: 'Elsewhere' },
+              { v: 'not_interested', label: 'Not interested' },
             ]}
           />
         </ScreenHeader>

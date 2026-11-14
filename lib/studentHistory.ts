@@ -20,7 +20,7 @@ export interface HistoryEntry {
 
 const label = (list: { key: string; label: string }[], k: string | null) => (k ? list.find((x) => x.key === k)?.label ?? k : null);
 const STATUS_LABEL: Record<string, string> = {
-  unplaced: 'Needs a study', active: 'Active', dormant: 'Dormant', elsewhere: 'In a study elsewhere', graduated: 'Graduated', transferred: 'Transferred', left_school: 'Left school',
+  unplaced: 'Needs a study', active: 'Active', dormant: 'Dormant', elsewhere: 'In a study elsewhere', not_interested: 'Not interested', graduated: 'Graduated', transferred: 'Transferred', left_school: 'Left school',
 };
 
 type Staffed = { iowa_staff: { name: string } | null };

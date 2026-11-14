@@ -1,7 +1,6 @@
 import { redirect } from 'next/navigation';
 import { can } from '@/lib/iowaPerms';
 import type { Metadata } from 'next';
-import Link from 'next/link';
 import { blockOf, formatSlot, listCampusStudents, listStudentOptions, listStudies } from '@/lib/bibleStudies';
 import { healthByStudy } from '@/lib/studyAttendance';
 import { CheckinLinks } from '@/components/iowa/campus/CheckinLinks';
@@ -72,28 +71,8 @@ export default async function IowaStudiesPage({ searchParams }: { searchParams: 
   }
   return (
     <>
-      {tabs.length > 1 && (
-        <div style={{ background: '#FAF8F5' }}>
-          <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 flex gap-2">
-            {tabs.map((t) => (
-              <Link
-                key={t}
-                href={`/iowa/admin/studies?semester=${encodeURIComponent(t)}`}
-                className="px-3 py-1.5 rounded-md text-sm font-semibold border"
-                style={
-                  t === semester
-                    ? { backgroundColor: 'var(--navy)', color: 'white', borderColor: 'var(--navy)' }
-                    : { backgroundColor: 'white', color: 'var(--navy)', borderColor: '#d1d5db' }
-                }
-              >
-                {t}
-                {t !== ctx.current?.name ? ' (next)' : ''}
-              </Link>
-            ))}
-          </div>
-        </div>
-      )}
       <IowaAdmin
+      semesters={tabs.length > 1 ? tabs.map((t) => ({ name: t, next: t !== ctx.current?.name })) : []}
       startNew={startNew === '1'}
       initial={studies}
       semester={semester}

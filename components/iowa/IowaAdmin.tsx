@@ -12,7 +12,7 @@ import type { StudyWithMembers, StudyMember, StudyStatus } from '@/lib/bibleStud
 import { DAY_NAMES, PICKER_DAYS, blockOf, formatTime, groupFits, slotLabel, GROUP_LABEL, GROUP_TYPES, type GroupType } from '@/lib/bibleStudyFormat';
 import type { WaitingStudent } from '@/components/iowa/campus/WaitingList';
 import { DROP_REASONS, formatDate, isOverdue, type TaskPriority, type TaskStatus } from '@/lib/campusFormat';
-import { Disclosure, Modal, OverdueTag, PriorityBadge, StatusPill } from '@/components/iowa/campus/ui';
+import { Disclosure, Modal, NavyChips, OverdueTag, PriorityBadge, ScreenHeader, StatusPill } from '@/components/iowa/campus/ui';
 import { clashAt, type BusyBlock } from '@/lib/availabilityFormat';
 import PlanForm from '@/components/iowa/PlanForm';
 
@@ -87,7 +87,9 @@ export default function IowaAdmin({
   top = null,
   startNew = false,
   waiting = [],
+  semesters = [],
 }: {
+  semesters?: { name: string; next: boolean }[]; // two tabs once next semester opens for planning
   waiting?: WaitingStudent[];
   startNew?: boolean; // ?new=1 (the + button's "A study")
   health?: Record<string, StudyHealth>;
@@ -119,6 +121,7 @@ export default function IowaAdmin({
   );
   const staffById = useMemo(() => new Map(staff.map((p) => [p.id, p])), [staff]);
   const myCount = all.filter((s) => s.point_staff_id === meId).length;
+  const noStaff = all.filter((s) => !s.point_staff_id && ['forming', 'activated', 'full'].includes(s.status)).length;
   const [expanded, setExpanded] = useState<string | null>(null);
   const [showNew, setShowNew] = useState(startNew);
   const [busy, setBusy] = useState(false);
@@ -171,42 +174,44 @@ export default function IowaAdmin({
     <StudyTasks.Provider value={tasksByStudy}>
     <Planning.Provider value={planning}>
     <div style={{ background: '#FAF8F5', minHeight: '100vh', color: '#1f2937' }}>
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
-        <div className="flex items-end justify-between gap-3 mb-4">
-          <div>
-            <h1 className="text-2xl sm:text-3xl font-bold" style={{ color: 'var(--navy)' }}>
-              Studies
-            </h1>
-            <p className="text-sm text-[#8a8378]">
-              {semester} · {all.filter((x) => x.status !== 'ended').length} studies ·{' '}
-              {all.filter((x) => ['forming', 'activated', 'full'].includes(x.status)).reduce((n, x) => n + Math.max(0, x.capacity - x.activeCount), 0)} open seats
-            </p>
-          </div>
-        </div>
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pt-4 sm:pt-8 pb-12">
+        <ScreenHeader
+          kicker={
+            semesters.length > 1 ? (
+              <span className="flex gap-3">
+                {semesters.map((t) => (
+                  <a
+                    key={t.name}
+                    href={`/iowa/admin/studies?semester=${encodeURIComponent(t.name)}`}
+                    className="font-semibold"
+                    style={t.name === semester ? { color: '#fff', textDecoration: 'underline', textUnderlineOffset: 4 } : undefined}
+                  >
+                    {t.name}{t.next ? ' (next)' : ''}
+                  </a>
+                ))}
+              </span>
+            ) : (
+              semester
+            )
+          }
+          title="Studies"
+          numbers={[
+            { n: all.filter((x) => ['forming', 'activated', 'full'].includes(x.status)).reduce((n, x) => n + Math.max(0, x.capacity - x.activeCount), 0), label: 'open' },
+            ...(noStaff ? [{ n: noStaff, label: 'no staff', warn: true }] : []),
+          ]}
+        >
+          <NavyChips
+            value={filter}
+            onChange={setFilter}
+            options={[
+              { v: 'all', label: 'All' },
+              { v: 'mine', label: `Mine (${myCount})` },
+              { v: 'room', label: 'Has room' },
+              { v: 'nobody', label: 'No staff', warn: noStaff > 0 },
+            ]}
+          />
+        </ScreenHeader>
         {top}
-        <div className="flex gap-2 mb-4 overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0">
-          {(
-            [
-              ['all', 'All'],
-              ['mine', `Mine (${myCount})`],
-              ['room', 'Has room'],
-              ['nobody', 'No staff'],
-            ] as const
-          ).map(([k, label]) => (
-            <button
-              key={k}
-              onClick={() => setFilter(k)}
-              className="shrink-0 px-3 min-h-9 rounded-full text-sm font-semibold border"
-              style={
-                filter === k
-                  ? { backgroundColor: 'var(--navy)', color: 'white', borderColor: 'var(--navy)' }
-                  : { backgroundColor: 'white', color: 'var(--navy)', borderColor: '#e7e2d9' }
-              }
-            >
-              {label}
-            </button>
-          ))}
-        </div>
         <button
           onClick={() => setShowNew(true)}
           className="fixed z-40 right-4 px-5 min-h-12 rounded-full font-bold shadow-lg"

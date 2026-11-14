@@ -12,7 +12,7 @@ export const input = 'w-full px-3 py-2 min-h-11 border border-gray-300 rounded-m
 export const btnPrimary =
   'px-4 py-2 rounded-md text-sm font-semibold text-white transition hover:opacity-90 disabled:opacity-50';
 export const btnSmall =
-  'inline-flex items-center justify-center min-h-9 text-sm font-semibold px-3 rounded-md border border-gray-300 bg-white transition hover:bg-gray-50 disabled:opacity-50';
+  'inline-flex items-center justify-center min-h-9 text-sm font-semibold px-3 rounded-md border border-[#143348]/40 text-[#143348] bg-white transition hover:bg-[#143348]/5 disabled:opacity-50';
 
 export interface Option {
   id: string;
@@ -178,7 +178,7 @@ export function ErrorBox({ error }: { error: string }) {
 export function PageShell({ children }: { children: React.ReactNode }) {
   return (
     <div style={{ background: '#FAF8F5', minHeight: '100vh', color: '#1f2937' }}>
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pt-4 pb-8 sm:py-8">{children}</div>
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pt-4 pb-8 sm:pt-8">{children}</div>
     </div>
   );
 }
@@ -202,15 +202,16 @@ export function Modal({ title, sub, onClose, children }: { title: string; sub?: 
     <div className="fixed inset-0 z-50 flex items-center justify-center sm:p-6" role="dialog" aria-modal="true">
       <div className="absolute inset-0 bg-black/40" onClick={onClose} />
       <div className="relative w-full max-w-2xl h-[100dvh] sm:h-auto sm:max-h-[85dvh] overflow-y-auto bg-[#FAF8F5] sm:rounded-2xl shadow-xl">
+        {/* Navy title block: you're "inside" something (lab /iowa/lab/look). */}
         <div
-          className="sticky top-0 z-10 flex items-start justify-between gap-3 px-5 pt-4 pb-3 bg-[#FAF8F5] border-b border-gray-200 sm:rounded-t-2xl"
-          style={{ paddingTop: 'max(16px, env(safe-area-inset-top))' }}
+          className="sticky top-0 z-10 flex items-start justify-between gap-3 px-5 pt-4 pb-4 sm:rounded-t-2xl"
+          style={{ paddingTop: 'max(16px, env(safe-area-inset-top))', background: '#143348', color: '#fff' }}
         >
           <div className="min-w-0">
-            <h2 className="text-xl font-bold leading-tight" style={{ color: 'var(--navy)' }}>{title}</h2>
-            {sub && <div className="text-sm text-[#4a4540] mt-0.5">{sub}</div>}
+            <h2 className="text-xl font-bold leading-tight">{title}</h2>
+            {sub && <div className="text-sm mt-0.5" style={{ color: 'rgba(255,255,255,0.75)' }}>{sub}</div>}
           </div>
-          <button onClick={onClose} className="shrink-0 text-2xl leading-none px-2 text-[#8a8378]" aria-label="Close">
+          <button onClick={onClose} className="shrink-0 text-2xl leading-none px-2 min-h-11" style={{ color: 'rgba(255,255,255,0.75)' }} aria-label="Close">
             ✕
           </button>
         </div>
@@ -264,4 +265,79 @@ const OpenItemContext = createContext<((o: OpenItem) => void) | null>(null);
 export const OpenItemProvider = OpenItemContext.Provider;
 export function useOpenItem() {
   return useContext(OpenItemContext);
+}
+
+// ---------------------------------------------------------------------------
+// The admin's look (lab /iowa/lab/look, Travis 11/13). Navy = where you are,
+// what you picked and what's next; white cards = lists; gold = the one "do this".
+// ---------------------------------------------------------------------------
+export const NAVY = '#143348';
+export const NAVY2 = '#1e4560';
+export const ON_NAVY_MUTED = 'rgba(255,255,255,0.68)';
+export const GOLD = '#E8B562';
+
+// The navy header every list screen opens with: title on the left, your numbers
+// top-right, filters (children) underneath. Full width on a phone, a rounded
+// block on bigger screens. The page's container should start with pt-4 sm:pt-8.
+export function ScreenHeader({
+  kicker,
+  title,
+  numbers,
+  children,
+}: {
+  kicker?: React.ReactNode;
+  title: string;
+  numbers?: { n: number | string; label: string; warn?: boolean }[];
+  children?: React.ReactNode;
+}) {
+  return (
+    <header
+      className="-mx-4 -mt-4 sm:mx-0 sm:mt-0 sm:rounded-2xl px-5 pt-6 pb-5 mb-5"
+      style={{ background: NAVY, color: '#fff', paddingTop: 'max(24px, env(safe-area-inset-top))' }}
+    >
+      <div className="flex items-start justify-between gap-4">
+        <div className="min-w-0">
+          {kicker && <p className="text-sm" style={{ color: ON_NAVY_MUTED }}>{kicker}</p>}
+          <h1 className="text-[28px] font-bold leading-tight">{title}</h1>
+        </div>
+        {numbers && numbers.length > 0 && (
+          <div className="flex gap-4 shrink-0 pt-1 text-right">
+            {numbers.map((x) => (
+              <div key={x.label}>
+                <p className="text-[22px] font-bold leading-none" style={{ color: x.warn ? '#ffb3a7' : '#fff' }}>{x.n}</p>
+                <p className="text-[13px] mt-1 leading-tight" style={{ color: ON_NAVY_MUTED }}>{x.label}</p>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+      {children}
+    </header>
+  );
+}
+
+// Filter chips that sit inside a ScreenHeader: the picked one is white.
+export function NavyChips<V extends string>({
+  options,
+  value,
+  onChange,
+}: {
+  options: { v: V; label: string; warn?: boolean }[];
+  value: V;
+  onChange: (v: V) => void;
+}) {
+  return (
+    <div className="flex gap-2 mt-4 overflow-x-auto -mx-5 px-5 pb-0.5">
+      {options.map((o) => (
+        <button
+          key={o.v}
+          onClick={() => onChange(o.v)}
+          className="shrink-0 px-3.5 min-h-9 rounded-full text-sm font-semibold"
+          style={value === o.v ? { background: '#fff', color: NAVY } : { background: NAVY2, color: o.warn ? '#ffb3a7' : '#fff' }}
+        >
+          {o.label}
+        </button>
+      ))}
+    </div>
+  );
 }

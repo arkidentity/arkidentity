@@ -5,8 +5,9 @@ import { useRouter } from 'next/navigation';
 import { addDays, chicagoToday, formatDate, taskGroupKey, taskGroupTitle } from '@/lib/campusFormat';
 import type { CampusTask } from '@/lib/campusTasks';
 import CampusCalendar from '@/components/iowa/campus/CampusCalendar';
+import { buildWeekItems, type WeekItem } from '@/components/iowa/campus/WeekView';
 import { TaskPopup, type TaskListProps } from '@/components/iowa/campus/TaskList';
-import { OpenItemProvider, type OpenItem, CanProvider } from '@/components/iowa/campus/ui';
+import { OpenItemProvider, type OpenItem, CanProvider, ScreenHeader, NAVY, ON_NAVY_MUTED } from '@/components/iowa/campus/ui';
 import PendingInvites from '@/components/iowa/campus/PendingInvites';
 import type { PendingInvite } from '@/lib/eventInvites';
 import type { Permission } from '@/lib/iowaPerms';
@@ -56,10 +57,10 @@ export default function Dashboard({
   const openItem = (o: OpenItem) => {
     setPopup(null);
     if (o.kind === 'event' && !calendar.events.some((e) => e.id === o.id)) {
-      window.location.href = `/iowa/admin/calendar${o.date ? `?week=${o.date}` : ''}`;
+      router.push(`/iowa/admin/calendar${o.date ? `?week=${o.date}` : ''}`);
       return;
     }
-    setOpenRequest({ ...o, n: Date.now() });
+    setOpenRequest((prev) => ({ ...o, n: (prev?.n ?? 0) + 1 }));
   };
   const [rowOpen, setRowOpen] = useState<string | null>(null);
   const [showLater, setShowLater] = useState(false);
@@ -102,6 +103,23 @@ export default function Dashboard({
   const nowRows = now.filter((t) => !(t.auto_kind === 'welcome' ? 'welcome' : taskGroupKey(t))).length +
     new Set(now.map((t) => (t.auto_kind === 'welcome' ? 'welcome' : taskGroupKey(t))).filter(Boolean)).size;
   const later = mine.filter((t) => !isNow(t) && t.due_date && t.due_date <= addDays(today, 7));
+  const lateCount = now.filter((t) => !!t.due_date && t.due_date < today).length + stale.length;
+  // What's on campus today (studies + events, no tasks), and the next one still to come.
+  const todayItems = buildWeekItems({
+    days: [today],
+    studies: calendar.studies,
+    events: calendar.events,
+    tasks: [],
+    staff: calendar.staff,
+    types: calendar.types,
+    meId: calendar.meId,
+    mineOnly: false,
+    periods: calendar.periods,
+    semesters: calendar.semesters,
+    team: calendar.team,
+  }).filter((i) => i.kind !== 'task' && !i.paused);
+  const nowHm = new Date().toLocaleTimeString('en-GB', { timeZone: 'America/Chicago', hour: '2-digit', minute: '2-digit' });
+  const nextUp = todayItems.filter((i) => i.time && i.time.slice(0, 5) >= nowHm).sort((a, b) => a.time!.localeCompare(b.time!))[0] ?? null;
   const unowned = open.filter((t) => !t.owner_id).sort((a, b) => (a.due_date ?? '9') .localeCompare(b.due_date ?? '9'));
 
   async function patch(t: CampusTask, body: Record<string, unknown>, msg: string) {
@@ -262,17 +280,18 @@ export default function Dashboard({
     <CanProvider allowed={allowed}>
     <OpenItemProvider value={openItem}>
       <div style={{ background: '#f8f6f2', color: INK, minHeight: '100dvh' }}>
-        <main className="max-w-xl mx-auto px-4 pb-32">
-          <header className="pt-7 pb-5">
-            <p className="text-sm" style={{ color: MUTED }}>
-              {formatDate(today, { weekday: 'long', month: 'long', day: 'numeric' })}
-            </p>
-            <h1 className="text-[32px] leading-tight font-bold mt-1">{me ? `Hey ${me.name.split(' ')[0]}` : 'Today'}</h1>
-            <p className="text-base mt-1" style={{ color: MUTED }}>
-              {now.length === 0 ? 'Nothing waiting on you.' : `${now.length} thing${now.length === 1 ? '' : 's'} to do now.`}
-              {stale.length > 0 && ` ${stale.length} old.`}
-            </p>
-          </header>
+        <main className="max-w-xl mx-auto px-4 pt-4 sm:pt-8 pb-32">
+          <ScreenHeader
+            kicker={formatDate(today, { weekday: 'long', month: 'long', day: 'numeric' })}
+            title={me ? `Hey ${me.name.split(' ')[0]}` : 'Today'}
+            numbers={[
+              { n: now.length, label: 'to do' },
+              ...(lateCount ? [{ n: lateCount, label: 'late', warn: true }] : []),
+              { n: todayItems.length, label: 'today' },
+            ]}
+          />
+
+          {nextUp && <NextUp item={nextUp} onOpen={() => nextUp.studyId ? openItem({ kind: 'study', id: nextUp.studyId, date: today }) : nextUp.eventId && openItem({ kind: 'event', id: nextUp.eventId, date: today })} />}
 
           <PendingInvites invites={pending} />
 
@@ -382,6 +401,29 @@ function Btn({
   return (
     <button disabled={disabled} className="shrink-0 px-4 min-h-11 rounded-lg text-sm font-semibold disabled:opacity-50" style={s} onClick={onClick}>
       {children}
+    </button>
+  );
+}
+
+// The next thing on campus today, in navy right under the header: the one piece
+// of Today that's about time, not a list. Gone once the day's last item starts.
+function NextUp({ item, onOpen }: { item: WeekItem; onOpen: () => void }) {
+  const [h, m] = item.time!.slice(0, 5).split(':').map(Number);
+  const nowParts = new Date().toLocaleTimeString('en-GB', { timeZone: 'America/Chicago', hour: '2-digit', minute: '2-digit' }).split(':').map(Number);
+  const mins = h * 60 + m - (nowParts[0] * 60 + nowParts[1]);
+  const when = mins <= 0 ? 'Starting now' : mins < 60 ? `In ${mins} min` : `At ${((h + 11) % 12) + 1}:${String(m).padStart(2, '0')} ${h < 12 ? 'AM' : 'PM'}`;
+  return (
+    <button
+      onClick={onOpen}
+      className="w-full text-left rounded-2xl px-4 py-3.5 mb-6 flex items-center justify-between gap-3"
+      style={{ background: NAVY, color: '#fff', boxShadow: '0 1px 3px rgba(20,51,72,0.25)' }}
+    >
+      <span className="min-w-0">
+        <span className="block text-sm font-semibold" style={{ color: GOLD }}>Next up · {when}</span>
+        <span className="block font-bold text-[17px] leading-snug truncate">{item.title}</span>
+        {item.sub && <span className="block text-sm truncate" style={{ color: ON_NAVY_MUTED }}>{item.sub}</span>}
+      </span>
+      <span className="text-2xl shrink-0" style={{ color: ON_NAVY_MUTED }} aria-hidden>›</span>
     </button>
   );
 }

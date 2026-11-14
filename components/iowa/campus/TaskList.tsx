@@ -38,6 +38,8 @@ import {
   type StaffOption,
   type TypeOption,
   useOpenItem,
+  NavyChips,
+  ScreenHeader,
 } from '@/components/iowa/campus/ui';
 
 export interface TaskListProps {
@@ -128,36 +130,27 @@ export default function TaskList(props: TaskListProps) {
 
       {!compact && (
         <>
-          {props.title && (
-            <h1 className="text-2xl sm:text-3xl font-bold mb-3" style={{ color: 'var(--navy)' }}>
-              {props.title}
-            </h1>
-          )}
-          {/* Views as chips (scroll sideways on a phone), search, and the rarer filters under More. */}
-          <div className="flex gap-2 overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0 pb-1 mb-2">
-            {(
-              [
-                ['mine', `Mine (${counts.mine})`],
-                ['all', `All (${counts.all})`],
-                ['overdue', `Overdue (${counts.overdue})`],
-                ['unowned', `Nobody's (${counts.unowned})`],
-                ['done', 'Done'],
-              ] as [View, string][]
-            ).filter(([v]) => assigns || v !== 'unowned').map(([v, label]) => (
-              <button
-                key={v}
-                onClick={() => setView(v)}
-                className="shrink-0 px-3 min-h-9 rounded-full text-sm font-semibold border"
-                style={
-                  view === v
-                    ? { backgroundColor: 'var(--navy)', color: 'white', borderColor: 'var(--navy)' }
-                    : { backgroundColor: 'white', color: v === 'overdue' && counts.overdue ? '#b91c1c' : 'var(--navy)', borderColor: '#e7e2d9' }
-                }
-              >
-                {label}
-              </button>
-            ))}
-          </div>
+          {props.title ? (
+            <ScreenHeader
+              title={props.title}
+              numbers={[
+                { n: counts.mine, label: 'mine' },
+                ...(counts.overdue ? [{ n: counts.overdue, label: 'overdue', warn: true }] : []),
+              ]}
+            >
+              <NavyChips
+                value={view}
+                onChange={setView}
+                options={[
+                { v: 'mine' as View, label: `Mine (${counts.mine})` },
+                { v: 'all' as View, label: `All (${counts.all})` },
+                { v: 'overdue' as View, label: `Overdue (${counts.overdue})`, warn: counts.overdue > 0 },
+                { v: 'unowned' as View, label: `Nobody's (${counts.unowned})` },
+                { v: 'done' as View, label: 'Done' }
+                ].filter((o) => assigns || o.v !== 'unowned')}
+              />
+            </ScreenHeader>
+          ) : null}
           <div className="flex gap-2 mb-2">
             <input className={`${input} flex-1`} type="search" placeholder="Search tasks" value={search} onChange={(e) => setSearch(e.target.value)} />
             <button onClick={() => setMoreFilters((v) => !v)} className="shrink-0 px-3 min-h-11 text-sm font-semibold underline" style={{ color: 'var(--navy)' }}>

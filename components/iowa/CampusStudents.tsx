@@ -7,7 +7,7 @@ import { type CheckinRow, type SocialEventOption } from '@/lib/checkinFormat';
 import type { DupeGroup } from '@/lib/studentDupes';
 import { CheckinReport } from '@/components/iowa/CheckinReport';
 import StudentPanel from '@/components/iowa/campus/StudentPanel';
-import { Modal } from '@/components/iowa/campus/ui';
+import { Modal, NavyChips, ScreenHeader } from '@/components/iowa/campus/ui';
 
 // Managing students as people rather than as roster lines. Every student here
 // is also a contact in the main database — this view just adds the campus facts
@@ -115,25 +115,27 @@ export function CampusStudents({
 
   return (
     <div style={{ background: '#FAF8F5', minHeight: '100vh' }}>
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pt-5 pb-24 sm:py-10">
-        <div className="flex items-end justify-between gap-3 mb-4">
-          <div>
-            <h1 className="text-2xl sm:text-3xl font-bold" style={{ color: 'var(--navy)' }}>Students</h1>
-            <p className="text-sm" style={{ color: '#8a8378' }}>
-              {semester} ·{' '}
-              {visible.length === counts.total ? `${counts.total} students` : `${visible.length} of ${counts.total}`}
-            </p>
-          </div>
-          {report && (
-            <button
-              onClick={() => setShowReport(true)}
-              className="shrink-0 px-4 min-h-11 rounded-lg font-semibold text-sm border bg-white"
-              style={{ borderColor: '#d6cfc2', color: 'var(--navy)' }}
-            >
-              Check-ins{report.length > 0 && ` (${report.length})`}
-            </button>
-          )}
-        </div>
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pt-4 sm:pt-8 pb-24">
+        <ScreenHeader
+          kicker={semester}
+          title="Students"
+          numbers={[
+            { n: counts.total, label: 'students' },
+            ...(counts.unplaced ? [{ n: counts.unplaced, label: 'need a study', warn: true }] : []),
+          ]}
+        >
+          <NavyChips
+            value={statusFilter}
+            onChange={setStatusFilter}
+            options={[
+              { v: '' as StudentStatus | '', label: 'All' },
+              { v: 'unplaced', label: 'Needs a study' },
+              { v: 'active', label: 'Active' },
+              { v: 'dormant', label: 'Dormant' },
+              { v: 'elsewhere', label: 'Elsewhere' },
+            ]}
+          />
+        </ScreenHeader>
         <button
           onClick={() => setAdding(true)}
           className="fixed z-40 right-4 px-5 min-h-12 rounded-full font-bold shadow-lg"
@@ -194,20 +196,14 @@ export function CampusStudents({
           onChange={(e) => setSearch(e.target.value)}
           className={`${input} w-full min-h-11 mb-2`}
         />
-        <div className="flex gap-2 overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0 pb-1 mb-2">
-          {([['', 'All'], ['unplaced', 'Needs a study'], ['active', 'Active'], ['dormant', 'Dormant'], ['elsewhere', 'Elsewhere']] as [StudentStatus | '', string][]).map(([k, label]) => (
-            <button
-              key={k || 'all'}
-              onClick={() => setStatusFilter(k)}
-              className="shrink-0 px-3 min-h-9 rounded-full text-sm font-semibold border"
-              style={statusFilter === k ? { backgroundColor: 'var(--navy)', color: 'white', borderColor: 'var(--navy)' } : { backgroundColor: 'white', color: 'var(--navy)', borderColor: '#e7e2d9' }}
-            >
-              {label}
-              {k === 'unplaced' && counts.unplaced > 0 ? ` (${counts.unplaced})` : ''}
+        <div className="flex flex-wrap justify-between items-center gap-2 mb-2">
+          {report ? (
+            <button onClick={() => setShowReport(true)} className="text-sm font-semibold underline min-h-9" style={{ color: 'var(--navy)' }}>
+              Check-in report{report.length > 0 && ` (${report.length})`}
             </button>
-          ))}
-          <button onClick={() => setMoreFilters((v) => !v)} className="shrink-0 px-3 min-h-9 text-sm font-semibold underline" style={{ color: 'var(--navy)' }}>
-            {moreFilters ? 'Fewer' : 'More'}
+          ) : <span />}
+          <button onClick={() => setMoreFilters((v) => !v)} className="px-1 min-h-9 text-sm font-semibold underline" style={{ color: 'var(--navy)' }}>
+            {moreFilters ? 'Fewer filters' : 'More filters'}
           </button>
         </div>
         {moreFilters && (

@@ -22,6 +22,8 @@ tap to act, and every task, study, event and student editable from wherever you 
 | 149fedf | Students tab (was People): search + status chips, More filters, Add student in its own screen |
 | 4c7dfc2 / 5dfb99c / 8b19896 | Calendar arrows bigger, New event + New task open full screen; Tasks view chips + More filters; global + hidden where a page has its own New button |
 | 5207c7a / bf4af1c | Study screen: students + tasks first, settings under Edit study; roster rows as cards with bigger buttons |
+| 0abef20 / ce8b74f | `/iowa/lab/look`: the approved look (navy = where you are / what you picked / what's next; white = lists; gold = do this) |
+| 3dbafc9 | Look live: `ScreenHeader` + `NavyChips` in ui.tsx on Today/Studies/Students/Tasks/Calendar/More (numbers top-right, filters in header, semester tabs in Studies kicker); Next up card on Today; Modal header navy; btnSmall navy outline |
 | abe8e29 | Speed: profile loads one student (`listCampusStudents(id)`), `app/iowa/admin/loading.tsx`, page queries start together, `currentStaff` + `semesterContext` cached per request |
 
 ## Waiting on Travis
@@ -32,7 +34,8 @@ tap to act, and every task, study, event and student editable from wherever you 
 
 ## Next, in order
 1. Welcome-text task on placement already exists (`onStudentSeated` in lib/campusAutomation.ts); nothing to build.
-2. Not yet reviewed closely: task detail popup, event screen, StudyCard (Today/Calendar study popup), Settings disclosures.
+2. Look not yet applied: Events, Baja board, Trick or Truth, Staff, Settings (still plain light headers); the green/purple left bars on Today/Studies rows from the mock.
+3. Not yet reviewed closely: task detail popup, event screen, StudyCard (Today/Calendar study popup), Settings disclosures.
 
 ## Rules Travis gave
 - Mock in `/iowa/lab/...` first for new layouts; he taps it on his phone, then build.

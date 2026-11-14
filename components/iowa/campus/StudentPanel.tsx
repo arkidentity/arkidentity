@@ -8,6 +8,7 @@ import { slotLabel, sortSlots } from '@/lib/bibleStudyFormat';
 import { DORMANT_REASONS } from '@/lib/checkinFormat';
 import { DROP_REASONS } from '@/lib/campusFormat';
 import { useCan } from '@/components/iowa/campus/ui';
+import { DailyDnaLink } from '@/components/iowa/DailyDnaLink';
 import type { CampusStudent, StudentStatus } from '@/lib/bibleStudies';
 
 // One student, editable, anywhere in the admin (11/13, Travis: "everything we
@@ -20,7 +21,15 @@ type StudyPick = { id: string; label: string; open: number };
 const field = 'w-full min-h-11 px-3 py-2 border border-gray-300 rounded-lg text-[15px] text-gray-900 bg-white';
 const small = 'text-sm font-semibold underline underline-offset-2';
 
-export default function StudentPanel({ contactId, fallbackName }: { contactId: string; fallbackName?: string }) {
+export default function StudentPanel({
+  contactId,
+  fallbackName,
+  staff,
+}: {
+  contactId: string;
+  fallbackName?: string;
+  staff?: { id: string; name: string }[]; // shows "Who met them" (People tab has the list)
+}) {
   const router = useRouter();
   const can = useCan();
   const seats = can('viewAllStudies');
@@ -136,6 +145,19 @@ export default function StudentPanel({ contactId, fallbackName }: { contactId: s
         </label>
       </div>
 
+      {staff && (
+        <label className="block">
+          <span className="block text-sm text-[#7d766b] mb-1">Who met them</span>
+          <select className={field} value={s.met_by_staff_id ?? s.met_by_other ?? ''} disabled={busy} onChange={(e) => patch({ metBy: e.target.value })}>
+            <option value="">Not sure</option>
+            {staff.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+            <option value="friend">A friend invited them</option>
+            <option value="self">Found it on their own</option>
+            <option value="other">Other</option>
+          </select>
+        </label>
+      )}
+
       {s.status === 'dormant' && (
         <div className="grid gap-2">
           <select className={field} value={s.dormant_reason ?? ''} disabled={busy} onChange={(e) => patch({ dormantReason: e.target.value || null })}>
@@ -205,6 +227,16 @@ export default function StudentPanel({ contactId, fallbackName }: { contactId: s
           <p className="text-[15px]">{sortSlots(s.free_slots).map(slotLabel).join(', ')}</p>
         </div>
       )}
+
+      {(s.added_at || s.gender) && (
+        <p className="text-sm text-[#7d766b]">
+          {s.added_at && `Added ${new Date(s.added_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'America/Chicago' })}`}
+          {s.added_at && s.gender && ' · '}
+          {s.gender && (s.gender === 'guy' ? 'Guys + Co-ed' : 'Girls + Co-ed')}
+        </p>
+      )}
+
+      <DailyDnaLink contactId={s.contact_id} linked={!!s.daily_dna_account_id} linkedName={s.daily_dna_name} studentName={s.name} />
 
       {error && <p className="text-sm text-red-700">{error}</p>}
       {saved && <p className="text-sm font-semibold text-green-700">{saved}</p>}

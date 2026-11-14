@@ -3,12 +3,11 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import type { CampusStudent, StudentStatus } from '@/lib/bibleStudies';
-import { DAY_NAMES, formatTime, slotLabel, sortSlots } from '@/lib/bibleStudyFormat';
-import { DORMANT_REASONS, type CheckinRow, type SocialEventOption } from '@/lib/checkinFormat';
+import { type CheckinRow, type SocialEventOption } from '@/lib/checkinFormat';
 import type { DupeGroup } from '@/lib/studentDupes';
 import { CheckinReport } from '@/components/iowa/CheckinReport';
-import { StudentHistory } from '@/components/iowa/StudentHistory';
-import { DailyDnaLink } from '@/components/iowa/DailyDnaLink';
+import StudentPanel from '@/components/iowa/campus/StudentPanel';
+import { Modal } from '@/components/iowa/campus/ui';
 
 // Managing students as people rather than as roster lines. Every student here
 // is also a contact in the main database — this view just adds the campus facts
@@ -32,44 +31,8 @@ interface StudyOption {
 
 type Placement = 'all' | 'placed' | 'unplaced';
 
-function ContactFields({
-  student,
-  busy,
-  onSave,
-}: {
-  student: CampusStudent;
-  busy: boolean;
-  onSave: (patch: { name: string; phone: string | null; email: string | null }) => Promise<void>;
-}) {
-  const [name, setName] = useState(student.name);
-  const [phone, setPhone] = useState(student.phone ?? '');
-  const [email, setEmail] = useState(student.email ?? '');
-
-  return (
-    <div className="mt-3 pt-3 border-t" style={{ borderColor: '#f0ede8' }}>
-      <p className="text-xs mb-2" style={{ color: '#8a8378' }}>
-        This is their contact record — changes here show up everywhere in the database.
-      </p>
-      <div className="grid sm:grid-cols-3 gap-3">
-        <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Name" className={input} />
-        <input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="Phone" className={input} />
-        <input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email" className={input} />
-      </div>
-      <button
-        onClick={() => onSave({ name, phone: phone || null, email: email || null })}
-        disabled={busy || !name.trim()}
-        className="mt-3 px-4 py-2 rounded-lg font-semibold text-sm disabled:opacity-50"
-        style={{ backgroundColor: 'var(--navy)', color: 'white' }}
-      >
-        Save
-      </button>
-    </div>
-  );
-}
-
 export function CampusStudents({
   initial,
-  studies,
   semester,
   staff = [],
   report = null,
@@ -96,8 +59,7 @@ export function CampusStudents({
   const [yearFilter, setYearFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState<StudentStatus | ''>('');
   const [placement, setPlacement] = useState<Placement>('all');
-  const [editing, setEditing] = useState<string | null>(null);
-  const [historyOpen, setHistoryOpen] = useState<string | null>(null);
+  const [openId, setOpenId] = useState<string | null>(null);
   const [showReport, setShowReport] = useState(openReport);
   const [adding, setAdding] = useState(startAdding);
   const [f, setF] = useState({ name: '', phone: '', email: '', year: '', metBy: '' });
@@ -106,9 +68,6 @@ export function CampusStudents({
   useEffect(() => { setStudents(initial); }, [initial]);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
-
-  const label = (s: StudyOption) =>
-    `${DAY_NAMES[s.day_of_week]} ${formatTime(s.start_time)}${s.location ? ` · ${s.location}` : ''}`;
 
   const visible = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -125,59 +84,6 @@ export function CampusStudents({
     })
       .sort((a, b) => rank(a.status) - rank(b.status) || a.name.localeCompare(b.name));
   }, [students, search, yearFilter, statusFilter, placement]);
-
-  // One endpoint for both records: campus facts land on campus_students, name /
-  // phone / email on the contact itself — so a fix here is a fix everywhere.
-  async function patchStudent(
-    contactId: string,
-    patch: {
-      year?: string | null; status?: StudentStatus; name?: string; phone?: string | null; email?: string | null; metBy?: string;
-      dormantReason?: string | null; dormantNote?: string | null;
-    }
-  ) {
-    setBusy(true);
-    setError('');
-    const res = await fetch(`/api/iowa/admin/students/${contactId}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(patch),
-    });
-    setBusy(false);
-    if (!res.ok) {
-      setError((await res.json().catch(() => ({}))).error || 'Could not save.');
-      return;
-    }
-    const { metBy, dormantReason, dormantNote, ...rest } = patch;
-    const dormant = {
-      ...(dormantReason !== undefined && { dormant_reason: dormantReason || null }),
-      ...(dormantNote !== undefined && { dormant_note: dormantNote || null }),
-      ...(rest.status && rest.status !== 'dormant' && { dormant_reason: null, dormant_note: null }),
-    };
-    const met =
-      metBy === undefined
-        ? {}
-        : ['friend', 'self', 'other'].includes(metBy)
-          ? { met_by_staff_id: null, met_by_other: metBy as CampusStudent['met_by_other'] }
-          : { met_by_staff_id: metBy || null, met_by_other: null };
-    setStudents((list) => list.map((s) => (s.contact_id === contactId ? { ...s, ...rest, ...met, ...dormant } : s)));
-  }
-
-  // Moving keeps the same roster row, so joined_at and history survive.
-  async function move(memberId: string, toStudyId: string) {
-    setBusy(true);
-    setError('');
-    const res = await fetch(`/api/iowa/admin/members/${memberId}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ studyId: toStudyId }),
-    });
-    setBusy(false);
-    if (!res.ok) {
-      setError((await res.json().catch(() => ({}))).error || 'Could not move them.');
-      return;
-    }
-    router.refresh();
-  }
 
   // A new student with no study yet. Phone is required, email is not.
   async function addStudent() {
@@ -320,186 +226,29 @@ export function CampusStudents({
         <Dupes groups={dupes} />
 
         <div className="rounded-xl overflow-hidden" style={{ backgroundColor: '#FFFFFF', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
-          {visible.map((s, i) => (
-            <div
-              key={s.contact_id}
-              className="px-4 sm:px-5 py-4 border-b"
-              // Alternate the shade so one student ends and the next begins at a glance.
-              style={{ borderColor: '#e8e3db', backgroundColor: i % 2 === 0 ? '#FFFFFF' : '#F6F3EE' }}
-            >
-              {/* Phone: name + contact across the top, then the pickers two to a row.
-                  Desktop: one line. */}
-              <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center sm:gap-3">
-                <div className="col-span-2 sm:flex-1 sm:min-w-[200px] min-w-0">
-                  <p className="font-semibold" style={{ color: 'var(--navy)' }}>{s.name}</p>
-                  {/* Both, always — the whole point of the contacts merge is not
-                      having to go hunting for someone's email. Tappable to call/email. */}
-                  <p className="text-sm break-words" style={{ color: '#8a8378' }}>
-                    {!s.phone && !s.email && 'No contact details'}
-                    {s.phone && (
-                      <a href={`sms:${s.phone.replace(/[^\d+]/g, '')}`} title="Text" className="hover:underline" style={{ color: '#6b6459' }}>{s.phone}</a>
-                    )}
-                    {s.phone && s.email && ' · '}
-                    {s.email && (
-                      <a href={`mailto:${s.email}`} className="hover:underline" style={{ color: '#6b6459' }}>{s.email}</a>
-                    )}
-                  </p>
-                  {(s.added_at || s.gender) && (
-                    <p className="text-xs mt-0.5" style={{ color: '#8a8378' }}>
-                      {s.added_at && `Added ${new Date(s.added_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'America/Chicago' })}`}
-                      {s.added_at && s.gender && ' · '}
-                      {s.gender && (s.gender === 'guy' ? 'Guys + Co-ed' : 'Girls + Co-ed')}
-                    </p>
-                  )}
-                  {s.free_slots.length > 0 && (
-                    <p className="text-xs mt-0.5" style={{ color: '#8a8378' }}>
-                      Free{s.free_slots_semester ? ` (${s.free_slots_semester})` : ''}: {sortSlots(s.free_slots).map(slotLabel).join(', ')}
-                    </p>
-                  )}
-                </div>
-
-                <select
-                  value={s.year ?? ''}
-                  onChange={(e) => patchStudent(s.contact_id, { year: e.target.value || null })}
-                  disabled={busy}
-                  className={`${input} w-full sm:w-auto`}
-                >
-                  <option value="">Year?</option>
-                  {YEARS.map((y) => <option key={y} value={y}>{y}</option>)}
-                </select>
-
-                {/* Who met them. First answer comes from the signup form; fix it here. */}
-                <select
-                  value={s.met_by_staff_id ?? s.met_by_other ?? ''}
-                  onChange={(e) => patchStudent(s.contact_id, { metBy: e.target.value })}
-                  disabled={busy}
-                  className={`${input} w-full sm:w-auto`}
-                  title="Who did they meet?"
-                >
-                  <option value="">Met who?</option>
-                  {staff.map((p) => (
-                    <option key={p.id} value={p.id}>Met {p.name.split(' ')[0]}</option>
-                  ))}
-                  <option value="friend">Friend invited</option>
-                  <option value="self">Found it on their own</option>
-                  <option value="other">Other</option>
-                </select>
-
-                <select
-                  value={s.status}
-                  onChange={(e) => patchStudent(s.contact_id, { status: e.target.value as StudentStatus })}
-                  disabled={busy}
-                  className={`${input} w-full sm:w-auto`}
-                  style={{ color: STATUS_COLOR[s.status], fontWeight: 600 }}
-                >
-                  {/* Active = in a study, Needs a study = met but not in one. The roster
-                      decides which, so only the one that's true is offered. */}
-                  {(Object.keys(STATUS_LABEL) as StudentStatus[])
-                    .filter((st) => (st === 'active' ? s.studies.length > 0 : st === 'unplaced' ? s.studies.length === 0 : true))
-                    .map((st) => (
-                      <option key={st} value={st}>{STATUS_LABEL[st]}</option>
-                    ))}
-                </select>
-
-                <button
-                  onClick={() => setEditing(editing === s.contact_id ? null : s.contact_id)}
-                  className="w-full sm:w-auto text-sm font-semibold px-3 py-2 rounded-md border bg-white"
-                  style={{ borderColor: '#d1d5db', color: 'var(--navy)' }}
-                >
-                  {editing === s.contact_id ? 'Close' : 'Edit'}
+          {/* One line per student; tap opens their panel (same one tasks use). */}
+          <ul>
+            {visible.map((s, i) => (
+              <li key={s.contact_id} style={{ borderTop: i ? '1px solid #e8e3db' : 'none' }}>
+                <button className="w-full text-left px-4 sm:px-5 py-3 flex items-center justify-between gap-3" onClick={() => setOpenId(s.contact_id)}>
+                  <span className="min-w-0">
+                    <span className="block font-semibold" style={{ color: 'var(--navy)' }}>{s.name}</span>
+                    <span className="block text-sm truncate" style={{ color: '#8a8378' }}>
+                      {s.studies.length ? s.studies.map((st) => st.label).join(', ') : s.year ?? (s.phone ? s.phone : 'No contact details')}
+                    </span>
+                  </span>
+                  <span className="text-sm font-semibold shrink-0 text-right" style={{ color: STATUS_COLOR[s.status] }}>
+                    {STATUS_LABEL[s.status]}
+                  </span>
                 </button>
-              </div>
-
-              {/* Dormant: say why, so whoever checks in later knows. */}
-              {s.status === 'dormant' && (
-                <div className="mt-3 flex flex-wrap items-center gap-2 text-sm">
-                  <span style={{ color: '#9d855a' }}>Why dormant?</span>
-                  <select
-                    value={s.dormant_reason ?? ''}
-                    onChange={(e) => patchStudent(s.contact_id, { dormantReason: e.target.value || null })}
-                    disabled={busy}
-                    className={`${input} w-full sm:w-auto`}
-                  >
-                    <option value="">— pick a reason —</option>
-                    {DORMANT_REASONS.map((r) => <option key={r.key} value={r.key}>{r.label}</option>)}
-                  </select>
-                  <input
-                    key={s.dormant_note ?? ''}
-                    defaultValue={s.dormant_note ?? ''}
-                    onBlur={(e) => {
-                      if (e.target.value !== (s.dormant_note ?? '')) patchStudent(s.contact_id, { dormantNote: e.target.value });
-                    }}
-                    placeholder="Note (optional)"
-                    className={`${input} w-full sm:w-auto sm:flex-1 sm:min-w-[180px]`}
-                  />
-                </div>
-              )}
-
-              {editing === s.contact_id && (
-                <ContactFields
-                  student={s}
-                  busy={busy}
-                  onSave={async (patch) => {
-                    await patchStudent(s.contact_id, patch);
-                    setEditing(null);
-                  }}
-                />
-              )}
-
-              {/* Placement */}
-              <div className="mt-3 pt-3 border-t flex items-start justify-between gap-3" style={{ borderColor: '#f0ede8' }}>
-                <div className="min-w-0">
-                {s.studies.length === 0 ? (
-                  <p className="text-sm" style={{ color: '#9d855a' }}>Not in a study.</p>
-                ) : (
-                  s.studies.map((st) => (
-                    <div key={st.member_id} className="flex flex-wrap items-center gap-2 text-sm mb-2">
-                      <span style={{ color: '#4a4540' }}>{st.label}</span>
-                      <span style={{ color: '#8a8378' }}>→ move to</span>
-                      <select
-                        defaultValue=""
-                        disabled={busy}
-                        onChange={(e) => { if (e.target.value) move(st.member_id, e.target.value); }}
-                        className={`${input} max-w-full`}
-                      >
-                        <option value="">— pick a study —</option>
-                        {studies
-                          .filter((o) => o.id !== st.id)
-                          .map((o) => (
-                            <option key={o.id} value={o.id}>
-                              {label(o)} ({o.activeCount}/{o.capacity})
-                            </option>
-                          ))}
-                      </select>
-                    </div>
-                  ))
-                )}
-                </div>
-                {/* History is always one tap away: the chevron opens their timeline. */}
-                <button
-                  onClick={() => setHistoryOpen(historyOpen === s.contact_id ? null : s.contact_id)}
-                  aria-expanded={historyOpen === s.contact_id}
-                  className="shrink-0 flex items-center gap-1 text-sm font-semibold"
-                  style={{ color: 'var(--navy)' }}
-                >
-                  History
-                  <svg
-                    width="14" height="14" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2.5"
-                    strokeLinecap="round" strokeLinejoin="round" aria-hidden
-                    className={`transition-transform ${historyOpen === s.contact_id ? 'rotate-180' : ''}`}
-                  >
-                    <path d="M5 8l5 5 5-5" />
-                  </svg>
-                </button>
-              </div>
-              {historyOpen === s.contact_id && (
-                <div className="mt-3 pt-3 border-t" style={{ borderColor: '#f0ede8' }}>
-                  <StudentHistory contactId={s.contact_id} />
-                </div>
-              )}
-              <DailyDnaLink contactId={s.contact_id} linked={!!s.daily_dna_account_id} linkedName={s.daily_dna_name} studentName={s.name} />
-            </div>
-          ))}
+              </li>
+            ))}
+          </ul>
+          {openId && (
+            <Modal title={students.find((x) => x.contact_id === openId)?.name ?? 'Student'} onClose={() => { setOpenId(null); router.refresh(); }}>
+              <StudentPanel contactId={openId} staff={staff} />
+            </Modal>
+          )}
 
           {visible.length === 0 && (
             <p className="px-5 py-6 text-sm" style={{ color: '#8a8378' }}>

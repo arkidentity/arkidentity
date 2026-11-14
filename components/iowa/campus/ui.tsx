@@ -197,10 +197,14 @@ export function Modal({ title, sub, onClose, children }: { title: string; sub?: 
     };
   }, [onClose]);
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6" role="dialog" aria-modal="true">
+    // Full screen on a phone (a screen of its own, above the tab bar), a card on bigger screens.
+    <div className="fixed inset-0 z-50 flex items-center justify-center sm:p-6" role="dialog" aria-modal="true">
       <div className="absolute inset-0 bg-black/40" onClick={onClose} />
-      <div className="relative w-full max-w-2xl max-h-[85dvh] overflow-y-auto bg-[#FAF8F5] rounded-2xl shadow-xl">
-        <div className="sticky top-0 z-10 flex items-start justify-between gap-3 px-5 pt-4 pb-3 bg-[#FAF8F5] border-b border-gray-200 rounded-t-2xl">
+      <div className="relative w-full max-w-2xl h-[100dvh] sm:h-auto sm:max-h-[85dvh] overflow-y-auto bg-[#FAF8F5] sm:rounded-2xl shadow-xl">
+        <div
+          className="sticky top-0 z-10 flex items-start justify-between gap-3 px-5 pt-4 pb-3 bg-[#FAF8F5] border-b border-gray-200 sm:rounded-t-2xl"
+          style={{ paddingTop: 'max(16px, env(safe-area-inset-top))' }}
+        >
           <div className="min-w-0">
             <h2 className="text-xl font-bold leading-tight" style={{ color: 'var(--navy)' }}>{title}</h2>
             {sub && <div className="text-sm text-[#4a4540] mt-0.5">{sub}</div>}

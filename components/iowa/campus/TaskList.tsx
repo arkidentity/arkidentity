@@ -464,7 +464,7 @@ function TaskRow(
 
 // Opening a task shows a short summary + quick actions. The full edit form and
 // the history each open only when asked, so a list of tasks stays scannable.
-function TaskDetail(props: TaskListProps & { t: CampusTask; busy: boolean; call: CallFn }) {
+function TaskDetail(props: TaskListProps & { t: CampusTask; busy: boolean; call: CallFn; sticky?: boolean }) {
   const { t, meId, staff, activity, busy, call } = props;
   const [editing, setEditing] = useState(false);
   const [history, setHistory] = useState(false);
@@ -498,25 +498,6 @@ function TaskDetail(props: TaskListProps & { t: CampusTask; busy: boolean; call:
         </div>
       )}
       <div className="flex flex-wrap items-center gap-2">
-        {t.status !== 'done' ? (
-          <button disabled={busy} onClick={() => setFinishing((v) => !v)} className={btnPrimary} style={{ backgroundColor: '#15803d' }}>
-            ✓ Mark done
-          </button>
-        ) : (
-          <button disabled={busy} onClick={() => call(url, 'PATCH', { status: 'open' })} className={btnSmall}>
-            Reopen
-          </button>
-        )}
-        {!mineOwned && meId && (
-          <button disabled={busy} onClick={() => call(url, 'PATCH', { owner_id: meId })} className={btnSmall}>
-            Take this
-          </button>
-        )}
-        {!mineOwned && meId && (
-          <button disabled={busy} onClick={() => call(url, 'PATCH', { help: !helping })} className={btnSmall}>
-            {helping ? 'Stop helping' : 'I can help'}
-          </button>
-        )}
         <span className="ml-auto flex gap-2">
           <button onClick={() => { setEditing((v) => !v); setSaved(false); }} className={toggle} style={{ color: 'var(--navy)' }}>
             {editing ? 'Close edit ▴' : 'Edit ▾'}
@@ -547,14 +528,6 @@ function TaskDetail(props: TaskListProps & { t: CampusTask; busy: boolean; call:
         </div>
       )}
 
-      {finishing && (
-        <FinishForm
-          busy={busy}
-          onDone={(comment) => call(url, 'PATCH', comment ? { status: 'done', comment } : { status: 'done' }).then((ok) => { if (ok) setFinishing(false); })}
-          onCancel={() => setFinishing(false)}
-        />
-      )}
-
       <Files t={t} files={(props.files ?? []).filter((f) => f.task_id === t.id)} />
 
       {/* A student task has one note box: the one in their history above, so
@@ -575,6 +548,57 @@ function TaskDetail(props: TaskListProps & { t: CampusTask; busy: boolean; call:
           ))}
         </ul>
       )}
+
+      {/* The next move, in one bar on the right (11/13): stuck to the bottom of
+          the screen when the task is open on its own. */}
+      <div
+        className={`${props.sticky ? 'sticky bottom-0 -mx-4 -mb-3 px-4 py-3 bg-white border-t border-gray-200' : 'pt-1'}`}
+        style={props.sticky ? { paddingBottom: 'calc(12px + env(safe-area-inset-bottom))' } : undefined}
+      >
+        {finishing ? (
+          <FinishForm
+            busy={busy}
+            onDone={(comment) => call(url, 'PATCH', comment ? { status: 'done', comment } : { status: 'done' }).then((ok) => { if (ok) setFinishing(false); })}
+            onCancel={() => setFinishing(false)}
+          />
+        ) : (
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            {t.status === 'done' ? (
+              <button disabled={busy} onClick={() => call(url, 'PATCH', { status: 'open' })} className={`${btnSmall} min-h-11 px-4`}>
+                Reopen
+              </button>
+            ) : (
+              <>
+                {!mineOwned && meId && (
+                  <button disabled={busy} onClick={() => call(url, 'PATCH', { help: !helping })} className={`${btnSmall} min-h-11 px-4`}>
+                    {helping ? 'Stop helping' : 'I can help'}
+                  </button>
+                )}
+                {!mineOwned && meId && (
+                  <button disabled={busy} onClick={() => call(url, 'PATCH', { owner_id: meId })} className={`${btnSmall} min-h-11 px-4`}>
+                    Take it
+                  </button>
+                )}
+                {mineOwned && (
+                  <button
+                    disabled={busy}
+                    onClick={() => {
+                      const today = chicagoToday();
+                      call(url, 'PATCH', { due_date: addDays(t.due_date && t.due_date > today ? t.due_date : today, 7) });
+                    }}
+                    className={`${btnSmall} min-h-11 px-4`}
+                  >
+                    Next week
+                  </button>
+                )}
+                <button disabled={busy} onClick={() => setFinishing(true)} className={`${btnPrimary} min-h-11`} style={{ backgroundColor: '#15803d' }}>
+                  Done
+                </button>
+              </>
+            )}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -871,7 +895,7 @@ export function TaskPopup(props: TaskListProps & { taskIds: string[]; onClose: (
       )}
       {single ? (
         <div className="rounded-lg border border-gray-200 bg-white">
-          <TaskDetail {...props} t={list[0]} busy={busy} call={call} />
+          <TaskDetail {...props} t={list[0]} busy={busy} call={call} sticky />
         </div>
       ) : (
         <ul className="space-y-2">

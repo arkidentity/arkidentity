@@ -43,7 +43,7 @@ export default function DeclineForm({
         value={note}
         onChange={(e) => setNote(e.target.value)}
         placeholder="Why? (optional) e.g. exam that week"
-        className="flex-1 min-w-[12rem] w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-gray-900 bg-white"
+        className="flex-1 min-w-[12rem] w-full px-3 py-2 border border-gray-300 rounded-md text-base sm:text-sm text-gray-900 bg-white"
       />
       <button
         disabled={busy}

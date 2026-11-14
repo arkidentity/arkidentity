@@ -7,7 +7,7 @@ import { StaffDailyDnaLink } from '@/components/iowa/StaffDailyDnaLink';
 import { NOTIFY_MODES } from '@/lib/campusFormat';
 import { JOBS } from '@/lib/iowaJobs';
 
-const input = 'w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-gray-900 bg-white';
+const input = 'w-full px-3 py-2 border border-gray-300 rounded-md text-base sm:text-sm text-gray-900 bg-white';
 
 // Logins for the Iowa admin (what each role can do: lib/iowaPerms.ts). This page is
 // for adding people, resetting passwords, and turning a login off when an

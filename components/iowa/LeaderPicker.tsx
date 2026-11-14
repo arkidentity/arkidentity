@@ -9,7 +9,7 @@ import { useEffect, useState } from 'react';
 type Person = { key: string; name: string; phone: string | null; email: string | null; kind: string };
 type Leader = { leader_name: string; leader_phone: string; leader_email: string };
 
-const input = 'w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-gray-900 bg-white';
+const input = 'w-full px-3 py-2 border border-gray-300 rounded-md text-base sm:text-sm text-gray-900 bg-white';
 
 export function LeaderPicker({ value, onChange }: { value: Leader; onChange: (v: Leader) => void }) {
   const [q, setQ] = useState('');

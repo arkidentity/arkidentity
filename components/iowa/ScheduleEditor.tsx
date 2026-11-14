@@ -21,7 +21,7 @@ const PRESETS = ['Class', 'Work', 'Practice', 'Church', 'Gym'];
 const toMin = (t: string) => Number(t.slice(0, 2)) * 60 + Number(t.slice(3, 5));
 const toTime = (min: number) => `${String(Math.floor(min / 60)).padStart(2, '0')}:${String(min % 60).padStart(2, '0')}:00`;
 const slotMin = (slot: number) => START_HOUR * 60 + slot * SLOT_MIN;
-const input = 'px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 bg-white';
+const input = 'px-3 py-2 border border-gray-300 rounded-lg text-base sm:text-sm text-gray-900 bg-white';
 
 interface Draft {
   id?: string; // present = editing that block

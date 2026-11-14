@@ -13,7 +13,7 @@ import { Modal } from '@/components/iowa/campus/ui';
 // is also a contact in the main database — this view just adds the campus facts
 // and the filters that only make sense on a campus.
 
-const input = 'px-3 py-2 border border-gray-300 rounded-md text-sm text-gray-900 bg-white';
+const input = 'px-3 py-2 border border-gray-300 rounded-md text-base sm:text-sm text-gray-900 bg-white';
 
 import { STATUS_COLOR, STATUS_LABEL, YEARS } from '@/components/iowa/studentStatus';
 

@@ -20,7 +20,7 @@ interface GroupDraft {
   leader_email: string;
 }
 
-const field = 'w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-gray-900 bg-white';
+const field = 'w-full px-3 py-2 border border-gray-300 rounded-md text-base sm:text-sm text-gray-900 bg-white';
 const label = 'block text-xs font-semibold mb-1 uppercase tracking-wide text-[#8a8378]';
 
 export default function PlanForm({

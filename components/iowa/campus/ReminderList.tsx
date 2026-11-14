@@ -20,7 +20,7 @@ interface Person {
 
 const LABEL = { yes: 'Yes', maybe: 'Maybe', no: 'No' } as const;
 const COLOR = { yes: '#15803d', maybe: '#9d855a', no: '#b91c1c' } as const;
-const field = 'px-2 py-1.5 border border-gray-300 rounded-md text-sm text-gray-900 bg-white';
+const field = 'px-2 py-1.5 border border-gray-300 rounded-md text-base sm:text-sm text-gray-900 bg-white';
 
 function useReminderList(eventId: string) {
   const [people, setPeople] = useState<Person[] | null>(null);

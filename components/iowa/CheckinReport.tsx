@@ -16,7 +16,7 @@ import {
 // tab. Built for a phone — tap to text or call, log how it went, move on.
 // Not always about getting them back in a study; sometimes just "how's school?"
 
-const input = 'px-3 py-2 border border-gray-300 rounded-md text-sm text-gray-900 bg-white';
+const input = 'px-3 py-2 border border-gray-300 rounded-md text-base sm:text-sm text-gray-900 bg-white';
 
 type Window = '30' | '60' | '90' | 'any';
 type Touched = 'due' | 'never' | 'all';

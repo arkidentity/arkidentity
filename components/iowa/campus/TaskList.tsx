@@ -339,7 +339,7 @@ function Bucket({ bucket, forceOpen, children }: { bucket: BucketData; forceOpen
     <section className="mb-5">
       <button
         onClick={() => setOpen((v) => !v)}
-        className="w-full flex items-center justify-between text-left mb-2 text-sm font-bold uppercase tracking-wide"
+        className="w-full flex items-center justify-between text-left mb-2 min-h-11 font-bold"
         style={{ color: red ? '#b91c1c' : '#8a8378' }}
       >
         <span>{bucket.label} ({bucket.count})</span>

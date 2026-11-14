@@ -210,7 +210,7 @@ function SeatActions({
   const [reason, setReason] = useState('');
   const [note, setNote] = useState('');
   const btn = 'text-xs font-semibold px-2.5 py-1 rounded border border-gray-300 bg-white disabled:opacity-50';
-  const field = 'px-2 py-1.5 border border-gray-300 rounded-md text-sm text-gray-900 bg-white';
+  const field = 'px-2 py-1.5 border border-gray-300 rounded-md text-base sm:text-sm text-gray-900 bg-white';
   const targets = others.filter((o) => o.id !== studyId && ['pending_setup', 'forming', 'full', 'activated'].includes(o.status));
 
   return (
@@ -299,7 +299,7 @@ function TeamSection({
   const crew = teamOn(s.id, date, team);
   const nameOf = (id: string) => staff.find((p) => p.id === id)?.name ?? 'Someone';
   const mine = crew.find((t) => t.staff_id === meId && t.response === 'pending');
-  const field = 'px-2 py-1.5 border border-gray-300 rounded-md text-sm text-gray-900 bg-white';
+  const field = 'px-2 py-1.5 border border-gray-300 rounded-md text-base sm:text-sm text-gray-900 bg-white';
   const shortDate = formatDate(date, { month: 'short', day: 'numeric' });
 
   return (
@@ -419,7 +419,7 @@ function DetailsEditor({ s, staff }: { s: StudyWithMembers; staff: StaffOption[]
   });
   const [f, setF] = useState(initial);
   const set = (p: Partial<ReturnType<typeof initial>>) => setF((c) => ({ ...c, ...p }));
-  const field = 'w-full px-2 py-1.5 border border-gray-300 rounded-md text-sm text-gray-900 bg-white';
+  const field = 'w-full px-2 py-1.5 border border-gray-300 rounded-md text-base sm:text-sm text-gray-900 bg-white';
   const label = 'block text-xs font-semibold text-[#8a8378] mb-1';
 
   async function save() {
@@ -568,7 +568,7 @@ function AddStudent({ studyId, seatedIds, full, busy, call }: { studyId: string;
       {full && <p className="text-xs text-[#9d855a]">This study is at capacity. You can still add someone.</p>}
       <div className="flex gap-2">
         <input autoFocus value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search students"
-          className="flex-1 px-3 py-2 border border-gray-300 rounded-md text-sm text-gray-900 bg-white placeholder:text-gray-400" />
+          className="flex-1 px-3 py-2 border border-gray-300 rounded-md text-base sm:text-sm text-gray-900 bg-white placeholder:text-gray-400" />
         <button onClick={() => { setOpen(false); setQ(''); setResults([]); }} className="text-sm text-[#8a8378]">Cancel</button>
       </div>
       {q.trim().length >= 2 && (

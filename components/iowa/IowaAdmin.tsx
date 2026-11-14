@@ -55,7 +55,7 @@ export interface StaffOption {
   active: boolean;
 }
 
-const input = 'w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-gray-900 bg-white';
+const input = 'w-full px-3 py-2 min-h-11 border border-gray-300 rounded-md text-base sm:text-sm text-gray-900 bg-white';
 const THREE_WEEKS = 21 * 24 * 60 * 60 * 1000;
 
 // A study is built to land on four; capacity (default 5) leaves a seat for a
@@ -279,8 +279,8 @@ export default function IowaAdmin({
           {byDay.map(([day, list]) => (
             <div key={day} className="mb-5">
               <h3
-                className="text-xs font-bold uppercase tracking-wider mb-2"
-                style={{ color: 'var(--maroon)' }}
+                className="text-sm font-bold mb-2"
+                style={{ color: '#8a8378' }}
               >
                 {DAY_NAMES[day]}
               </h3>
@@ -779,7 +779,7 @@ function MemberRow({
           <select
             value={reason}
             onChange={(e) => setReason(e.target.value)}
-            className="px-2 py-1.5 border border-gray-300 rounded-md text-sm text-gray-900 bg-white"
+            className="px-2 py-1.5 border border-gray-300 rounded-md text-base sm:text-sm text-gray-900 bg-white"
           >
             <option value="">Why are they leaving?</option>
             {DROP_REASONS.map((r) => (
@@ -792,7 +792,7 @@ function MemberRow({
             value={note}
             onChange={(e) => setNote(e.target.value)}
             placeholder="Note (optional)"
-            className="flex-1 min-w-[10rem] px-2 py-1.5 border border-gray-300 rounded-md text-sm text-gray-900 bg-white"
+            className="flex-1 min-w-[10rem] px-2 py-1.5 border border-gray-300 rounded-md text-base sm:text-sm text-gray-900 bg-white"
           />
           <button
             disabled={busy || !reason}
@@ -819,7 +819,7 @@ function MemberRow({
           onChange={(e) => {
             if (e.target.value) call(`/api/iowa/admin/members/${m.id}`, 'PATCH', { studyId: e.target.value });
           }}
-          className="mt-2 w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-gray-900 bg-white"
+          className="mt-2 w-full px-3 py-2 border border-gray-300 rounded-md text-base sm:text-sm text-gray-900 bg-white"
         >
           <option value="">Move {m.name} to…</option>
           {others
@@ -834,7 +834,7 @@ function MemberRow({
       )}
 
       {adding && (
-        <AlsoAddSelect m={m} studyId={studyId} others={others} busy={busy} call={call} onDone={() => setAdding(false)} className="mt-2 w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-gray-900 bg-white" />
+        <AlsoAddSelect m={m} studyId={studyId} others={others} busy={busy} call={call} onDone={() => setAdding(false)} className="mt-2 w-full px-3 py-2 border border-gray-300 rounded-md text-base sm:text-sm text-gray-900 bg-white" />
       )}
     </li>
   );
@@ -1162,7 +1162,7 @@ function NewStudyForm({
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <label className="block">
-      <span className="block text-xs font-semibold mb-1 uppercase tracking-wide" style={{ color: '#8a8378' }}>
+      <span className="block text-sm font-semibold mb-1" style={{ color: '#6b645a' }}>
         {label}
       </span>
       {children}

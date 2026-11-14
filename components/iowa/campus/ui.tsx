@@ -7,11 +7,12 @@ import type { Permission } from '@/lib/iowaPerms';
 
 // Shared bits for the campus dashboard, tasks and calendar screens.
 
-export const input = 'w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-gray-900 bg-white';
+// 16px text so iPhone Safari doesn't zoom in when a field is tapped.
+export const input = 'w-full px-3 py-2 min-h-11 border border-gray-300 rounded-md text-base sm:text-sm text-gray-900 bg-white';
 export const btnPrimary =
   'px-4 py-2 rounded-md text-sm font-semibold text-white transition hover:opacity-90 disabled:opacity-50';
 export const btnSmall =
-  'text-xs font-semibold px-2 py-1 rounded border border-gray-300 transition hover:bg-gray-50 disabled:opacity-50';
+  'inline-flex items-center justify-center min-h-9 text-sm font-semibold px-3 rounded-md border border-gray-300 bg-white transition hover:bg-gray-50 disabled:opacity-50';
 
 export interface Option {
   id: string;
@@ -78,7 +79,7 @@ export function PriorityDot({ priority }: { priority: TaskPriority }) {
 export function Field({ label, children, className }: { label: string; children: React.ReactNode; className?: string }) {
   return (
     <label className={`block ${className ?? ''}`}>
-      <span className="block text-xs font-semibold mb-1 uppercase tracking-wide" style={{ color: '#8a8378' }}>
+      <span className="block text-sm font-semibold mb-1" style={{ color: '#6b645a' }}>
         {label}
       </span>
       {children}

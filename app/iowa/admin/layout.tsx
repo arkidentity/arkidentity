@@ -21,9 +21,12 @@ export default async function IowaAdminLayout({ children }: { children: React.Re
   );
   return (
     <>
+      {/* iPhone Safari zooms the page when a field under 16px is tapped; on phones
+          every field in the admin is 16px. */}
+      <style>{`@media (max-width: 639px) { .iowa-admin input, .iowa-admin select, .iowa-admin textarea { font-size: 16px !important; } }`}</style>
       <AdminNav name={me?.name ?? null} allowed={allowed} />
       {/* Room for the bottom tab bar. */}
-      <div style={{ paddingBottom: 'calc(64px + env(safe-area-inset-bottom))' }}>{children}</div>
+      <div className="iowa-admin" style={{ paddingBottom: 'calc(64px + env(safe-area-inset-bottom))' }}>{children}</div>
     </>
   );
 }

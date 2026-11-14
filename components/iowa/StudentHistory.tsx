@@ -83,7 +83,7 @@ export function StudentHistory({
           onChange={(e) => setNote(e.target.value)}
           onKeyDown={(e) => { if (e.key === 'Enter') addNote(); }}
           placeholder="Add a note about this student…"
-          className="flex-1 min-w-0 px-3 py-2 border border-gray-300 rounded-md text-sm text-gray-900 bg-white"
+          className="flex-1 min-w-0 px-3 py-2 border border-gray-300 rounded-md text-base sm:text-sm text-gray-900 bg-white"
         />
         <button
           disabled={busy || !note.trim()}

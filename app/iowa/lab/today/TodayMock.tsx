@@ -89,7 +89,9 @@ type Open =
   | { kind: 'event'; id: string; edit?: boolean }
   | { kind: 'study'; id: string; edit?: boolean }
   | { kind: 'newTask'; link?: Link }
-  | { kind: 'newEvent' };
+  | { kind: 'newEvent' }
+  | { kind: 'newStudy' }
+  | { kind: 'newStudent' };
 
 export default function TodayMock() {
   const [intern, setIntern] = useState(false);
@@ -289,7 +291,8 @@ export default function TodayMock() {
             <p className="font-bold text-lg mb-2">Add</p>
             {[
               ['A task', () => push({ kind: 'newTask' })],
-              ...(intern ? [] : [['An event', () => push({ kind: 'newEvent' })]]),
+              ['A student', () => push({ kind: 'newStudent' })],
+              ...(intern ? [] : [['An event', () => push({ kind: 'newEvent' })], ['A study', () => push({ kind: 'newStudy' })]]),
             ].map(([label, fn]) => (
               <button key={label as string} className="w-full text-left py-4 text-base font-semibold" style={{ borderTop: `1px solid ${C.line}` }} onClick={() => { setPlus(false); (fn as () => void)(); }}>
                 {label as string}
@@ -305,6 +308,8 @@ export default function TodayMock() {
           {o.kind === 'newTask' && <TaskEdit ctx={ctx} link={o.link} />}
           {o.kind === 'event' && (o.edit ? <EventEdit ctx={ctx} ev={events.find((e) => e.id === o.id)!} /> : <EventView ctx={ctx} id={o.id} />)}
           {o.kind === 'newEvent' && <EventEdit ctx={ctx} />}
+          {o.kind === 'newStudy' && <StudyEdit ctx={ctx} />}
+          {o.kind === 'newStudent' && <StudentNew ctx={ctx} />}
           {o.kind === 'study' && (o.edit ? <StudyEdit ctx={ctx} s={studies.find((s) => s.id === o.id)!} /> : <StudyView ctx={ctx} id={o.id} />)}
         </Screen>
       ))}
@@ -880,13 +885,13 @@ function StudyView({ ctx, id }: { ctx: Ctx; id: string }) {
   );
 }
 
-function StudyEdit({ ctx, s }: { ctx: Ctx; s: Study }) {
-  const [f, setF] = useState(s);
+function StudyEdit({ ctx, s }: { ctx: Ctx; s?: Study }) {
+  const [f, setF] = useState<Study>(() => s ?? { id: `s${Math.random().toString(36).slice(2)}`, day: 4, time: '7:00 PM', where: 'The Space at Old Brick', cap: 5, group: 'Co-ed', online: false, onPoint: ctx.me, roster: [], notes: '', came: {} });
   const set = (p: Partial<Study>) => setF((x) => ({ ...x, ...p }));
-  const back = () => { ctx.pop(); ctx.push({ kind: 'study', id: s.id }); };
+  const back = () => { ctx.pop(); if (s) ctx.push({ kind: 'study', id: s.id }); };
   return (
     <>
-      <Top onBack={back} title="Edit study" />
+      <Top onBack={back} title={s ? 'Edit study' : 'New study'} />
       <Field label="Day">
         <select className={inputCls} style={inputSt} value={f.day} onChange={(e) => set({ day: +e.target.value })}>{WEEKDAY.map((d, i) => <option key={d} value={i}>{d}</option>)}</select>
       </Field>
@@ -909,7 +914,59 @@ function StudyEdit({ ctx, s }: { ctx: Ctx; s: Study }) {
       </MoreOptions>
       <Bar>
         <Btn kind="quiet" onClick={back}>Cancel</Btn>
-        <Btn kind="solid" onClick={() => { ctx.setStudies((ss) => ss.map((x) => (x.id === f.id ? f : x))); back(); ctx.flash('Saved. Students get the new time.'); }}>Save</Btn>
+        <Btn kind="solid" onClick={() => { ctx.setStudies((ss) => (s ? ss.map((x) => (x.id === f.id ? f : x)) : [...ss, f])); ctx.pop(); ctx.push({ kind: 'study', id: f.id }); ctx.flash(s ? 'Saved. Students get the new time.' : 'Study added. It shows on the signup page.'); }}>{s ? 'Save' : 'Add study'}</Btn>
+      </Bar>
+    </>
+  );
+}
+
+/* ---------- new student ---------- */
+
+function StudentNew({ ctx }: { ctx: Ctx }) {
+  const [f, setF] = useState({ name: '', phone: '', email: '', year: 'Freshman', which: 'Co-ed', study: '', metBy: ctx.me });
+  const set = (p: Partial<typeof f>) => setF((x) => ({ ...x, ...p }));
+  const open = ctx.studies.filter((s) => s.roster.length < s.cap && (s.group === 'Co-ed' || s.group === f.which));
+  const save = () => {
+    if (!f.name.trim()) return ctx.flash('Add their name first');
+    if (f.study) {
+      ctx.setStudies((ss) => ss.map((x) => (x.id === f.study ? { ...x, roster: [...x.roster, { name: f.name.trim(), year: f.year, phone: f.phone }] } : x)));
+      ctx.pop();
+      ctx.push({ kind: 'study', id: f.study });
+      ctx.flash(`${f.name.split(' ')[0]} added. They get a welcome text.`);
+    } else {
+      ctx.pop();
+      ctx.flash(`${f.name.split(' ')[0]} added to Who’s waiting`);
+    }
+  };
+  return (
+    <>
+      <Top onBack={ctx.pop} title="New student" />
+      <Field label="Name"><input className={inputCls} style={inputSt} value={f.name} onChange={(e) => set({ name: e.target.value })} autoFocus /></Field>
+      <Field label="Phone"><input type="tel" className={inputCls} style={inputSt} value={f.phone} onChange={(e) => set({ phone: e.target.value })} /></Field>
+      <Field label="Which studies can they join?">
+        <Chips options={[['Guys + Co-ed', 'Guys'], ['Girls + Co-ed', 'Girls']]} value={f.which} onChange={(v) => set({ which: v, study: '' })} />
+      </Field>
+      <Field label="Put them in a study">
+        <select className={inputCls} style={inputSt} value={f.study} onChange={(e) => set({ study: e.target.value })}>
+          <option value="">Not yet (Who’s waiting)</option>
+          {open.map((s) => <option key={s.id} value={s.id}>{WEEKDAY[s.day]} {s.time} · {s.group} · {s.roster.length} of {s.cap}</option>)}
+        </select>
+      </Field>
+      <MoreOptions>
+        <Field label="Email"><input type="email" className={inputCls} style={inputSt} value={f.email} onChange={(e) => set({ email: e.target.value })} /></Field>
+        <Field label="Year">
+          <select className={inputCls} style={inputSt} value={f.year} onChange={(e) => set({ year: e.target.value })}>{['Freshman', 'Sophomore', 'Junior', 'Senior', 'Grad'].map((y) => <option key={y}>{y}</option>)}</select>
+        </Field>
+        <Field label="Who met them">
+          <select className={inputCls} style={inputSt} value={f.metBy} onChange={(e) => set({ metBy: e.target.value })}>
+            {Object.entries(STAFF).map(([k, n]) => <option key={k} value={k}>{k === ctx.me ? `Me (${n})` : n}</option>)}
+            <option value="friend">A friend invited them</option>
+          </select>
+        </Field>
+      </MoreOptions>
+      <Bar>
+        <Btn kind="quiet" onClick={ctx.pop}>Cancel</Btn>
+        <Btn kind="solid" onClick={save}>Add student</Btn>
       </Bar>
     </>
   );

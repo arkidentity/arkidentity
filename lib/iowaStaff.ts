@@ -1,3 +1,4 @@
+import { cache } from 'react';
 import { cookies } from 'next/headers';
 import type { NotifyMode } from '@/lib/campusFormat';
 import { NOTIFY_MODES } from '@/lib/campusFormat';
@@ -141,10 +142,11 @@ export async function updateStaff(
 // The signed-in staff member, from the session cookie. The proxy has already
 // rejected bad or inactive sessions before any admin page/API runs, so null here
 // only happens outside the admin realm.
-export async function currentStaff(): Promise<IowaStaff | null> {
+// Once per request: the layout, the page and its data loader all ask.
+export const currentStaff = cache(async function currentStaff(): Promise<IowaStaff | null> {
   const jar = await cookies();
   const id = await verifySession(jar.get(IOWA_ADMIN_COOKIE)?.value);
   if (!id) return null;
   const staff = await getStaff(id);
   return staff?.active ? staff : null;
-}
+});

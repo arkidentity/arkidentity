@@ -20,24 +20,25 @@ export async function loadAdminScreen(sp: Record<string, string | undefined>) {
   const start = isValidDate(sp.week) ? sp.week : thisWeek;
   const span: CalendarSpan = sp.span === 'week' ? 'week' : 'short';
   const days = SPAN_DAYS[span];
-  const [ctx, events, held, sync, sem, templates, ahead] = await Promise.all([
-    loadCampusContext(),
-    listEvents(start, addDays(start, days - 1)),
+  // Everything starts at once; the few things that need an earlier answer
+  // chain off just that answer instead of waiting for the whole first batch.
+  const ctxP = loadCampusContext();
+  const eventsP = listEvents(start, addDays(start, days - 1));
+  const [ctx, events, held, sync, sem, templates, ahead, rsvps, songs, taskFiles, pendingEvents, pendingStudies, team] = await Promise.all([
+    ctxP,
+    eventsP,
     listHeld(),
     syncStatus(),
     semesterContext(),
     listTemplates(),
     // The month picker: one-off events for the next six months.
     listEvents(thisWeek, addDays(thisWeek, 183)),
-  ]);
-
-  const [rsvps, songs, taskFiles, pendingEvents, pendingStudies, team] = await Promise.all([
-    listRsvps(events.map((e) => e.id)),
-    listSongs(events.map((e) => e.id)),
+    eventsP.then((ev) => listRsvps(ev.map((e) => e.id))),
+    eventsP.then((ev) => listSongs(ev.map((e) => e.id))),
     listTaskFiles(),
-    ctx.meId ? pendingInvitesFor(ctx.meId) : Promise.resolve([]),
-    ctx.meId ? pendingStudyInvitesFor(ctx.meId) : Promise.resolve([]),
-    listStudyTeam(ctx.studiesFull.map((s) => s.id)),
+    ctxP.then((c) => (c.meId ? pendingInvitesFor(c.meId) : [])),
+    ctxP.then((c) => (c.meId ? pendingStudyInvitesFor(c.meId) : [])),
+    ctxP.then((c) => listStudyTeam(c.studiesFull.map((s) => s.id))),
   ]);
   const pending = [...pendingStudies, ...pendingEvents];
 

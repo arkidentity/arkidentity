@@ -1,3 +1,4 @@
+import { cache } from 'react';
 import { getSupabaseAdmin } from '@/lib/supabaseAdmin';
 import { listPeriods } from '@/lib/schoolCalendar';
 import {
@@ -31,7 +32,9 @@ export interface SemesterContext {
   active: string[]; // current + open — the studies the app works with
 }
 
-export async function semesterContext(today = chicagoToday()): Promise<SemesterContext> {
+// Once per request per day (listStudies and the page loader both ask).
+export const semesterContext = (today = chicagoToday()) => semesterContextCached(today);
+const semesterContextCached = cache(async function semesterContextImpl(today: string): Promise<SemesterContext> {
   const [semesters, periods] = await Promise.all([listSemesters(), listPeriods()]);
   const current = currentSemesterOf(semesters, today);
   const upcoming = openSemestersOf(semesters, today);
@@ -41,7 +44,7 @@ export async function semesterContext(today = chicagoToday()): Promise<SemesterC
   const open = next ? [next, ...upcoming.filter((s) => s !== next)] : [];
   const active = [...new Set([...(current ? [current.name] : []), ...open.map((s) => s.name)])];
   return { semesters, periods, current, open, next, active };
-}
+});
 
 export async function currentSemesterName(): Promise<string> {
   return (await semesterContext()).current?.name ?? process.env.IOWA_SEMESTER ?? 'Fall 2026';

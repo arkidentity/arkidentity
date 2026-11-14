@@ -858,16 +858,19 @@ export async function listStudentOptions(): Promise<{ id: string; label: string 
 
 // Everyone tagged ARK Iowa, whether or not they're currently in a study. This
 // is the campus view of the contacts table: same people, campus-specific facts.
-export async function listCampusStudents(): Promise<CampusStudent[]> {
+// `onlyId`: just that one student (a profile popup), not the whole directory.
+export async function listCampusStudents(onlyId?: string): Promise<CampusStudent[]> {
   const db = getSupabaseAdmin();
 
   const { data: tag } = await db.from('contact_tags').select('id').eq('slug', 'ark-iowa').maybeSingle();
   if (!tag) return [];
 
-  const { data: links, error: lErr } = await db
+  let linkQ = db
     .from('contact_tag_links')
     .select('contact_id, contacts(id, name, phone, email)')
     .eq('tag_id', tag.id);
+  if (onlyId) linkQ = linkQ.eq('contact_id', onlyId);
+  const { data: links, error: lErr } = await linkQ;
   if (lErr) throw lErr;
 
   const people = ((links ?? []) as unknown as {

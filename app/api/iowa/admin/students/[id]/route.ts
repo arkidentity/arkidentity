@@ -76,7 +76,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
   if (me instanceof NextResponse) return me;
   const { id } = await params;
   try {
-    const student = (await listCampusStudents()).find((s) => s.contact_id === id);
+    const [student] = await listCampusStudents(id);
     if (!student) return NextResponse.json({ error: 'Student not found.' }, { status: 404 });
     return NextResponse.json({ student });
   } catch (e) {

@@ -28,6 +28,9 @@ export interface OpenStudy {
   spotsLeft: number;
 }
 
+const SHOW = 3;
+const cap = (y: string | null) => (y ? y[0].toUpperCase() + y.slice(1) : null);
+
 function since(iso: string | null) {
   if (!iso) return '';
   const d = Math.floor((Date.now() - new Date(iso).getTime()) / 86400000);
@@ -37,6 +40,7 @@ function since(iso: string | null) {
 export default function WaitingList({ students, studies }: { students: WaitingStudent[]; studies: OpenStudy[] }) {
   const [placing, setPlacing] = useState<WaitingStudent | null>(null);
   const [profile, setProfile] = useState<WaitingStudent | null>(null);
+  const [all, setAll] = useState(false);
   const { call, busy, error } = useCall();
   if (!students.length) return null;
 
@@ -46,14 +50,17 @@ export default function WaitingList({ students, studies }: { students: WaitingSt
 
   return (
     <section className="mb-6 rounded-xl p-3 sm:p-4" style={{ background: '#fdf6e8', border: '1px solid #E8B562' }}>
-      <h2 className="font-bold" style={{ color: 'var(--navy)' }}>Waiting for a study ({students.length})</h2>
+      <h2 className="font-bold" style={{ color: 'var(--navy)' }}>
+        Waiting for a study <span className="font-normal text-[#7d766b]">{students.length}</span>
+      </h2>
+      {/* Longest wait first; the rest fold away so the studies stay in view. */}
       <ul>
-        {students.map((p) => (
+        {(all ? students : students.slice(0, SHOW)).map((p) => (
           <li key={p.contact_id} className="flex items-center justify-between gap-3 py-2.5 border-t border-[#ecdcb8] first:border-t-0">
             <button className="min-w-0 text-left" onClick={() => setProfile(p)}>
               <span className="block font-semibold" style={{ color: 'var(--navy)' }}>{p.name}</span>
               <span className="block text-sm text-[#7d766b]">
-                {[p.year, p.free.length ? `free ${p.free.map(slotLabel).join(', ')}` : 'no times picked', p.added_at && `waiting ${since(p.added_at)}`]
+                {[cap(p.year), p.free.length ? `free ${p.free.map(slotLabel).join(', ')}` : 'no times picked', p.added_at && `waiting ${since(p.added_at)}`]
                   .filter(Boolean)
                   .join(' · ')}
               </span>
@@ -68,6 +75,11 @@ export default function WaitingList({ students, studies }: { students: WaitingSt
           </li>
         ))}
       </ul>
+      {students.length > SHOW && (
+        <button onClick={() => setAll((v) => !v)} className="w-full mt-1 min-h-11 text-sm font-semibold border-t border-[#ecdcb8]" style={{ color: 'var(--navy)' }}>
+          {all ? 'Show fewer' : `See all ${students.length}`}
+        </button>
+      )}
 
       {placing && (
         <Modal title={`Place ${placing.name}`} sub={[placing.year, placing.gender && (placing.gender === 'guy' ? 'Guys + Co-ed' : 'Girls + Co-ed')].filter(Boolean).join(' · ')} onClose={() => setPlacing(null)}>

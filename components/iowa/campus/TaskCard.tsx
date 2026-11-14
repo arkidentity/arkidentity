@@ -102,7 +102,7 @@ export function TaskCard({
   const extra = [
     !nameInTitle && t.contact_name,
     linked && `for ${linked}`,
-    t.owner_id ? t.owner_id !== meId && `${first(t.owner_id)}’s` : 'Nobody’s yet',
+    t.owner_id ? t.owner_id !== meId && `Assigned to ${first(t.owner_id)}` : 'Nobody’s yet',
     helpers.length > 0 && `with ${helpers.join(', ')}`,
   ].filter(Boolean).join(' · ');
   const facts = extra ? [...d.facts, extra] : d.facts;

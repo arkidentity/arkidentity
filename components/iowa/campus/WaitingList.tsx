@@ -110,7 +110,7 @@ export default function WaitingList({ students, studies }: { students: WaitingSt
       )}
       {profile && (
         <Modal title={profile.name} onClose={() => setProfile(null)}>
-          <StudentPanel contactId={profile.contact_id} fallbackName={profile.name} />
+          <StudentPanel contactId={profile.contact_id} fallbackName={profile.name} showName={false} />
         </Modal>
       )}
     </section>

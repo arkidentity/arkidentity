@@ -26,10 +26,13 @@ export default function StudentPanel({
   contactId,
   fallbackName,
   staff,
+  showName = true,
 }: {
   contactId: string;
   fallbackName?: string;
   staff?: { id: string; name: string }[]; // shows "Who met them" (People tab has the list)
+  /** False inside a modal that already titles itself with the student's name. */
+  showName?: boolean;
 }) {
   const router = useRouter();
   const can = useCan();
@@ -104,14 +107,14 @@ export default function StudentPanel({
   ].filter(Boolean).join(' · ');
 
   return (
-    <div className="space-y-4 text-[#1a2b3c]">
+    <div className="space-y-5 text-[#1a2b3c]">
       <div>
-        <div className="flex items-start justify-between gap-3">
+        <div className="flex items-center justify-between gap-3">
           <p className="text-lg font-bold">
-            {s.name}
+            {showName && s.name}
             <select
               aria-label="Year"
-              className="ml-2 align-middle bg-transparent text-sm font-normal text-[#7d766b] underline decoration-dotted underline-offset-2 cursor-pointer"
+              className={`${showName ? 'ml-3' : ''} align-middle bg-transparent text-sm font-normal text-[#7d766b] underline decoration-dotted underline-offset-2 cursor-pointer`}
               value={s.year ?? ''}
               disabled={busy}
               onChange={(e) => patch({ year: e.target.value || null })}
@@ -122,7 +125,7 @@ export default function StudentPanel({
           </p>
           <button className={small} onClick={() => setEditing((v) => !v)}>{editing ? 'Close' : 'Edit'}</button>
         </div>
-        <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1">
+        <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1.5">
           <select
             aria-label="Status"
             className="rounded-lg px-2 py-0.5 text-sm font-semibold border border-gray-200 bg-white cursor-pointer"
@@ -138,7 +141,7 @@ export default function StudentPanel({
           {subline && <span className="text-sm text-[#7d766b]">{subline}</span>}
         </div>
         {!editing && (s.phone || s.email) && (
-          <div className="mt-3 flex flex-wrap gap-2">
+          <div className="mt-4 flex flex-wrap gap-2">
             {s.phone && <a href={`sms:${s.phone.replace(/[^d+]/g, '')}`} className={chip}>Text</a>}
             {s.phone && <a href={`tel:${s.phone.replace(/[^d+]/g, '')}`} className={chip}>Call</a>}
             {s.email && <a href={`mailto:${s.email}`} className={chip}>Email</a>}

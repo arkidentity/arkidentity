@@ -255,7 +255,7 @@ export function CampusStudents({
           </ul>
           {openId && (
             <Modal title={students.find((x) => x.contact_id === openId)?.name ?? 'Student'} onClose={() => { setOpenId(null); router.refresh(); }}>
-              <StudentPanel contactId={openId} staff={staff} />
+              <StudentPanel contactId={openId} staff={staff} showName={false} />
             </Modal>
           )}
 

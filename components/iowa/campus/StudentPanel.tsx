@@ -19,6 +19,7 @@ import type { CampusStudent, StudentStatus } from '@/lib/bibleStudies';
 type StudyPick = { id: string; label: string; open: number };
 
 const field = 'w-full min-h-11 px-3 py-2 border border-gray-300 rounded-lg text-[15px] text-gray-900 bg-white';
+const chip = 'inline-flex items-center px-3 min-h-9 rounded-lg text-sm font-semibold border border-gray-300';
 const small = 'text-sm font-semibold underline underline-offset-2';
 
 export default function StudentPanel({
@@ -96,37 +97,36 @@ export default function StudentPanel({
   if (!s) return <p className="text-sm text-[#8a8378]">Loading {fallbackName ?? 'student'}…</p>;
 
   const inStudy = s.studies.length > 0;
+  const metName = s.met_by_staff_id ? staff?.find((p) => p.id === s.met_by_staff_id)?.name?.split(' ')[0] : s.met_by_other === 'friend' ? 'a friend' : s.met_by_other === 'self' ? 'on their own' : null;
+  const subline = [
+    metName && (s.met_by_staff_id ? `Met by ${metName}` : `Came via ${metName}`),
+    s.added_at && `Added ${new Date(s.added_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'America/Chicago' })}`,
+  ].filter(Boolean).join(' · ');
 
   return (
     <div className="space-y-4 text-[#1a2b3c]">
       <div>
         <div className="flex items-start justify-between gap-3">
-          <p className="text-lg font-bold">{s.name}</p>
+          <p className="text-lg font-bold">
+            {s.name}
+            <select
+              aria-label="Year"
+              className="ml-2 align-middle bg-transparent text-sm font-normal text-[#7d766b] underline decoration-dotted underline-offset-2 cursor-pointer"
+              value={s.year ?? ''}
+              disabled={busy}
+              onChange={(e) => patch({ year: e.target.value || null })}
+            >
+              <option value="">add year</option>
+              {YEARS.map((y) => <option key={y} value={y}>{y}</option>)}
+            </select>
+          </p>
           <button className={small} onClick={() => setEditing((v) => !v)}>{editing ? 'Close' : 'Edit'}</button>
         </div>
-        {!editing && (
-          <p className="text-[15px] break-words">
-            {s.phone && (
-              <>
-                <a href={`sms:${s.phone.replace(/[^\d+]/g, '')}`} className="underline">Text</a>
-                {' · '}
-                <a href={`tel:${s.phone.replace(/[^\d+]/g, '')}`} className="underline">Call</a>
-                <span className="text-[#8a8378]"> {s.phone}</span>
-              </>
-            )}
-            {s.phone && s.email && <br />}
-            {s.email && <a href={`mailto:${s.email}`} className="underline">{s.email}</a>}
-          </p>
-        )}
-        {editing && <ContactEdit s={s} busy={busy} onSave={async (b) => { if (await patch(b)) setEditing(false); }} />}
-      </div>
-
-      <div className="grid grid-cols-2 gap-2">
-        <label className="col-span-2 sm:col-span-1">
-          <span className="block text-sm text-[#7d766b] mb-1">Status</span>
+        <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1">
           <select
-            className={field}
-            style={{ color: STATUS_COLOR[s.status], fontWeight: 600 }}
+            aria-label="Status"
+            className="rounded-lg px-2 py-0.5 text-sm font-semibold border border-gray-200 bg-white cursor-pointer"
+            style={{ color: STATUS_COLOR[s.status] }}
             value={s.status}
             disabled={busy}
             onChange={(e) => patch({ status: e.target.value as StudentStatus }, `Now: ${STATUS_LABEL[e.target.value as StudentStatus]}`)}
@@ -135,48 +135,21 @@ export default function StudentPanel({
               <option key={st} value={st}>{STATUS_LABEL[st]}</option>
             ))}
           </select>
-        </label>
-        <label className="col-span-2 sm:col-span-1">
-          <span className="block text-sm text-[#7d766b] mb-1">Year</span>
-          <select className={field} value={s.year ?? ''} disabled={busy} onChange={(e) => patch({ year: e.target.value || null })}>
-            <option value="">—</option>
-            {YEARS.map((y) => <option key={y} value={y}>{y}</option>)}
-          </select>
-        </label>
+          {subline && <span className="text-sm text-[#7d766b]">{subline}</span>}
+        </div>
+        {!editing && (s.phone || s.email) && (
+          <div className="mt-3 flex flex-wrap gap-2">
+            {s.phone && <a href={`sms:${s.phone.replace(/[^d+]/g, '')}`} className={chip}>Text</a>}
+            {s.phone && <a href={`tel:${s.phone.replace(/[^d+]/g, '')}`} className={chip}>Call</a>}
+            {s.email && <a href={`mailto:${s.email}`} className={chip}>Email</a>}
+          </div>
+        )}
+        {editing && <ContactEdit s={s} busy={busy} onSave={async (b) => { if (await patch(b)) setEditing(false); }} />}
       </div>
 
-      {staff && (
-        <label className="block">
-          <span className="block text-sm text-[#7d766b] mb-1">Who met them</span>
-          <select className={field} value={s.met_by_staff_id ?? s.met_by_other ?? ''} disabled={busy} onChange={(e) => patch({ metBy: e.target.value })}>
-            <option value="">Not sure</option>
-            {staff.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
-            <option value="friend">A friend invited them</option>
-            <option value="self">Found it on their own</option>
-            <option value="other">Other</option>
-          </select>
-        </label>
-      )}
-
-      {s.status === 'dormant' && (
-        <div className="grid gap-2">
-          <select className={field} value={s.dormant_reason ?? ''} disabled={busy} onChange={(e) => patch({ dormantReason: e.target.value || null })}>
-            <option value="">Why dormant? Pick a reason</option>
-            {DORMANT_REASONS.map((r) => <option key={r.key} value={r.key}>{r.label}</option>)}
-          </select>
-          <input
-            key={s.dormant_note ?? ''}
-            className={field}
-            defaultValue={s.dormant_note ?? ''}
-            placeholder="Note (optional)"
-            onBlur={(e) => e.target.value !== (s.dormant_note ?? '') && patch({ dormantNote: e.target.value })}
-          />
-        </div>
-      )}
-
-      <div>
+      <div className="border-t border-gray-200 pt-3">
         <p className="text-sm text-[#7d766b] mb-1">Bible study</p>
-        {!inStudy && <p className="text-[15px]">{s.status === 'elsewhere' ? 'In a study with another group.' : 'Not in one of ours.'}</p>}
+        {!inStudy && s.status === 'elsewhere' && <p className="text-[15px]">In a study with another group.</p>}
         <ul className="space-y-1.5">
           {s.studies.map((st) => (
             <li key={st.member_id} className="flex flex-wrap items-center justify-between gap-2 text-[15px]">
@@ -191,7 +164,7 @@ export default function StudentPanel({
           ))}
         </ul>
         {seats && !placing && (
-          <button className={`${small} mt-2`} onClick={() => setPlacing('add')}>{inStudy ? 'Add to another study' : 'Put them in a study'}</button>
+          <button className={`${small} ${inStudy ? 'mt-2' : ''}`} onClick={() => setPlacing('add')}>{inStudy ? 'Add to another study' : 'Find a study for them'}</button>
         )}
         {placing && (
           <div className="mt-2 flex gap-2">
@@ -219,32 +192,55 @@ export default function StudentPanel({
             <button className="text-sm text-[#7d766b] px-2" onClick={() => setPlacing(null)}>Cancel</button>
           </div>
         )}
+        {(s.free_slots?.length ?? 0) > 0 && (
+          <p className="mt-2 text-sm text-[#7d766b]">
+            Free{s.free_slots_semester ? ` for ${s.free_slots_semester}` : ''}: {sortSlots(s.free_slots).map(slotLabel).join(', ')}
+            {s.gender && ` · ${s.gender === 'guy' ? 'Guys + Co-ed' : 'Girls + Co-ed'}`}
+          </p>
+        )}
       </div>
-
-      {(s.free_slots?.length ?? 0) > 0 && (
-        <div>
-          <p className="text-sm text-[#7d766b] mb-1">Free{s.free_slots_semester ? ` for ${s.free_slots_semester}` : ''} (from signup)</p>
-          <p className="text-[15px]">{sortSlots(s.free_slots).map(slotLabel).join(', ')}</p>
-        </div>
-      )}
-
-      {(s.added_at || s.gender) && (
-        <p className="text-sm text-[#7d766b]">
-          {s.added_at && `Added ${new Date(s.added_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'America/Chicago' })}`}
-          {s.added_at && s.gender && ' · '}
-          {s.gender && (s.gender === 'guy' ? 'Guys + Co-ed' : 'Girls + Co-ed')}
-        </p>
-      )}
-
-      <DailyDnaLink contactId={s.contact_id} linked={!!s.daily_dna_account_id} linkedName={s.daily_dna_name} studentName={s.name} />
 
       {error && <p className="text-sm text-red-700">{error}</p>}
       {saved && <p className="text-sm font-semibold text-green-700">{saved}</p>}
 
-      <div>
+      <div className="border-t border-gray-200 pt-3">
         <p className="text-sm text-[#7d766b] mb-1">History</p>
         <StudentHistory key={historyKey} contactId={contactId} compact />
       </div>
+
+      <details open={s.status === 'dormant'} className="border-t border-gray-200 pt-3">
+        <summary className="text-sm text-[#7d766b] cursor-pointer">Details <span className="text-xs">who met them, Daily DNA</span></summary>
+        <div className="mt-3 space-y-4">
+          {staff && (
+            <label className="block">
+              <span className="block text-sm text-[#7d766b] mb-1">Who met them</span>
+              <select className={field} value={s.met_by_staff_id ?? s.met_by_other ?? ''} disabled={busy} onChange={(e) => patch({ metBy: e.target.value })}>
+                <option value="">Not sure</option>
+                {staff.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+                <option value="friend">A friend invited them</option>
+                <option value="self">Found it on their own</option>
+                <option value="other">Other</option>
+              </select>
+            </label>
+          )}
+          {s.status === 'dormant' && (
+            <div className="grid gap-2">
+              <select className={field} value={s.dormant_reason ?? ''} disabled={busy} onChange={(e) => patch({ dormantReason: e.target.value || null })}>
+                <option value="">Why dormant? Pick a reason</option>
+                {DORMANT_REASONS.map((r) => <option key={r.key} value={r.key}>{r.label}</option>)}
+              </select>
+              <input
+                key={s.dormant_note ?? ''}
+                className={field}
+                defaultValue={s.dormant_note ?? ''}
+                placeholder="Note (optional)"
+                onBlur={(e) => e.target.value !== (s.dormant_note ?? '') && patch({ dormantNote: e.target.value })}
+              />
+            </div>
+          )}
+          <DailyDnaLink contactId={s.contact_id} linked={!!s.daily_dna_account_id} linkedName={s.daily_dna_name} studentName={s.name} />
+        </div>
+      </details>
     </div>
   );
 }

@@ -351,6 +351,17 @@ function splitStudentLine(t: CampusTask): { body: string | null; year: string | 
   return { body: lines.join('\n').trim() || null, year };
 }
 
+// Instructions read better as a few bullets than a paragraph: one bullet per
+// line, and a line with several sentences is split into one per sentence.
+function bulletize(body: string): string[] {
+  return body
+    .split(/\r?\n/)
+    .map((l) => l.trim())
+    .filter(Boolean)
+    .flatMap((l) => (l.length > 60 ? l.split(/(?<=[.!?])\s+/) : [l]))
+    .filter(Boolean);
+}
+
 // Opening a task shows a short summary + quick actions. The full edit form and
 // the history each open only when asked, so a list of tasks stays scannable.
 function TaskDetail(props: TaskListProps & { t: CampusTask; busy: boolean; call: CallFn; sticky?: boolean }) {
@@ -377,7 +388,13 @@ function TaskDetail(props: TaskListProps & { t: CampusTask; busy: boolean; call:
           number texts them, the email emails them. Due date and owner are
           already on the row above, so they aren't repeated here. */}
       <ForLine t={t} props={props} />
-      {student.body && <p className="text-[15px] md:text-sm text-[#4a4540] whitespace-pre-wrap">{student.body}</p>}
+      {student.body && (
+        <ul className="text-[15px] md:text-sm text-[#4a4540] space-y-1">
+          {bulletize(student.body).map((l, i) => (
+            <li key={i} className="flex gap-2"><span aria-hidden>•</span><span>{l}</span></li>
+          ))}
+        </ul>
+      )}
       {t.auto_kind === 'reminder_list' && t.event_id && <ReminderListTexts eventId={t.event_id} />}
       {t.auto_kind === 'checkin_links' && <CheckinLinks ownerId={t.owner_id} />}
       {/* The student, editable right here: status, year, study, contact, history
@@ -480,7 +497,7 @@ function TaskDetail(props: TaskListProps & { t: CampusTask; busy: boolean; call:
                     }}
                     className={`${btnSmall} min-h-11 px-4`}
                   >
-                    Next week
+                    Snooze a week
                   </button>
                 )}
                 <button disabled={busy} onClick={() => setFinishing(true)} className={`${btnPrimary} min-h-11`} style={{ backgroundColor: '#15803d' }}>

@@ -3,7 +3,7 @@
 // One task card for every screen (Today, Tasks, a task popup), 11/14 Travis:
 // "they should look and function the same regardless of the page." The card
 // shows what matters at a glance and puts every action that applies right on
-// it: Text, Assign (or Take it), Next week, Done. Tap the card for the full task.
+// it: Text, Assign (or Take it), Snooze (a week), Done. Tap the card for the full task.
 
 import { useState } from 'react';
 import type { CampusTask } from '@/lib/campusTasks';
@@ -64,7 +64,7 @@ const smsHref = (phone: string, body?: string | null) =>
 function Act({ children, onClick, kind = 'line', disabled }: { children: React.ReactNode; onClick: () => void; kind?: 'line' | 'solid' | 'quiet'; disabled?: boolean }) {
   const s = kind === 'solid' ? { background: INK, color: '#fff' } : kind === 'quiet' ? { color: MUTED } : { border: `1.5px solid ${NAVY}`, color: NAVY };
   return (
-    <button disabled={disabled} className="shrink-0 px-3 min-h-10 rounded-lg text-sm font-semibold disabled:opacity-50" style={s} onClick={onClick}>
+    <button disabled={disabled} className="shrink-0 px-2.5 min-h-9 rounded-lg text-sm font-semibold disabled:opacity-50" style={s} onClick={onClick}>
       {children}
     </button>
   );
@@ -133,17 +133,12 @@ export function TaskCard({
             )}
             {person ? t.contact_name ?? t.title : t.title}
           </span>
-          {facts.length === 1 && !d.note && <span className="block text-sm mt-0.5" style={{ color: MUTED }}>{facts[0]}</span>}
-          {(facts.length > 1 || d.note) && (
+          {facts.length === 1 && <span className="block text-sm mt-0.5" style={{ color: MUTED }}>{facts[0]}</span>}
+          {facts.length > 1 && (
             <span className="block text-sm mt-1 space-y-0.5" style={{ color: MUTED }}>
               {facts.map((f) => (
                 <span key={f} className="flex gap-2"><span aria-hidden>•</span><span>{f}</span></span>
               ))}
-              {d.note && (
-                <span className="block italic pl-4 overflow-hidden" style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
-                  “{d.note}”
-                </span>
-              )}
             </span>
           )}
         </span>
@@ -184,17 +179,17 @@ export function TaskCard({
           ) : (
             <>
               {t.contact_phone && (
-                <a href={smsHref(t.contact_phone, d.suggested)} className="shrink-0 inline-flex items-center px-3 min-h-10 rounded-lg text-sm font-semibold" style={{ border: `1.5px solid ${NAVY}`, color: NAVY }}>
+                <a href={smsHref(t.contact_phone, d.suggested)} className="shrink-0 inline-flex items-center px-2.5 min-h-9 rounded-lg text-sm font-semibold" style={{ border: `1.5px solid ${NAVY}`, color: NAVY }}>
                   Text
                 </a>
               )}
               {assigns ? (
-                <AssignSelect staff={staff} ownerId={t.owner_id} meId={meId} disabled={busy} onPick={(id) => save({ owner_id: id })} className="!min-h-10 !px-3" />
+                <AssignSelect staff={staff} ownerId={t.owner_id} meId={meId} disabled={busy} onPick={(id) => save({ owner_id: id })} className="!min-h-9 !px-2.5" />
               ) : (
                 !mine && meId && <Act disabled={busy} onClick={() => save({ owner_id: meId })}>Take it</Act>
               )}
               {(mine || assigns) && (
-                <Act disabled={busy} onClick={() => save({ due_date: addDays(t.due_date && t.due_date > today ? t.due_date : today, 7) })}>Next week</Act>
+                <Act disabled={busy} onClick={() => save({ due_date: addDays(t.due_date && t.due_date > today ? t.due_date : today, 7) })}>Snooze</Act>
               )}
               <Act kind="solid" onClick={() => setFinishing(true)}>Done</Act>
             </>
@@ -206,7 +201,7 @@ export function TaskCard({
 }
 
 // Same-kind tasks folded into one card ("Help 3 students find a Bible study").
-// The header carries priority + due once; Assign all hands the batch to one person.
+// The header carries priority + due once; open it to act on each student.
 export function TaskGroupCard({
   title, sub, tasks, ctx, startOpen = false, followUp = false, onOpen, onChanged,
 }: {
@@ -221,8 +216,6 @@ export function TaskGroupCard({
   onChanged?: (t: CampusTask, body: Record<string, unknown>) => void;
 }) {
   const [open, setOpen] = useState(startOpen);
-  const assigns = useCan()('manageTasks');
-  const { call, busy } = useCall();
   const today = chicagoToday();
   const rank = { urgent: 0, high: 1, normal: 2, low: 3 } as Record<string, number>;
   const top = [...tasks].sort((a, b) => (rank[a.priority] ?? 9) - (rank[b.priority] ?? 9))[0];
@@ -230,16 +223,10 @@ export function TaskGroupCard({
   const late = !!due && due < today;
   const names = tasks.map((t) => (t.contact_name ?? '').split(' ')[0]).filter(Boolean);
   const subLine = sub ?? `${names.slice(0, 4).join(', ')}${names.length > 4 ? ` +${names.length - 4}` : ''}`;
-  const owners = new Set(tasks.map((t) => t.owner_id));
-
-  async function assignAll(id: string) {
-    for (const t of tasks) if (t.owner_id !== id) await call(`/api/iowa/admin/tasks/${t.id}`, 'PATCH', { owner_id: id });
-    for (const t of tasks) onChanged?.(t, { owner_id: id });
-  }
 
   return (
     <li className="rounded-xl bg-white" style={{ border: `1px solid ${late ? '#f3c4bf' : LINE}` }}>
-      <button className="w-full text-left px-4 pt-3 pb-2 flex items-start gap-3" onClick={() => setOpen((v) => !v)} aria-expanded={open}>
+      <button className="w-full text-left px-4 py-3 flex items-start gap-3" onClick={() => setOpen((v) => !v)} aria-expanded={open}>
         <span className="flex-1 min-w-0">
           <span className="block font-semibold leading-snug" style={{ color: INK }}>
             {(top.priority === 'urgent' || top.priority === 'high') && (
@@ -250,21 +237,8 @@ export function TaskGroupCard({
           {subLine && <span className="block text-sm mt-0.5" style={{ color: MUTED }}>{subLine}</span>}
         </span>
         <span className="shrink-0 text-sm font-semibold text-right" style={{ color: late ? LATE : MUTED }}>{dueLabel(today, due ?? null)}</span>
+        <span className="shrink-0 text-lg leading-none" style={{ color: MUTED, transform: open ? 'rotate(90deg)' : undefined }} aria-hidden>›</span>
       </button>
-      <div className="px-4 pb-3 flex items-center justify-end gap-2 flex-wrap">
-        {assigns && (
-          <AssignSelect
-            staff={ctx.staff}
-            ownerId={owners.size === 1 ? [...owners][0] : null}
-            meId={ctx.meId}
-            disabled={busy}
-            onPick={assignAll}
-            className="!min-h-10 !px-3"
-            label="Assign all"
-          />
-        )}
-        <Act kind={open ? 'quiet' : 'line'} onClick={() => setOpen((v) => !v)}>{open ? 'Hide' : `Show ${tasks.length}`}</Act>
-      </div>
       {open && (
         <div className="px-3 pb-3">
           {followUp && (

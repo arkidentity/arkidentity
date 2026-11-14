@@ -11,10 +11,10 @@ import type { Permission } from '@/lib/iowaPerms';
 // `needs` is the permission a tab or + option requires; none = everyone signed in.
 const TABS: { href: string; label: string; needs?: Permission; also?: string[] }[] = [
   { href: '/iowa/admin', label: 'Today' },
-  { href: '/iowa/admin/calendar', label: 'Calendar' },
+  { href: '/iowa/admin/tasks', label: 'Tasks' },
   { href: '/iowa/admin/studies', label: 'Studies', needs: 'viewAllStudies' },
   { href: '/iowa/admin/students', label: 'Students', needs: 'viewStudents' },
-  { href: '/iowa/admin/more', label: 'More', also: ['/iowa/admin/events', '/iowa/admin/staff', '/iowa/admin/settings', '/iowa/admin/tasks', '/iowa/admin/outreach'] },
+  { href: '/iowa/admin/more', label: 'More', also: ['/iowa/admin/calendar', '/iowa/admin/events', '/iowa/admin/staff', '/iowa/admin/settings', '/iowa/admin/outreach'] },
 ];
 const ADD: { href: string; label: string; needs?: Permission }[] = [
   { href: '/iowa/admin/tasks?new=1', label: 'A task' },

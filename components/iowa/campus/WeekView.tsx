@@ -187,7 +187,7 @@ export default function WeekView({
   return (
     // Columns follow the number of days shown — a fixed 7 left the 5-day view
     // stopping short of the New event button. Full class names so Tailwind sees them.
-    <div className={`grid grid-cols-1 gap-2 ${days.length === 7 ? 'md:grid-cols-7' : 'md:grid-cols-5'}`}>
+    <div className={`grid grid-cols-1 gap-2 ${days.length === 1 ? '' : days.length === 7 ? 'md:grid-cols-7' : 'md:grid-cols-5'}`}>
       {days.map((d) => {
         const dayItems = items.filter((i) => i.date === d);
         const isToday = d === today;

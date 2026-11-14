@@ -38,13 +38,27 @@ const RANK = { urgent: 0, high: 1, normal: 2, low: 3 } as const;
 
 // Auto tasks carry "Name · phone", "met Keilor" and a reason in their
 // description. The row shows who met them + why instead of the name again.
-function why(t: CampusTask, reason: boolean) {
+function details(t: CampusTask, person: boolean): { facts: string[]; note: string | null } {
+  if (!t.auto_kind) return { facts: [], note: null };
   const lines = (t.description ?? '').split('\n').map((l) => l.trim()).filter(Boolean);
-  if (t.contact_name && lines[0]?.startsWith(t.contact_name)) lines.shift();
-  if (!t.auto_kind) return '';
-  const out = lines.map((l) => l.replace(/^met (\S+)$/, '$1 met them')).filter((l, i) => reason || i === 0 && /met them|invited|on their own/.test(l));
-  const str = out.join(' · ');
-  return str ? str[0].toUpperCase() + str.slice(1) : '';
+  const facts: string[] = [];
+  let note: string | null = null;
+  for (const l of lines) {
+    const met = l.match(/^(?:How they came: )?met (\S+)$/);
+    if (met) { facts.unshift(`${met[1]} met them`); continue; }
+    if (/^(?:How they came: )?(a friend invited them|found it on their own)$/.test(l)) {
+      const x = l.replace(/^How they came: /, ''); facts.unshift(x[0].toUpperCase() + x.slice(1)); continue;
+    }
+    if (person) continue;
+    let m;
+    if ((m = l.match(/^Dropped for being unresponsive(?: \((.*)\))? 30\+ days ago/))) { facts.push('Stopped responding, dropped 30+ days ago'); note = m[1] ?? null; }
+    else if ((m = l.match(/^Dropped in (.+?) because their schedule changed(?: \((.*)\))?\./))) { facts.push(`Schedule changed in ${m[1]}`); note = m[2] ?? null; }
+    else if (/^Marked dormant/.test(l)) facts.push('Marked dormant');
+    else if (/^Met 2\+ weeks ago/.test(l)) facts.push('Met 2+ weeks ago, no study yet');
+    else if ((m = l.match(/^Missed (.+?)\./))) facts.push(`Missed ${m[1]}`);
+    else if ((m = l.match(/^Study: (.+)$/))) facts.push(m[1]);
+  }
+  return { facts, note };
 }
 
 const FIRST = 5; // tasks shown in Do now before "Show more"
@@ -165,8 +179,7 @@ export default function Dashboard({
         : null;
     const helpers = t.helper_ids.filter((h) => h !== meId).map(nameOf).filter(Boolean);
     const nameInTitle = !!t.contact_name && (person || t.title.includes(t.contact_name));
-    return [
-      why(t, !person),
+    const extra = [
       !nameInTitle && t.contact_name,
       linked && `for ${linked}`,
       t.owner_id && t.owner_id !== meId && `${nameOf(t.owner_id)}’s`,
@@ -174,6 +187,8 @@ export default function Dashboard({
     ]
       .filter(Boolean)
       .join(' · ');
+    const d = details(t, person);
+    return { facts: extra ? [...d.facts, extra] : d.facts, note: d.note };
   };
 
   // Same-kind auto tasks (welcome texts, reconnects, placements…) fold into one
@@ -247,7 +262,15 @@ export default function Dashboard({
                   )}
                   {person ? t.contact_name ?? t.title : t.title}
                 </span>
-                {s && <span className="block text-sm mt-0.5 line-clamp-2" style={{ color: MUTED }}>{s}</span>}
+                {s.facts.length === 1 && !s.note && <span className="block text-sm mt-0.5 truncate" style={{ color: MUTED }}>{s.facts[0]}</span>}
+                {(s.facts.length > 1 || s.note) && (
+                  <span className="block text-sm mt-1 space-y-0.5" style={{ color: MUTED }}>
+                    {s.facts.map((f) => (
+                      <span key={f} className="flex gap-2"><span aria-hidden>•</span><span className="truncate">{f}</span></span>
+                    ))}
+                    {s.note && <span className="block italic pl-4 overflow-hidden" style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>“{s.note}”</span>}
+                  </span>
+                )}
               </span>
             </button>
             {phone && (

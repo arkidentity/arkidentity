@@ -135,18 +135,18 @@ export default function CampusCalendar({
         <h2 className="text-base sm:text-lg font-bold shrink-0" style={{ color: 'var(--navy)' }}>
           {weekRange(days[0], days[days.length - 1])}
         </h2>
-        <div className="flex items-center gap-1 text-xs sm:text-sm font-semibold shrink-0" style={{ color: 'var(--navy)' }}>
-          <a href={`?week=${addDays(weekStart, -SPAN_DAYS[span])}${span === 'week' ? '&span=week' : ''}#week`} className="px-1.5 sm:px-2 py-1 rounded border border-gray-300 bg-white" aria-label="Previous week">
+        <div className="flex items-center gap-1 text-sm font-semibold shrink-0" style={{ color: 'var(--navy)' }}>
+          <a href={`?week=${addDays(weekStart, -SPAN_DAYS[span])}${span === 'week' ? '&span=week' : ''}#week`} className="inline-flex items-center justify-center min-h-9 min-w-9 px-2 rounded-md border border-gray-300 bg-white" aria-label="Previous week">
             ←
           </a>
-          <a href={span === 'week' ? '?span=week#week' : '?#week'} className="px-1.5 sm:px-2 py-1 rounded border border-gray-300 bg-white whitespace-nowrap">
+          <a href={span === 'week' ? '?span=week#week' : '?#week'} className="inline-flex items-center justify-center min-h-9 min-w-9 px-2 rounded-md border border-gray-300 bg-white whitespace-nowrap">
             Today
           </a>
-          <a href={`?week=${addDays(weekStart, SPAN_DAYS[span])}${span === 'week' ? '&span=week' : ''}#week`} className="px-1.5 sm:px-2 py-1 rounded border border-gray-300 bg-white" aria-label="Next week">
+          <a href={`?week=${addDays(weekStart, SPAN_DAYS[span])}${span === 'week' ? '&span=week' : ''}#week`} className="inline-flex items-center justify-center min-h-9 min-w-9 px-2 rounded-md border border-gray-300 bg-white" aria-label="Next week">
             →
           </a>
           {/* Look ahead: month grid with event dots + what's coming up. */}
-          <button onClick={() => setMonthOpen(true)} className="px-1.5 sm:px-2 py-1 rounded border border-gray-300 bg-white whitespace-nowrap" aria-label="Pick from a month">
+          <button onClick={() => setMonthOpen(true)} className="inline-flex items-center justify-center min-h-9 min-w-9 px-2 rounded-md border border-gray-300 bg-white whitespace-nowrap" aria-label="Pick from a month">
             Month
           </button>
         </div>
@@ -187,14 +187,14 @@ export default function CampusCalendar({
                   <button
                     disabled={busy}
                     onClick={() => call('/api/iowa/admin/calendar-sync', 'POST', { heldId: h.google_event_id, decision: 'import' })}
-                    className="text-xs font-semibold px-2 py-1 rounded border border-gray-300 hover:bg-gray-50 disabled:opacity-50"
+                    className="text-sm font-semibold px-3 min-h-9 rounded-md border border-gray-300 bg-white hover:bg-gray-50 disabled:opacity-50"
                   >
                     Not a duplicate, import it
                   </button>
                   <button
                     disabled={busy}
                     onClick={() => call('/api/iowa/admin/calendar-sync', 'POST', { heldId: h.google_event_id, decision: 'ignore' })}
-                    className="text-xs font-semibold px-2 py-1 rounded border border-gray-300 hover:bg-gray-50 disabled:opacity-50"
+                    className="text-sm font-semibold px-3 min-h-9 rounded-md border border-gray-300 bg-white hover:bg-gray-50 disabled:opacity-50"
                   >
                     Keep it out of the admin
                   </button>
@@ -206,9 +206,9 @@ export default function CampusCalendar({
       )}
 
       {editing === 'new' && (
-        <div className="mb-6">
+        <Modal title="New event" onClose={() => setEditing(null)}>
           <EventForm staff={staff} types={types} meId={meId} busy={busy} call={call} onDone={() => setEditing(null)} defaultDate={days[0]} periods={periods} />
-        </div>
+        </Modal>
       )}
 
       <div className="flex items-end justify-between gap-3 mb-3">
@@ -228,7 +228,7 @@ export default function CampusCalendar({
             className={`${btnPrimary} shrink-0`}
             style={{ backgroundColor: 'var(--navy)' }}
           >
-            {editing === 'new' ? 'Close' : '+ New event'}
+            + New event
           </button>
         )}
       </div>

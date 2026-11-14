@@ -7,6 +7,7 @@ import type { CampusTask, TaskActivity } from '@/lib/campusTasks';
 import type { TaskFile } from '@/lib/taskFiles';
 import { supabase } from '@/lib/supabase';
 import StudentPanel from '@/components/iowa/campus/StudentPanel';
+import { TaskCard, TaskGroupCard } from '@/components/iowa/campus/TaskCard';
 import {
   PRIORITIES,
   TASK_STATUSES,
@@ -14,7 +15,6 @@ import {
   addDays,
   chicagoToday,
   compareTasks,
-  formatDate,
   isOverdue,
   taskGroupKey,
   taskGroupTitle,
@@ -25,9 +25,6 @@ import {
   ErrorBox,
   Field,
   Modal,
-  OverdueTag,
-  PriorityBadge,
-  StatusPill,
   btnPrimary,
   btnSmall,
   input,
@@ -75,7 +72,8 @@ export default function TaskList(props: TaskListProps) {
   const [typeFilter, setTypeFilter] = useState('');
   const [personFilter, setPersonFilter] = useState('');
   const [search, setSearch] = useState('');
-  const [expanded, setExpanded] = useState<string | null>(openTaskId ?? null);
+  const [popup, setPopup] = useState<string | null>(openTaskId ?? null);
+  const ctx = { staff, meId, studies: props.studies, events: props.events };
   // Making and assigning tasks is staff + intern; a student leader works the
   // tasks they're on (finish, comment, help) and only ever sees those.
   const assigns = useCan()('manageTasks');
@@ -203,59 +201,35 @@ export default function TaskList(props: TaskListProps) {
           {compact || view === 'mine' ? 'Nothing on your plate.' : 'No tasks here.'}
         </p>
       )}
-      {view === 'done' && !compact ? (
-        <ul className="space-y-2">
-          {shown.map((t) => (
-            <TaskRow
-              key={t.id}
-              t={t}
-              {...props}
-              expanded={expanded === t.id}
-              onToggle={() => setExpanded(expanded === t.id ? null : t.id)}
-              busy={busy}
-              call={call}
-            />
-          ))}
-        </ul>
-      ) : (
+      <ul className="space-y-2">
+        {view === 'done' && !compact
+          ? shown.map((t) => <TaskCard key={t.id} t={t} ctx={ctx} onOpen={setPopup} />)
+          : null}
+      </ul>
+      {!(view === 'done' && !compact) &&
         bucketize(shown, today).map((b) => (
           <Bucket key={b.key} bucket={b} forceOpen={!!openTaskId && b.items.some((i) => hasTask(i, openTaskId))}>
             <ul className="space-y-2">
               {b.items.map((item) =>
                 item.kind === 'task' ? (
-                  <TaskRow
-                    key={item.t.id}
-                    t={item.t}
-                    {...props}
-                    expanded={expanded === item.t.id}
-                    onToggle={() => setExpanded(expanded === item.t.id ? null : item.t.id)}
-                    busy={busy}
-                    call={call}
-                  />
+                  <TaskCard key={item.t.id} t={item.t} ctx={ctx} onOpen={setPopup} />
                 ) : (
-                  <GroupRow key={item.key} group={item} startOpen={!!openTaskId && hasTask(item, openTaskId)}>
-                    {item.tasks.map((t) => (
-                      <TaskRow
-                        key={t.id}
-                        t={t}
-                        {...props}
-                        inGroup={{
-                          priority: [...item.tasks].sort((a, b) => compareTasks(a, b))[0].priority,
-                          due: item.tasks.map((x) => x.due_date).filter(Boolean).sort()[0] ?? undefined,
-                        }}
-                        expanded={expanded === t.id}
-                        onToggle={() => setExpanded(expanded === t.id ? null : t.id)}
-                        busy={busy}
-                        call={call}
-                      />
-                    ))}
-                  </GroupRow>
+                  <TaskGroupCard
+                    key={item.key}
+                    title={item.title}
+                    sub={item.sub}
+                    tasks={item.tasks}
+                    followUp={item.followUp}
+                    ctx={ctx}
+                    startOpen={!!openTaskId && hasTask(item, openTaskId)}
+                    onOpen={setPopup}
+                  />
                 )
               )}
             </ul>
           </Bucket>
-        ))
-      )}
+        ))}
+      {popup && <TaskPopup {...props} taskIds={[popup]} onClose={() => setPopup(null)} />}
     </div>
   );
 }
@@ -353,46 +327,6 @@ function Bucket({ bucket, forceOpen, children }: { bucket: BucketData; forceOpen
   );
 }
 
-function GroupRow({ group, startOpen, children }: { group: Group; startOpen: boolean; children: React.ReactNode }) {
-  const [open, setOpen] = useState(startOpen);
-  const top = [...group.tasks].sort((a, b) => compareTasks(a, b))[0];
-  const overdue = group.tasks.some((t) => isOverdue(t));
-  const due = group.tasks.map((t) => t.due_date).filter(Boolean).sort()[0] as string | undefined;
-  return (
-    <li className="rounded-lg border bg-white" style={{ borderColor: overdue ? '#fca5a5' : '#e5e7eb' }}>
-      <button onClick={() => setOpen((v) => !v)} className="w-full px-4 py-3 text-left flex items-start gap-3">
-        <span className="mt-0.5"><PriorityBadge priority={top.priority} /></span>
-        <span className="min-w-0 flex-1">
-          <span className="block font-semibold" style={{ color: 'var(--navy)' }}>{group.title}</span>
-          <span className="block text-sm md:text-xs text-[#8a8378] mt-0.5">{group.sub}</span>
-        </span>
-        <span className="flex flex-col items-end gap-1 shrink-0">
-          {overdue && <OverdueTag />}
-          {due && <span className="text-sm md:text-xs" style={{ color: overdue ? '#b91c1c' : '#8a8378' }}>{formatDate(due)}</span>}
-          <span className="text-xs font-semibold" style={{ color: 'var(--navy)' }}>{open ? '▴' : `${group.tasks.length} ▾`}</span>
-        </span>
-      </button>
-      {open && (
-        <div className="border-t border-gray-100 px-3 py-3">
-          {group.followUp && (
-            <a
-              href="/iowa/admin/students?report=1"
-              className="inline-block mb-3 px-3 py-2 rounded-md text-sm font-semibold"
-              style={{ backgroundColor: 'var(--navy)', color: 'white' }}
-            >
-              Open check-in report →
-            </a>
-          )}
-          {group.followUp && (
-            <p className="text-xs text-[#8a8378] mb-3">Logging a check-in on the report marks that student&apos;s task done here.</p>
-          )}
-          <ul className="space-y-2">{children}</ul>
-        </div>
-      )}
-    </li>
-  );
-}
-
 // What a task is for. A student isn't repeated: the title already names them
 // ("Follow up with Francis Bryan") and the open task leads with their name.
 function linkLabel(t: CampusTask, p: TaskListProps): string | null {
@@ -415,62 +349,6 @@ function splitStudentLine(t: CampusTask): { body: string | null; year: string | 
   const year = lines[i].split(' · ').find((part) => YEARS.includes(part)) ?? null;
   lines.splice(i, 1);
   return { body: lines.join('\n').trim() || null, year };
-}
-
-function TaskRow(
-  props: TaskListProps & { t: CampusTask; expanded: boolean; onToggle: () => void; busy: boolean; call: CallFn; inGroup?: { priority: string; due?: string } }
-) {
-  const { t, staff, types, expanded, onToggle, inGroup } = props;
-  // Inside a cluster the header already shows priority + overdue + date; a row
-  // repeats them only when it differs (11/14, Travis).
-  const showPriority = !inGroup || t.priority !== inGroup.priority;
-  const showDate = !inGroup || t.due_date !== inGroup.due;
-  const owner = staff.find((s) => s.id === t.owner_id);
-  const type = types.find((x) => x.id === t.type_id);
-  const link = linkLabel(t, props);
-  const overdue = isOverdue(t);
-  const done = t.status === 'done';
-
-  return (
-    <li className="rounded-lg border bg-white" style={{ borderColor: overdue && !inGroup ? '#fca5a5' : '#e5e7eb' }}>
-      <button onClick={onToggle} className="w-full px-4 py-3 text-left flex items-start gap-3">
-        {showPriority && (
-          <span className="mt-0.5">
-            <PriorityBadge priority={t.priority} />
-          </span>
-        )}
-        <span className="min-w-0 flex-1">
-          <span
-            className={`block font-semibold ${done ? 'line-through text-[#8a8378]' : ''}`}
-            style={done ? undefined : { color: 'var(--navy)' }}
-          >
-            {t.title}
-          </span>
-          <span className="block text-sm md:text-xs text-[#8a8378] mt-0.5">
-            {[
-              owner ? owner.name : 'Unowned',
-              t.helper_ids.length
-                ? `with ${t.helper_ids.map((id) => staff.find((s) => s.id === id)?.name.split(' ')[0] ?? '?').join(', ')}`
-                : null,
-              type?.name,
-              link ? `→ ${link}` : null,
-            ]
-              .filter(Boolean)
-              .join(' · ')}
-          </span>
-        </span>
-        <span className="flex flex-col items-end gap-1 shrink-0">
-          {overdue ? !inGroup && <OverdueTag /> : t.status !== 'open' && <StatusPill status={t.status} />}
-          {t.due_date && showDate && (
-            <span className="text-sm md:text-xs" style={{ color: overdue ? '#b91c1c' : '#8a8378' }}>
-              {formatDate(t.due_date)}
-            </span>
-          )}
-        </span>
-      </button>
-      {expanded && <TaskDetail {...props} />}
-    </li>
-  );
 }
 
 // Opening a task shows a short summary + quick actions. The full edit form and
@@ -885,6 +763,7 @@ export function TaskPopup(props: TaskListProps & { taskIds: string[]; onClose: (
   const [expanded, setExpanded] = useState<string | null>(list.length === 1 ? list[0].id : null);
   if (list.length === 0) return null;
   const single = list.length === 1;
+  const focusTask = list.find((t) => t.id === expanded) ?? null;
   const key = taskGroupKey(list[0]);
   const followUp = !single && !!key && !!FOLLOW_UP[key];
   const open = list.filter((t) => t.status !== 'done').length;
@@ -907,22 +786,21 @@ export function TaskPopup(props: TaskListProps & { taskIds: string[]; onClose: (
           <p className="text-xs text-[#8a8378] mt-2">Logging a check-in on the report marks that student&apos;s task done.</p>
         </div>
       )}
-      {single ? (
-        <div className="rounded-lg border border-gray-200 bg-white">
-          <TaskDetail {...props} t={list[0]} busy={busy} call={call} sticky />
-        </div>
+      {focusTask ? (
+        <>
+          {!single && (
+            <button className="mb-3 text-sm font-semibold" style={{ color: 'var(--navy)' }} onClick={() => setExpanded(null)}>
+              ‹ All {list.length}
+            </button>
+          )}
+          <div className="rounded-lg border border-gray-200 bg-white">
+            <TaskDetail {...props} t={focusTask} busy={busy} call={call} sticky />
+          </div>
+        </>
       ) : (
         <ul className="space-y-2">
           {list.map((t) => (
-            <TaskRow
-              key={t.id}
-              t={t}
-              {...props}
-              expanded={expanded === t.id}
-              onToggle={() => setExpanded(expanded === t.id ? null : t.id)}
-              busy={busy}
-              call={call}
-            />
+            <TaskCard key={t.id} t={t} ctx={{ staff: props.staff, meId: props.meId, studies: props.studies, events: props.events }} person={!!t.contact_id} onOpen={setExpanded} />
           ))}
         </ul>
       )}

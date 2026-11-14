@@ -8,8 +8,8 @@ import type { CampusTask } from '@/lib/campusTasks';
 import CampusCalendar from '@/components/iowa/campus/CampusCalendar';
 import { buildWeekItems, type WeekItem } from '@/components/iowa/campus/WeekView';
 import { TaskPopup, type TaskListProps } from '@/components/iowa/campus/TaskList';
-import { OpenItemProvider, type OpenItem, CanProvider, ScreenHeader, Modal, AssignSelect, NAVY, ON_NAVY_MUTED } from '@/components/iowa/campus/ui';
-import StudentPanel from '@/components/iowa/campus/StudentPanel';
+import { OpenItemProvider, type OpenItem, CanProvider, ScreenHeader, NAVY, ON_NAVY_MUTED } from '@/components/iowa/campus/ui';
+import { TaskCard, TaskGroupCard } from '@/components/iowa/campus/TaskCard';
 import PendingInvites from '@/components/iowa/campus/PendingInvites';
 import type { PendingInvite } from '@/lib/eventInvites';
 import type { Permission } from '@/lib/iowaPerms';
@@ -19,47 +19,13 @@ import type { Permission } from '@/lib/iowaPerms';
 // full task list (filters, search, done) lives on /iowa/admin/tasks, the week
 // on /iowa/admin/calendar.
 
-const INK = '#1a2b3c', MUTED = '#7d766b', LINE = '#e7e2d9', LATE = '#b42318', GOLD = '#E8B562';
+const INK = '#1a2b3c', MUTED = '#7d766b', LINE = '#e7e2d9', GOLD = '#E8B562';
 
 const DAY = 86400000;
 function daysFrom(today: string, d: string) {
   return Math.round((Date.parse(d) - Date.parse(today)) / DAY);
 }
-function dueLabel(today: string, d: string | null) {
-  if (!d) return '';
-  const n = daysFrom(today, d);
-  if (n < -1) return `${-n} days late`;
-  if (n === -1) return 'Yesterday';
-  if (n === 0) return 'Today';
-  if (n === 1) return 'Tomorrow';
-  return formatDate(d, { weekday: 'short' });
-}
 const RANK = { urgent: 0, high: 1, normal: 2, low: 3 } as const;
-
-// Auto tasks carry "Name · phone", "met Keilor" and a reason in their
-// description. The row shows who met them + why instead of the name again.
-function details(t: CampusTask, person: boolean, meFirst: string): { facts: string[]; note: string | null } {
-  if (!t.auto_kind) return { facts: [], note: null };
-  const lines = (t.description ?? '').split('\n').map((l) => l.trim()).filter(Boolean);
-  const facts: string[] = [];
-  let note: string | null = null;
-  for (const l of lines) {
-    const met = l.match(/^(?:How they came: )?met (\S+)$/);
-    if (met) { facts.unshift(met[1] === meFirst ? 'You met them' : `${met[1]} met them`); continue; }
-    if (/^(?:How they came: )?(a friend invited them|found it on their own)$/.test(l)) {
-      const x = l.replace(/^How they came: /, ''); facts.unshift(x[0].toUpperCase() + x.slice(1)); continue;
-    }
-    if (person) continue;
-    let m;
-    if ((m = l.match(/^Dropped for being unresponsive(?: \((.*)\))? 30\+ days ago/))) { facts.push('No reply, dropped 30+ days ago'); note = m[1] ?? null; }
-    else if ((m = l.match(/^Dropped in (.+?) because their schedule changed(?: \((.*)\))?\./))) { facts.push(`Schedule changed in ${m[1]}`); note = m[2] ?? null; }
-    else if (/^Marked dormant/.test(l)) facts.push('Marked dormant');
-    else if (/^Met 2\+ weeks ago/.test(l)) facts.push('Met 2+ weeks ago, no study yet');
-    else if ((m = l.match(/^Missed (.+?)\./))) facts.push(`Missed ${m[1]}`);
-    else if ((m = l.match(/^Study: (.+)$/))) facts.push(m[1]);
-  }
-  return { facts, note };
-}
 
 const FIRST = 5; // tasks shown in Do now before "Show more"
 
@@ -89,16 +55,10 @@ export default function Dashboard({
     }
     setOpenRequest((prev) => ({ ...o, n: (prev?.n ?? 0) + 1 }));
   };
-  const [rowOpen, setRowOpen] = useState<string | null>(null);
   const [showLater, setShowLater] = useState(false);
   const [showAllNow, setShowAllNow] = useState(false);
   const [showStale, setShowStale] = useState(false);
-  const [groupOpen, setGroupOpen] = useState<string | null>(null);
-  const [busy, setBusy] = useState<string | null>(null);
-  const [finishing, setFinishing] = useState<string | null>(null);
-  const [note, setNote] = useState('');
   const [toast, setToast] = useState<string | null>(null);
-  const [profile, setProfile] = useState<CampusTask | null>(null);
   const [gone, setGone] = useState<string[]>([]); // finished here, before the refresh lands
   const today = chicagoToday();
   const me = staff.find((s) => s.id === meId);
@@ -150,49 +110,18 @@ export default function Dashboard({
   const nextUp = todayItems.filter((i) => i.time && i.time.slice(0, 5) >= nowHm).sort((a, b) => a.time!.localeCompare(b.time!))[0] ?? null;
   const unowned = open.filter((t) => !t.owner_id).sort((a, b) => (a.due_date ?? '9') .localeCompare(b.due_date ?? '9'));
 
-  async function patch(t: CampusTask, body: Record<string, unknown>, msg: string) {
-    setBusy(t.id);
-    const res = await fetch(`/api/iowa/admin/tasks/${t.id}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-    });
-    setBusy(null);
-    if (!res.ok) {
-      const j = await res.json().catch(() => ({}));
-      setToast(j.error ?? 'That didn’t save. Try again.');
-      return;
-    }
-    setRowOpen(null);
-    setFinishing(null);
-    setNote('');
-    if (body.status === 'done' || body.due_date || (body.owner_id && body.owner_id !== meId)) setGone((g) => [...g, t.id]);
-    setToast(msg);
-    router.refresh();
-  }
 
-  const sub = (t: CampusTask, person = false) => {
-    const linked = t.study_id
-      ? taskProps.studies.find((s) => s.id === t.study_id)?.label
-      : t.event_id
-        ? taskProps.events.find((e) => e.id === t.event_id)?.label
-        : null;
-    const helpers = t.helper_ids.filter((h) => h !== meId).map(nameOf).filter(Boolean);
-    const nameInTitle = !!t.contact_name && (person || t.title.includes(t.contact_name));
-    const extra = [
-      !nameInTitle && t.contact_name,
-      linked && `for ${linked}`,
-      t.owner_id && t.owner_id !== meId && `${nameOf(t.owner_id)}’s`,
-      helpers.length > 0 && `with ${helpers.join(', ')}`,
-    ]
-      .filter(Boolean)
-      .join(' · ');
-    const d = details(t, person, me?.name.split(' ')[0] ?? '');
-    return { facts: extra ? [...d.facts, extra] : d.facts, note: d.note };
+
+  const ctx = { staff, meId, studies: taskProps.studies, events: taskProps.events };
+  // A card that saved: done / pushed / given away leaves Today right away.
+  const changed = (t: CampusTask, body: Record<string, unknown>) => {
+    if (body.status === 'done' || body.due_date || (body.owner_id && body.owner_id !== meId)) setGone((g) => [...g, t.id]);
+    setToast(body.status === 'done' ? 'Done. Nice.' : body.due_date ? 'Moved to next week' : body.owner_id ? (body.owner_id === meId ? 'It’s yours' : `Given to ${nameOf(body.owner_id as string)}`) : 'Saved');
   };
+  const openTask = (id: string) => setPopup([id]);
 
   // Same-kind auto tasks (welcome texts, reconnects, placements…) fold into one
-  // line that opens, so five welcome texts don't take five rows.
+  // card, so five welcome texts don't take five rows. Same cards as the Tasks page.
   const list = (items: CampusTask[], limit = Infinity) => {
     type Row = { t: CampusTask } | { key: string; tasks: CampusTask[] };
     const rows: Row[] = [];
@@ -205,144 +134,16 @@ export default function Dashboard({
       else { const arr = [t]; byKey.set(k, arr); rows.push({ key: k, tasks: arr }); }
     }
     return (
-      <ul className="rounded-xl overflow-hidden bg-white" style={{ border: `1px solid ${LINE}` }}>
-        {rows.slice(0, limit).map((r, i) => {
-          if ('t' in r) return row(r.t, i);
-          if (r.tasks.length === 1) return row(r.tasks[0], i);
-          const isOpen = groupOpen === r.key;
-          const late = r.tasks.some((t) => !!t.due_date && t.due_date < today);
-          const names = r.tasks.map((t) => (t.contact_name ?? '').split(' ')[0]).filter(Boolean);
-          return (
-            <li key={r.key} style={{ borderTop: i ? `1px solid ${LINE}` : 'none' }}>
-              <button className="w-full text-left px-4 py-3 flex items-start justify-between gap-3" onClick={() => setGroupOpen(isOpen ? null : r.key)} aria-expanded={isOpen}>
-                <span className="min-w-0">
-                  <span className="block font-semibold leading-snug">{taskGroupTitle(r.key, r.tasks.length)}</span>
-                  <span className="block text-sm mt-0.5" style={{ color: MUTED }}>
-                    {names.slice(0, 4).join(', ')}{names.length > 4 ? ` +${names.length - 4}` : ''}
-                  </span>
-                </span>
-                <span className="text-sm font-semibold shrink-0" style={{ color: late ? LATE : MUTED }}>{isOpen ? 'Hide' : r.tasks.length}</span>
-              </button>
-              {isOpen && (
-                <ul className="mx-3 mb-3 rounded-lg overflow-hidden" style={{ border: `1px solid ${LINE}` }}>
-                  {r.tasks.map((t, j) => row(t, j, true))}
-                </ul>
-              )}
-            </li>
-          );
-        })}
+      <ul className="space-y-2">
+        {rows.slice(0, limit).map((r) =>
+          'tasks' in r && r.tasks.length > 1 ? (
+            <TaskGroupCard key={r.key} title={taskGroupTitle(r.key, r.tasks.length)} tasks={r.tasks} ctx={ctx} onOpen={openTask} onChanged={changed} />
+          ) : (
+            <TaskCard key={'t' in r ? r.t.id : r.tasks[0].id} t={'t' in r ? r.t : r.tasks[0]} ctx={ctx} onOpen={openTask} onChanged={changed} />
+          )
+        )}
       </ul>
     );
-  };
-
-  // person = a row inside a folded group: the group says what to do, so the
-  // row is the student (tap the name for their profile) with a Text button.
-  const row = (t: CampusTask, i: number, person = false) => {
-        const isOpen = rowOpen === t.id;
-        const late = !!t.due_date && t.due_date < today;
-        const s = sub(t, person);
-        const toggle = () => setRowOpen(isOpen ? null : t.id);
-        const phone = t.contact_phone?.replace(/[^\d+]/g, '');
-        return (
-          <li key={t.id} style={{ borderTop: i ? `1px solid ${LINE}` : 'none' }}>
-            <div className="flex items-start gap-2 pr-3">
-            <button
-              className="flex-1 min-w-0 text-left pl-4 py-3"
-              onClick={person && t.contact_id ? () => setProfile(t) : toggle}
-              aria-expanded={person ? undefined : isOpen}
-            >
-              <span className="block min-w-0">
-                <span className="block font-semibold leading-snug">
-                  {(t.priority === 'urgent' || t.priority === 'high') && (
-                    <span
-                      className="inline-block w-2 h-2 rounded-full mr-2 align-middle"
-                      style={{ background: t.priority === 'urgent' ? LATE : GOLD }}
-                      aria-label={t.priority === 'urgent' ? 'Urgent' : 'High priority'}
-                    />
-                  )}
-                  {person ? t.contact_name ?? t.title : t.title}
-                </span>
-                {s.facts.length === 1 && !s.note && <span className="block text-sm mt-0.5 truncate" style={{ color: MUTED }}>{s.facts[0]}</span>}
-                {(s.facts.length > 1 || s.note) && (
-                  <span className="block text-sm mt-1 space-y-0.5" style={{ color: MUTED }}>
-                    {s.facts.map((f) => (
-                      <span key={f} className="flex gap-2"><span aria-hidden>•</span><span>{f}</span></span>
-                    ))}
-                    {s.note && <span className="block italic pl-4 overflow-hidden" style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>“{s.note}”</span>}
-                  </span>
-                )}
-              </span>
-            </button>
-            {phone && (
-              <a
-                href={`sms:${phone}`}
-                className="shrink-0 mt-2.5 px-3 py-1 rounded-full text-sm font-semibold"
-                style={{ border: `1.5px solid ${NAVY}`, color: NAVY }}
-              >
-                Text
-              </a>
-            )}
-            <button
-              className="shrink-0 w-[6.5rem] py-3 pl-1 text-sm font-semibold text-right"
-              style={{ color: late ? LATE : MUTED }}
-              onClick={toggle}
-              aria-expanded={isOpen}
-              aria-label="Task actions"
-            >
-              {dueLabel(today, t.due_date) || 'More'}
-            </button>
-            </div>
-            {isOpen && finishing === t.id && (
-              <div className="px-4 pb-3">
-                <label className="block text-sm font-semibold mb-1" htmlFor={`note-${t.id}`}>
-                  What happened? <span className="font-normal" style={{ color: MUTED }}>(optional{t.contact_id ? ', goes on their history' : ''})</span>
-                </label>
-                <textarea
-                  id={`note-${t.id}`}
-                  rows={2}
-                  autoFocus
-                  value={note}
-                  onChange={(e) => setNote(e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg text-[15px]"
-                  style={{ border: '1px solid #d6cfc2' }}
-                />
-                <div className="flex justify-end gap-1 mt-2">
-                  <Btn kind="quiet" onClick={() => { setFinishing(null); setNote(''); }}>Cancel</Btn>
-                  <Btn
-                    kind="solid"
-                    disabled={busy === t.id}
-                    onClick={() => patch(t, note.trim() ? { status: 'done', comment: note.trim() } : { status: 'done' }, 'Done. Nice.')}
-                  >
-                    {note.trim() ? 'Done + save note' : 'Mark done'}
-                  </Btn>
-                </div>
-              </div>
-            )}
-            {isOpen && finishing !== t.id && (
-              <div className="px-4 pb-3 flex items-center justify-end gap-1 flex-wrap">
-                <Btn kind="quiet" onClick={() => { setRowOpen(null); setPopup([t.id]); }}>Open</Btn>
-                {team && (
-                  <AssignSelect
-                    staff={staff}
-                    ownerId={t.owner_id}
-                    meId={meId}
-                    disabled={busy === t.id}
-                    onPick={(id) => patch(t, { owner_id: id }, id === meId ? 'It’s yours' : `Given to ${nameOf(id)}`)}
-                  />
-                )}
-                <Btn
-                  disabled={busy === t.id}
-                  onClick={() => patch(t, { due_date: addDays(t.due_date && t.due_date > today ? t.due_date : today, 7) }, 'Moved to next week')}
-                >
-                  Next week
-                </Btn>
-                <Btn kind="solid" onClick={() => { setFinishing(t.id); setNote(''); }}>
-                  Done
-                </Btn>
-              </div>
-            )}
-          </li>
-        );
   };
 
   return (
@@ -395,11 +196,6 @@ export default function Dashboard({
             </>
           )}
 
-          {profile && profile.contact_id && (
-            <Modal title={profile.contact_name ?? 'Student'} onClose={() => setProfile(null)}>
-              <StudentPanel contactId={profile.contact_id} fallbackName={profile.contact_name ?? undefined} />
-            </Modal>
-          )}
 
           <section className="mt-7 mb-2 pt-5 pb-6" style={{ borderTop: `1px solid ${LINE}`, borderBottom: `1px solid ${LINE}` }}>
             <div className="flex items-baseline justify-between mb-1">
@@ -422,21 +218,9 @@ export default function Dashboard({
           )}
 
           {team && unowned.length > 0 && (
-            <section className="mt-7 rounded-xl p-4 bg-white" style={{ border: '1px dashed #cfc7b8' }}>
+            <section className="mt-7 rounded-xl p-3" style={{ border: '1px dashed #cfc7b8' }}>
               <h2 className="font-bold">Nobody has these yet ({unowned.length})</h2>
-              <ul className="mt-1">
-                {unowned.slice(0, 5).map((t) => (
-                  <li key={t.id} className="flex items-center justify-between gap-3 py-2">
-                    <button className="text-left min-w-0" onClick={() => setPopup([t.id])}>
-                      <span className="block font-semibold">{t.title}</span>
-                      <span className="text-sm" style={{ color: t.due_date && t.due_date < today ? LATE : MUTED }}>
-                        {[dueLabel(today, t.due_date), sub(t)].filter(Boolean).join(' · ')}
-                      </span>
-                    </button>
-                    <Btn disabled={busy === t.id} onClick={() => patch(t, { owner_id: meId }, 'It’s yours')}>Take it</Btn>
-                  </li>
-                ))}
-              </ul>
+              <div className="mt-2">{list(unowned, 5)}</div>
               {unowned.length > 5 && (
                 <a href="/iowa/admin/tasks?view=unowned" className="inline-block mt-2 text-sm font-semibold underline">
                   See all {unowned.length}
@@ -466,24 +250,6 @@ export default function Dashboard({
   );
 }
 
-function Btn({
-  children,
-  onClick,
-  kind = 'line',
-  disabled,
-}: {
-  children: React.ReactNode;
-  onClick: () => void;
-  kind?: 'line' | 'solid' | 'quiet';
-  disabled?: boolean;
-}) {
-  const s = kind === 'solid' ? { background: INK, color: '#fff' } : kind === 'quiet' ? { color: MUTED } : { border: `1px solid ${INK}` };
-  return (
-    <button disabled={disabled} className="shrink-0 px-4 min-h-11 rounded-lg text-sm font-semibold disabled:opacity-50" style={s} onClick={onClick}>
-      {children}
-    </button>
-  );
-}
 
 // The next thing on campus today, in navy right under the header: the one piece
 // of Today that's about time, not a list. Gone once the day's last item starts.

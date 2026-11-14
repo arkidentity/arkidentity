@@ -345,14 +345,14 @@ export function NavyChips<V extends string>({
 // One tap to hand a task to someone: a native picker dressed as a button, so on
 // a phone it opens the system list straight away (11/14, Travis).
 export function AssignSelect({
-  staff, ownerId, meId, disabled, onPick, className = '',
+  staff, ownerId, meId, disabled, onPick, className = '', label = 'Assign',
 }: {
-  staff: StaffOption[]; ownerId: string | null; meId: string | null; disabled?: boolean; onPick: (id: string) => void; className?: string;
+  staff: StaffOption[]; ownerId: string | null; meId: string | null; disabled?: boolean; onPick: (id: string) => void; className?: string; label?: string;
 }) {
   const people = staff.filter((p) => p.active).sort((a, b) => (a.id === meId ? -1 : b.id === meId ? 1 : a.name.localeCompare(b.name)));
   return (
     <label className={`relative shrink-0 inline-flex items-center justify-center px-4 min-h-11 rounded-lg text-sm font-semibold border ${className}`} style={{ borderColor: NAVY, color: NAVY }}>
-      Assign ▾
+      {label} ▾
       <select
         aria-label="Assign to"
         disabled={disabled}

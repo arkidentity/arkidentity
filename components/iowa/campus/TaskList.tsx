@@ -77,6 +77,7 @@ export default function TaskList(props: TaskListProps) {
   // tasks they're on (finish, comment, help) and only ever sees those.
   const assigns = useCan()('manageTasks');
   const [showNew, setShowNew] = useState(!!prefill && assigns);
+  const [moreFilters, setMoreFilters] = useState(false);
 
   const isMine = (t: CampusTask) => t.owner_id === meId || (!!meId && t.helper_ids.includes(meId));
 
@@ -128,80 +129,84 @@ export default function TaskList(props: TaskListProps) {
       {!compact && (
         <>
           {props.title && (
-            <div className="flex items-center justify-between gap-3 mb-3">
-              <h2 className="text-lg font-bold" style={{ color: 'var(--navy)' }}>
-                {props.title}
-              </h2>
-              {assigns && (
-                <button onClick={() => setShowNew((v) => !v)} className={btnPrimary} style={{ backgroundColor: 'var(--navy)' }}>
-                  {showNew ? 'Close' : '+ New task'}
-                </button>
-              )}
-            </div>
+            <h1 className="text-2xl sm:text-3xl font-bold mb-3" style={{ color: 'var(--navy)' }}>
+              {props.title}
+            </h1>
           )}
-          <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
-            <div className="inline-flex flex-wrap rounded-lg border border-gray-300 overflow-hidden text-sm font-semibold">
-              {(
-                [
-                  ['mine', `Mine (${counts.mine})`],
-                  ['all', `All open (${counts.all})`],
-                  ['unowned', `Unowned (${counts.unowned})`],
-                  ['overdue', `Overdue (${counts.overdue})`],
-                  ['done', 'Done'],
-                ] as [View, string][]
-              ).filter(([v]) => assigns || v !== 'unowned').map(([v, label]) => (
-                <button
-                  key={v}
-                  onClick={() => setView(v)}
-                  className="px-3 py-1.5"
-                  style={
-                    view === v
-                      ? { backgroundColor: 'var(--navy)', color: 'white' }
-                      : { backgroundColor: 'white', color: v === 'overdue' && counts.overdue ? '#b91c1c' : 'var(--navy)' }
-                  }
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
-            {!props.title && assigns && (
-              <button onClick={() => setShowNew((v) => !v)} className={btnPrimary} style={{ backgroundColor: 'var(--navy)' }}>
-                {showNew ? 'Close' : '+ New task'}
+          {/* Views as chips (scroll sideways on a phone), search, and the rarer filters under More. */}
+          <div className="flex gap-2 overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0 pb-1 mb-2">
+            {(
+              [
+                ['mine', `Mine (${counts.mine})`],
+                ['all', `All (${counts.all})`],
+                ['overdue', `Overdue (${counts.overdue})`],
+                ['unowned', `Nobody's (${counts.unowned})`],
+                ['done', 'Done'],
+              ] as [View, string][]
+            ).filter(([v]) => assigns || v !== 'unowned').map(([v, label]) => (
+              <button
+                key={v}
+                onClick={() => setView(v)}
+                className="shrink-0 px-3 min-h-9 rounded-full text-sm font-semibold border"
+                style={
+                  view === v
+                    ? { backgroundColor: 'var(--navy)', color: 'white', borderColor: 'var(--navy)' }
+                    : { backgroundColor: 'white', color: v === 'overdue' && counts.overdue ? '#b91c1c' : 'var(--navy)', borderColor: '#e7e2d9' }
+                }
+              >
+                {label}
               </button>
-            )}
+            ))}
           </div>
-          <div className="grid sm:grid-cols-3 gap-2 mb-5">
-            <input className={input} placeholder="Search tasks" value={search} onChange={(e) => setSearch(e.target.value)} />
-            <select className={input} value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)}>
-              <option value="">Any type</option>
-              {taskTypes.map((t) => (
-                <option key={t.id} value={t.id}>
-                  {t.name}
-                </option>
-              ))}
-            </select>
-            <select className={input} value={personFilter} onChange={(e) => setPersonFilter(e.target.value)}>
-              <option value="">Anyone</option>
-              {staff
-                .filter((p) => p.active)
-                .map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.name}
+          <div className="flex gap-2 mb-2">
+            <input className={`${input} flex-1`} type="search" placeholder="Search tasks" value={search} onChange={(e) => setSearch(e.target.value)} />
+            <button onClick={() => setMoreFilters((v) => !v)} className="shrink-0 px-3 min-h-11 text-sm font-semibold underline" style={{ color: 'var(--navy)' }}>
+              {moreFilters || typeFilter || personFilter ? 'Fewer' : 'More'}
+            </button>
+          </div>
+          {(moreFilters || typeFilter || personFilter) && (
+            <div className="grid grid-cols-2 gap-2 mb-2">
+              <select className={input} value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)}>
+                <option value="">Any type</option>
+                {taskTypes.map((t) => (
+                  <option key={t.id} value={t.id}>
+                    {t.name}
                   </option>
                 ))}
-            </select>
-          </div>
-          {showNew && (
-            <div className="mb-6">
-              <TaskForm {...props} busy={busy} call={call} onDone={() => setShowNew(false)} />
+              </select>
+              <select className={input} value={personFilter} onChange={(e) => setPersonFilter(e.target.value)}>
+                <option value="">Anyone</option>
+                {staff
+                  .filter((p) => p.active)
+                  .map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.name}
+                    </option>
+                  ))}
+              </select>
             </div>
+          )}
+          <div className="mb-4" />
+          {assigns && (
+            <button
+              onClick={() => setShowNew(true)}
+              className="fixed z-40 right-4 px-5 min-h-12 rounded-full font-bold shadow-lg"
+              style={{ background: '#E8B562', color: '#1a2b3c', bottom: 'calc(80px + env(safe-area-inset-bottom))' }}
+            >
+              + New task
+            </button>
+          )}
+          {showNew && (
+            <Modal title="New task" onClose={() => setShowNew(false)}>
+              <TaskForm {...props} busy={busy} call={call} onDone={() => setShowNew(false)} />
+            </Modal>
           )}
         </>
       )}
 
       {shown.length === 0 && (
         <p className="text-sm text-[#8a8378]">
-          {compact || view === 'mine' ? 'Nothing on your plate. 🎉' : 'No tasks here.'}
+          {compact || view === 'mine' ? 'Nothing on your plate.' : 'No tasks here.'}
         </p>
       )}
       {view === 'done' && !compact ? (

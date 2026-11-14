@@ -283,7 +283,7 @@ export default function Dashboard({
               </a>
             )}
             <button
-              className="shrink-0 py-3 pl-1 text-sm font-semibold text-right"
+              className="shrink-0 w-[6.5rem] py-3 pl-1 text-sm font-semibold text-right"
               style={{ color: late ? LATE : MUTED }}
               onClick={toggle}
               aria-expanded={isOpen}

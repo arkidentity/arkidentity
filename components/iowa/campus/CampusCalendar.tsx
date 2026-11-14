@@ -60,7 +60,13 @@ export default function CampusCalendar({
   activity = [],
   onTaskClick,
   upcoming = [],
+  todayOnly = false,
+  startNew = false,
 }: {
+  // Today screen: just today's studies + events, no toolbar, no task-due rows.
+  todayOnly?: boolean;
+  // Open the New event form on load (the + button's "An event").
+  startNew?: boolean;
   upcoming?: UpcomingEvent[];
   activity?: TaskActivity[];
   onTaskClick?: (taskIds: string[]) => void;
@@ -85,7 +91,7 @@ export default function CampusCalendar({
   // Everyone by default (Travis); Mine is one tap away.
   const [mineOnly, setMineOnly] = useState(false);
   const [monthOpen, setMonthOpen] = useState(false);
-  const [editing, setEditing] = useState<string | 'new' | null>(null);
+  const [editing, setEditing] = useState<string | 'new' | null>(startNew ? 'new' : null);
   const [clickedDate, setClickedDate] = useState<string | null>(null); // which week's box was clicked
   const [studyOpen, setStudyOpen] = useState<{ id: string; date: string } | null>(null);
   const [editOpen, setEditOpen] = useState(false);
@@ -94,12 +100,13 @@ export default function CampusCalendar({
   // Google sync controls (the API refuses them anyway).
   const can = useCan();
   const runsEvents = can('manageEvents');
-  const days = weekDays(weekStart, SPAN_DAYS[span]);
+  const days = weekDays(weekStart, todayOnly ? 1 : SPAN_DAYS[span]);
   const items = useMemo(
     () => {
       const going: Record<string, number> = {};
       for (const r of rsvps) if (r.response === 'yes') going[`${r.event_id}:${r.occurrence}`] = (going[`${r.event_id}:${r.occurrence}`] ?? 0) + 1 + r.guests;
-      return buildWeekItems({ days, studies, events, tasks, staff, types, meId, mineOnly, periods, semesters, going, team });
+      const all = buildWeekItems({ days, studies, events, tasks, staff, types, meId, mineOnly, periods, semesters, going, team });
+      return todayOnly ? all.filter((i) => i.kind !== 'task') : all;
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [weekStart, studies, events, tasks, staff, types, meId, mineOnly, periods, semesters, rsvps, team]
@@ -110,6 +117,7 @@ export default function CampusCalendar({
     <section id="week" className="mb-10 scroll-mt-4">
       {/* One line on a phone: week range, the arrows + This week, Mine/Everyone.
           + New event moves down beside the sync line, right above the grid. */}
+      {!todayOnly && (<>
       <div className="flex items-center justify-between gap-2 mb-3">
         <h2 className="text-base sm:text-lg font-bold shrink-0" style={{ color: 'var(--navy)' }}>
           {weekRange(days[0], days[days.length - 1])}
@@ -211,6 +219,7 @@ export default function CampusCalendar({
           </button>
         )}
       </div>
+      </>)}
       <WeekView
         days={days}
         items={items}

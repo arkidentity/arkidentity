@@ -16,13 +16,14 @@ export const metadata: Metadata = {
 // Shared chrome for every /iowa/admin screen. The nav hides itself on /login.
 export default async function IowaAdminLayout({ children }: { children: React.ReactNode }) {
   const me = await currentStaff().catch(() => null);
-  const allowed = (['viewAllStudies', 'viewStudents', 'manageEvents', 'manageStaff', 'manageSettings'] as Permission[]).filter((p) =>
+  const allowed = (['viewAllStudies', 'viewStudents', 'manageEvents', 'manageStaff', 'manageSettings', 'manageTasks'] as Permission[]).filter((p) =>
     can(me, p)
   );
   return (
     <>
       <AdminNav name={me?.name ?? null} allowed={allowed} />
-      {children}
+      {/* Room for the bottom tab bar. */}
+      <div style={{ paddingBottom: 'calc(64px + env(safe-area-inset-bottom))' }}>{children}</div>
     </>
   );
 }

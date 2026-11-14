@@ -93,7 +93,9 @@ export function CampusStudents({
   openReport = false,
   initialSearch = '',
   dupes = [],
+  startAdding = false,
 }: {
+  startAdding?: boolean; // ?add=1 (the + button's "A student")
   initial: CampusStudent[];
   studies: StudyOption[];
   semester: string;
@@ -113,7 +115,7 @@ export function CampusStudents({
   const [editing, setEditing] = useState<string | null>(null);
   const [historyOpen, setHistoryOpen] = useState<string | null>(null);
   const [showReport, setShowReport] = useState(openReport);
-  const [adding, setAdding] = useState(false);
+  const [adding, setAdding] = useState(startAdding);
   const [f, setF] = useState({ name: '', phone: '', email: '', year: '', metBy: '' });
 
   // Moving a student refreshes the server data; pick it up (see EventDetail).

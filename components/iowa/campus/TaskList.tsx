@@ -57,6 +57,8 @@ export interface TaskListProps {
   compact?: boolean;
   // Render a heading with + New task on the same line (saves a row on phones).
   title?: string;
+  // Which filter to start on (?view= on the Tasks page).
+  initialView?: 'mine' | 'all' | 'unowned' | 'overdue' | 'done';
 }
 
 type View = 'mine' | 'all' | 'unowned' | 'overdue' | 'done';
@@ -66,7 +68,7 @@ export default function TaskList(props: TaskListProps) {
   const { call, busy, error } = useCall();
   const today = chicagoToday();
   // Everyone's open tasks by default (Travis); Mine is one tap away.
-  const [view, setView] = useState<View>('all');
+  const [view, setView] = useState<View>(props.initialView ?? 'all');
   const [typeFilter, setTypeFilter] = useState('');
   const [personFilter, setPersonFilter] = useState('');
   const [search, setSearch] = useState('');

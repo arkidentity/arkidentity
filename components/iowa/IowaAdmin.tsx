@@ -82,7 +82,9 @@ export default function IowaAdmin({
   busyBlocks = [],
   health = {},
   top = null,
+  startNew = false,
 }: {
+  startNew?: boolean; // ?new=1 (the + button's "A study")
   health?: Record<string, StudyHealth>;
   top?: React.ReactNode; // Who's waiting — first thing on the page, under the title
   busyBlocks?: BusyBlock[];
@@ -103,7 +105,7 @@ export default function IowaAdmin({
   const staffById = useMemo(() => new Map(staff.map((p) => [p.id, p])), [staff]);
   const myCount = all.filter((s) => s.point_staff_id === meId).length;
   const [expanded, setExpanded] = useState<string | null>(null);
-  const [showNew, setShowNew] = useState(false);
+  const [showNew, setShowNew] = useState(startNew);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
 

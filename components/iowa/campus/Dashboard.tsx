@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, type ComponentProps } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { addDays, chicagoToday, formatDate, taskGroupKey, taskGroupTitle } from '@/lib/campusFormat';
 import type { CampusTask } from '@/lib/campusTasks';
@@ -369,8 +370,13 @@ export default function Dashboard({
             </Modal>
           )}
 
-          <h2 className="text-lg font-bold mt-7 mb-1">On campus today</h2>
-          <CampusCalendar {...calendar} weekStart={today} todayOnly openRequest={openRequest} activity={taskProps.activity} onTaskClick={setPopup} />
+          <section className="mt-7 mb-2 pt-5 pb-6" style={{ borderTop: `1px solid ${LINE}`, borderBottom: `1px solid ${LINE}` }}>
+            <div className="flex items-baseline justify-between mb-1">
+              <h2 className="text-lg font-bold">On campus today</h2>
+              <Link href="/iowa/admin/calendar" className="text-sm font-semibold" style={{ color: NAVY }}>Calendar ›</Link>
+            </div>
+            <CampusCalendar {...calendar} weekStart={today} todayOnly openRequest={openRequest} activity={taskProps.activity} onTaskClick={setPopup} />
+          </section>
 
           {later.length > 0 && (
             <>

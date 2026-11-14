@@ -17,6 +17,11 @@ tap to act, and every task, study, event and student editable from wherever you 
 | c06fa76 | Events with sign-ups: list rows, Baja board tap-a-person (checks, raised, Not going), no browser prompts |
 | d225aa4 | Staff + Settings: ‹ More back link, tighter phone header |
 | 26b1543 | Study's Add a student offers waiting students who fit (free at that time first); task-list buckets count only their own tasks (Overdue bug fixed) |
+| 04a541b / 2b57144 | Today: Do now shows 5 rows then Show more; >2 weeks overdue under a closed "Old" section; same-kind auto tasks fold into one line |
+| aca85c1 | Look pass: fields 16px on phones (no iPhone zoom, rule in admin layout), bigger btnSmall, no all-caps labels |
+| 149fedf | Students tab (was People): search + status chips, More filters, Add student in its own screen |
+| 4c7dfc2 / 5dfb99c / 8b19896 | Calendar arrows bigger, New event + New task open full screen; Tasks view chips + More filters; global + hidden where a page has its own New button |
+| 5207c7a / bf4af1c | Study screen: students + tasks first, settings under Edit study; roster rows as cards with bigger buttons |
 | abe8e29 | Speed: profile loads one student (`listCampusStudents(id)`), `app/iowa/admin/loading.tsx`, page queries start together, `currentStaff` + `semesterContext` cached per request |
 
 ## Waiting on Travis
@@ -26,7 +31,8 @@ tap to act, and every task, study, event and student editable from wherever you 
   Supabase region; set `preferredRegion` to match.
 
 ## Next, in order
-1. Optional: placing a student could create a welcome-text task for the study's staff on point (Travis hasn't said yes).
+1. Welcome-text task on placement already exists (`onStudentSeated` in lib/campusAutomation.ts); nothing to build.
+2. Not yet reviewed closely: task detail popup, event screen, StudyCard (Today/Calendar study popup), Settings disclosures.
 
 ## Rules Travis gave
 - Mock in `/iowa/lab/...` first for new layouts; he taps it on his phone, then build.

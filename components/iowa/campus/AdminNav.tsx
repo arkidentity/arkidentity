@@ -32,16 +32,19 @@ export default function AdminNav({ allowed = [] }: { name?: string | null; allow
   const active = (t: (typeof TABS)[number]) =>
     t.href === '/iowa/admin' ? pathname === t.href : pathname.startsWith(t.href) || !!t.also?.some((a) => pathname.startsWith(a));
 
+  // Studies, Students and Tasks have their own "+ New …" button in this corner.
+  const ownAdd = ['/iowa/admin/studies', '/iowa/admin/students', '/iowa/admin/tasks'].some((p) => pathname.startsWith(p));
+
   return (
     <>
-      <button
+      {!ownAdd && <button
         aria-label="Add something"
         onClick={() => setAdding(true)}
         className="fixed right-4 w-14 h-14 rounded-full text-3xl font-light shadow-lg z-40 print:hidden"
         style={{ bottom: 'calc(84px + env(safe-area-inset-bottom))', background: '#E8B562', color: '#1a2b3c' }}
       >
         +
-      </button>
+      </button>}
 
       {adding && (
         <div className="fixed inset-0 z-[65] flex items-end" style={{ background: 'rgba(15,26,37,0.45)' }} onClick={() => setAdding(false)}>

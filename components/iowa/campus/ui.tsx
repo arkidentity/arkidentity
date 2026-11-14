@@ -250,3 +250,13 @@ export function useCan(): (p: Permission) => boolean {
   const allowed = useContext(CanContext);
   return (p) => allowed === null || allowed.includes(p);
 }
+
+// "Open this study / event" from anywhere inside a screen (a task's "For …"
+// line). The screen that shows a calendar provides it; elsewhere it's null and
+// callers fall back to a link to the Calendar tab.
+export type OpenItem = { kind: 'study' | 'event'; id: string; date?: string | null };
+const OpenItemContext = createContext<((o: OpenItem) => void) | null>(null);
+export const OpenItemProvider = OpenItemContext.Provider;
+export function useOpenItem() {
+  return useContext(OpenItemContext);
+}

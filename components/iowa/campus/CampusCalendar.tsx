@@ -1,7 +1,7 @@
 'use client';
 
 import { DailyDnaToggle } from '@/components/iowa/campus/DailyDnaToggle';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type { StudyWithMembers } from '@/lib/bibleStudies';
 import type { CampusEvent, CampusTask, TaskActivity } from '@/lib/campusTasks';
 import type { HeldEvent } from '@/lib/calendarSync';
@@ -62,7 +62,10 @@ export default function CampusCalendar({
   upcoming = [],
   todayOnly = false,
   startNew = false,
+  openRequest = null,
 }: {
+  // Open a study card / event screen from outside (a task's "For …" line).
+  openRequest?: { kind: 'study' | 'event'; id: string; date?: string | null; n: number } | null;
   // Today screen: just today's studies + events, no toolbar, no task-due rows.
   todayOnly?: boolean;
   // Open the New event form on load (the + button's "An event").
@@ -111,6 +114,16 @@ export default function CampusCalendar({
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [weekStart, studies, events, tasks, staff, types, meId, mineOnly, periods, semesters, rsvps, team]
   );
+  useEffect(() => {
+    if (!openRequest) return;
+    const date = openRequest.date ?? chicagoToday();
+    if (openRequest.kind === 'study') setStudyOpen({ id: openRequest.id, date });
+    else {
+      setEditing(openRequest.id);
+      setClickedDate(date);
+      setEditOpen(false);
+    }
+  }, [openRequest]);
   const editingEvent = editing && editing !== 'new' ? events.find((e) => e.id === editing) : undefined;
 
   return (

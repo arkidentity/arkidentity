@@ -6,7 +6,7 @@ import { addDays, chicagoToday, formatDate } from '@/lib/campusFormat';
 import type { CampusTask } from '@/lib/campusTasks';
 import CampusCalendar from '@/components/iowa/campus/CampusCalendar';
 import { TaskPopup, type TaskListProps } from '@/components/iowa/campus/TaskList';
-import { CanProvider } from '@/components/iowa/campus/ui';
+import { OpenItemProvider, type OpenItem, CanProvider } from '@/components/iowa/campus/ui';
 import PendingInvites from '@/components/iowa/campus/PendingInvites';
 import type { PendingInvite } from '@/lib/eventInvites';
 import type { Permission } from '@/lib/iowaPerms';
@@ -48,6 +48,17 @@ export default function Dashboard({
   const router = useRouter();
   const { tasks, staff, meId } = taskProps;
   const [popup, setPopup] = useState<string[] | null>(taskProps.openTaskId ? [taskProps.openTaskId] : null);
+  const [openRequest, setOpenRequest] = useState<(OpenItem & { n: number }) | null>(null);
+  // A task's "For …" opens that study/event here; an event outside today's
+  // window lives on the Calendar tab.
+  const openItem = (o: OpenItem) => {
+    setPopup(null);
+    if (o.kind === 'event' && !calendar.events.some((e) => e.id === o.id)) {
+      window.location.href = `/iowa/admin/calendar${o.date ? `?week=${o.date}` : ''}`;
+      return;
+    }
+    setOpenRequest({ ...o, n: Date.now() });
+  };
   const [rowOpen, setRowOpen] = useState<string | null>(null);
   const [showLater, setShowLater] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
@@ -196,6 +207,7 @@ export default function Dashboard({
 
   return (
     <CanProvider allowed={allowed}>
+    <OpenItemProvider value={openItem}>
       <div style={{ background: '#f8f6f2', color: INK, minHeight: '100dvh' }}>
         <main className="max-w-xl mx-auto px-4 pb-32">
           <header className="pt-7 pb-5">
@@ -220,7 +232,7 @@ export default function Dashboard({
           )}
 
           <h2 className="text-lg font-bold mt-7 mb-1">On campus today</h2>
-          <CampusCalendar {...calendar} weekStart={today} todayOnly activity={taskProps.activity} onTaskClick={setPopup} />
+          <CampusCalendar {...calendar} weekStart={today} todayOnly openRequest={openRequest} activity={taskProps.activity} onTaskClick={setPopup} />
 
           {later.length > 0 && (
             <>
@@ -274,6 +286,7 @@ export default function Dashboard({
           </div>
         )}
       </div>
+    </OpenItemProvider>
     </CanProvider>
   );
 }

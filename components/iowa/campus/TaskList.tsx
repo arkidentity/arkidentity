@@ -37,6 +37,7 @@ import {
   type Option,
   type StaffOption,
   type TypeOption,
+  useOpenItem,
 } from '@/components/iowa/campus/ui';
 
 export interface TaskListProps {
@@ -485,6 +486,7 @@ function TaskDetail(props: TaskListProps & { t: CampusTask; busy: boolean; call:
       {/* A student task leads with the student: name opens their card, the
           number texts them, the email emails them. Due date and owner are
           already on the row above, so they aren't repeated here. */}
+      <ForLine t={t} props={props} />
       {student.body && <p className="text-[15px] md:text-sm text-[#4a4540] whitespace-pre-wrap">{student.body}</p>}
       {t.auto_kind === 'reminder_list' && t.event_id && <ReminderListTexts eventId={t.event_id} />}
       {t.auto_kind === 'checkin_links' && <CheckinLinks ownerId={t.owner_id} />}
@@ -1079,5 +1081,30 @@ function Files({ t, files }: { t: CampusTask; files: TaskFile[] }) {
       <p className="text-xs text-[#8a8378] mt-1">PDFs, photos, anything up to {MAX_FILE_MB}MB.</p>
       {error && <p className="text-xs text-red-700 mt-1">{error}</p>}
     </div>
+  );
+}
+
+// "For Taco Night" / "For Tue 3 PM study": opens it right here when the screen
+// has a calendar (Today, Calendar), else goes to where it lives.
+function ForLine({ t, props }: { t: CampusTask; props: TaskListProps }) {
+  const openItem = useOpenItem();
+  if (!t.study_id && !t.event_id) return null;
+  const label = linkLabel(t, props);
+  const item = t.study_id
+    ? { kind: 'study' as const, id: t.study_id, date: null }
+    : { kind: 'event' as const, id: t.event_id!, date: t.event_occurrence ?? t.due_date };
+  const href = t.study_id
+    ? '/iowa/admin/studies'
+    : `/iowa/admin/calendar${item.date ? `?week=${item.date}` : ''}`;
+  const cls = 'font-semibold underline underline-offset-2';
+  return (
+    <p className="text-[15px] md:text-sm">
+      <span className="text-[#8a8378]">For </span>
+      {openItem ? (
+        <button className={cls} style={{ color: 'var(--navy)' }} onClick={() => openItem(item)}>{label}</button>
+      ) : (
+        <a className={cls} style={{ color: 'var(--navy)' }} href={href}>{label}</a>
+      )}
+    </p>
   );
 }

@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { blockOf, formatSlot, listCampusStudents, listStudentOptions, listStudies } from '@/lib/bibleStudies';
 import { healthByStudy } from '@/lib/studyAttendance';
 import { CheckinLinks } from '@/components/iowa/campus/CheckinLinks';
-import WaitingBySlot, { type WaitingSlot } from '@/components/iowa/campus/WaitingBySlot';
+import WaitingList, { type OpenStudy, type WaitingStudent } from '@/components/iowa/campus/WaitingList';
 import { listBusy } from '@/lib/availability';
 import { semesterContext } from '@/lib/semesters';
 import { currentStaff, listStaff } from '@/lib/iowaStaff';
@@ -33,24 +33,28 @@ export default async function IowaStudiesPage({ searchParams }: { searchParams: 
   ]);
   // Who's waiting (migration 034): needs a study (057; 'active' before it ran), grouped by free slot.
   const unplaced = everyone.filter((p) => (p.status === 'unplaced' || p.status === 'active') && p.studies.length === 0);
-  const bySlot = new Map<string, WaitingSlot>();
-  for (const p of unplaced) {
-    if (p.free_slots_semester !== semester) continue; // last semester's answers don't count
-    for (const slot of p.free_slots) {
-      const w = bySlot.get(slot) ?? { slot, open: [], students: [] };
-      w.students.push({ contact_id: p.contact_id, name: p.name, phone: p.phone, email: p.email, gender: p.gender });
-      bySlot.set(slot, w);
-    }
-  }
-  for (const w of bySlot.values()) {
-    const [day, block] = w.slot.split('-');
-    w.open = studies
-      .filter((st) => ['forming', 'activated'].includes(st.status) && st.day_of_week === Number(day) && blockOf(st.start_time) === block)
-      .filter((st) => st.activeCount < st.capacity)
-      .map((st) => ({ id: st.id, label: formatSlot(st), spotsLeft: st.capacity - st.activeCount, group_type: st.group_type ?? 'coed' }));
-  }
-  const waiting = [...bySlot.values()].sort((a, b) => b.students.length - a.students.length);
-  const unplacedNoTimes = unplaced.filter((p) => p.free_slots_semester !== semester).length;
+  const waiting: WaitingStudent[] = unplaced.map((p) => ({
+    contact_id: p.contact_id,
+    name: p.name,
+    phone: p.phone,
+    email: p.email,
+    year: p.year,
+    gender: p.gender,
+    free: p.free_slots_semester === semester ? p.free_slots : [], // last semester's answers don't count
+    added_at: p.added_at,
+  }));
+  waiting.sort((a, b) => (a.added_at ?? '').localeCompare(b.added_at ?? ''));
+  const openStudies: OpenStudy[] = studies
+    .filter((st) => ['forming', 'activated', 'full'].includes(st.status) && st.activeCount < st.capacity)
+    .sort((a, b) => a.day_of_week - b.day_of_week || a.start_time.localeCompare(b.start_time))
+    .map((st) => ({
+      id: st.id,
+      label: formatSlot(st),
+      slot: `${st.day_of_week}-${blockOf(st.start_time)}`,
+      where: st.location ?? '',
+      group_type: st.group_type ?? 'coed',
+      spotsLeft: st.capacity - st.activeCount,
+    }));
   // This semester's busy blocks, so the point-person picker can flag a clash.
   const [busyBlocks, health] = await Promise.all([listBusy(semester), healthByStudy(studies.map((st) => st.id))]);
   const nameOf = new Map(staff.map((s) => [s.id, s.name]));
@@ -104,7 +108,7 @@ export default async function IowaStudiesPage({ searchParams }: { searchParams: 
       students={students}
       busyBlocks={busyBlocks}
       health={health}
-      top={<WaitingBySlot slots={waiting} unplacedNoTimes={unplacedNoTimes} semester={semester} />}
+      top={<WaitingList students={waiting} studies={openStudies} />}
     />
       {ctx.next && (
         <div style={{ background: '#FAF8F5' }}>

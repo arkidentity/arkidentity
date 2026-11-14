@@ -11,7 +11,7 @@ import { useRouter } from 'next/navigation';
 import type { StudyWithMembers, StudyMember, StudyStatus } from '@/lib/bibleStudies';
 import { DAY_NAMES, PICKER_DAYS, formatTime, GROUP_LABEL, GROUP_TYPES, type GroupType } from '@/lib/bibleStudyFormat';
 import { DROP_REASONS, formatDate, isOverdue, type TaskPriority, type TaskStatus } from '@/lib/campusFormat';
-import { OverdueTag, PriorityBadge, StatusPill } from '@/components/iowa/campus/ui';
+import { Modal, OverdueTag, PriorityBadge, StatusPill } from '@/components/iowa/campus/ui';
 import { clashAt, type BusyBlock } from '@/lib/availabilityFormat';
 import PlanForm from '@/components/iowa/PlanForm';
 
@@ -97,10 +97,20 @@ export default function IowaAdmin({
   tasksByStudy?: Record<string, StudyTask[]>;
 }) {
   const router = useRouter();
-  const [mineOnly, setMineOnly] = useState(false);
+  const [filter, setFilter] = useState<'all' | 'mine' | 'room' | 'nobody'>('all');
+  const mineOnly = filter === 'mine';
   const initial = useMemo(
-    () => (mineOnly ? all.filter((s) => s.point_staff_id === meId) : all),
-    [all, mineOnly, meId]
+    () =>
+      all.filter((s) =>
+        filter === 'mine'
+          ? s.point_staff_id === meId
+          : filter === 'room'
+            ? s.activeCount < s.capacity && s.status !== 'ended'
+            : filter === 'nobody'
+              ? !s.point_staff_id && s.status !== 'ended'
+              : true
+      ),
+    [all, filter, meId]
   );
   const staffById = useMemo(() => new Map(staff.map((p) => [p.id, p])), [staff]);
   const myCount = all.filter((s) => s.point_staff_id === meId).length;
@@ -133,12 +143,6 @@ export default function IowaAdmin({
     }
   }
 
-  const counts = useMemo(() => {
-    const c: Record<string, number> = {};
-    for (const s of initial) c[s.status] = (c[s.status] ?? 0) + 1;
-    return c;
-  }, [initial]);
-
   const pending = initial.filter((s) => s.status === 'pending_setup');
   const attention = initial
     .map((s) => ({ s, why: needsAttention(s) }))
@@ -162,52 +166,62 @@ export default function IowaAdmin({
     <Planning.Provider value={planning}>
     <div style={{ background: '#FAF8F5', minHeight: '100vh', color: '#1f2937' }}>
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
-        <div className="flex items-baseline justify-between mb-3">
-          <h1 className="text-2xl sm:text-3xl font-bold" style={{ color: 'var(--navy)' }}>
-            Bible studies
-          </h1>
-          <span className="flex items-center gap-4">
-            <span className="text-sm text-[#8a8378]">{semester}</span>
-          </span>
-        </div>
-        {top && <div className="-mx-4 sm:-mx-6 lg:-mx-8 mb-6">{top}</div>}
-        <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
-          <div className="inline-flex rounded-lg border border-gray-300 overflow-hidden text-sm font-semibold">
-            {[
-              { v: false, label: 'All studies' },
-              { v: true, label: `Mine (${myCount})` },
-            ].map((o) => (
-              <button
-                key={o.label}
-                onClick={() => setMineOnly(o.v)}
-                className="px-3 py-1.5"
-                style={
-                  mineOnly === o.v
-                    ? { backgroundColor: 'var(--navy)', color: 'white' }
-                    : { backgroundColor: 'white', color: 'var(--navy)' }
-                }
-              >
-                {o.label}
-              </button>
-            ))}
+        <div className="flex items-end justify-between gap-3 mb-4">
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-bold" style={{ color: 'var(--navy)' }}>
+              Studies
+            </h1>
+            <p className="text-sm text-[#8a8378]">
+              {semester} · {all.filter((x) => x.status !== 'ended').length} studies ·{' '}
+              {all.filter((x) => ['forming', 'activated', 'full'].includes(x.status)).reduce((n, x) => n + Math.max(0, x.capacity - x.activeCount), 0)} open seats
+            </p>
           </div>
-          <button
-            onClick={() => setShowNew((v) => !v)}
-            className="px-4 py-1.5 rounded-lg font-semibold text-sm transition hover:opacity-90"
-            style={{ backgroundColor: 'var(--navy)', color: 'white' }}
-          >
-            {showNew ? 'Close' : '+ New study'}
-          </button>
         </div>
+        {top}
+        <div className="flex gap-2 mb-4 overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0">
+          {(
+            [
+              ['all', 'All'],
+              ['mine', `Mine (${myCount})`],
+              ['room', 'Has room'],
+              ['nobody', 'No staff'],
+            ] as const
+          ).map(([k, label]) => (
+            <button
+              key={k}
+              onClick={() => setFilter(k)}
+              className="shrink-0 px-3 min-h-9 rounded-full text-sm font-semibold border"
+              style={
+                filter === k
+                  ? { backgroundColor: 'var(--navy)', color: 'white', borderColor: 'var(--navy)' }
+                  : { backgroundColor: 'white', color: 'var(--navy)', borderColor: '#e7e2d9' }
+              }
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+        <button
+          onClick={() => setShowNew(true)}
+          className="fixed z-40 right-4 px-5 min-h-12 rounded-full font-bold shadow-lg"
+          style={{ background: '#E8B562', color: '#1a2b3c', bottom: 'calc(80px + env(safe-area-inset-bottom))' }}
+        >
+          + New study
+        </button>
         {showNew && (
-          <div className="mb-6">
-            <NewStudyForm staff={staff} meId={meId} busy={busy} onCreate={(b) => call('/api/iowa/admin/studies', 'POST', { ...(b as object), semester })} />
-          </div>
+          <Modal title="New study" onClose={() => setShowNew(false)}>
+            <NewStudyForm
+              staff={staff}
+              meId={meId}
+              busy={busy}
+              onCreate={async (b) => {
+                const ok = await call('/api/iowa/admin/studies', 'POST', { ...(b as object), semester });
+                if (ok) setShowNew(false);
+                return ok;
+              }}
+            />
+          </Modal>
         )}
-        <p className="text-sm text-[#8a8378] mb-6">
-          {initial.length} total · {counts.forming ?? 0} forming · {counts.full ?? 0} full ·{' '}
-          {counts.activated ?? 0} activated · {counts.paused ?? 0} paused
-        </p>
 
         {error && (
           <div className="mb-6 p-3 rounded-lg bg-red-50 border border-red-200 text-red-800 text-sm">
@@ -336,48 +350,68 @@ function StudyRow({
   flag?: string;
 }) {
   const health = useContext(Health)[s.id];
+  const point = s.point_staff_id ? staff.get(s.point_staff_id) : null;
+  const live = s.status !== 'ended' && s.status !== 'paused';
   return (
-    <div className="rounded-lg border border-gray-200 bg-white">
-      <button
-        onClick={onToggle}
-        className="w-full flex items-center justify-between gap-3 px-4 py-3 text-left"
-      >
-        <span className="flex items-center gap-3 min-w-0">
-          <span className="font-semibold shrink-0" style={{ color: 'var(--navy)' }}>
+    <div className="rounded-xl border border-gray-200 bg-white">
+      <button onClick={onToggle} className="w-full flex items-start justify-between gap-3 px-4 py-3 text-left">
+        <span className="min-w-0">
+          <span className="block font-semibold" style={{ color: 'var(--navy)' }}>
             {DAY_NAMES[s.day_of_week].slice(0, 3)} {formatTime(s.start_time)}
+            {s.group_type && s.group_type !== 'coed' ? ` · ${GROUP_LABEL[s.group_type]}` : ' · Co-ed'}
+            {s.status !== 'activated' && s.status !== 'forming' && s.status !== 'full' && (
+              <span className="ml-2 text-xs font-semibold px-2 py-0.5 rounded-full text-white align-middle" style={{ backgroundColor: STATUS_COLOR[s.status] }}>
+                {s.status.replace('_', ' ')}
+              </span>
+            )}
           </span>
-          <span className="text-sm text-[#8a8378] truncate">{s.location || '— no location'}</span>
+          <span className="block text-sm text-[#8a8378] truncate">
+            {s.location || 'No place yet'}
+            {s.leader_name ? ` · led by ${s.leader_name}` : ''}
+          </span>
+          <span className="block text-sm mt-0.5" style={{ color: point || !live ? '#8a8378' : '#b42318', fontWeight: point || !live ? 400 : 600 }}>
+            {point ? `Staff: ${point.name.split(' ')[0]}` : live ? 'No staff on point' : ''}
+          </span>
+          {(flag || health) && (
+            <span className="flex flex-wrap items-center gap-2 mt-1">
+              {flag && <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800">{flag}</span>}
+              <HealthBadge health={health} compact />
+              <PlanBadge s={s} />
+            </span>
+          )}
         </span>
-        <span className="flex items-center gap-2 shrink-0">
-          <PlanBadge s={s} />
-          <HealthBadge health={health} compact />
-          {s.point_staff_id && staff.get(s.point_staff_id) && (
-            <span
-              className="text-xs font-semibold px-2 py-0.5 rounded-full"
-              style={{ backgroundColor: '#e8eef3', color: '#143348' }}
-              title="Staff on point"
-            >
-              {staff.get(s.point_staff_id)!.name.split(' ')[0]}
-            </span>
-          )}
-          {flag && (
-            <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800">
-              {flag}
-            </span>
-          )}
-          <span className="text-xs text-[#8a8378]">
-            {s.activeCount}/{s.capacity}
-          </span>
-          <span
-            className="text-xs font-semibold px-2 py-0.5 rounded-full text-white"
-            style={{ backgroundColor: STATUS_COLOR[s.status] }}
-          >
-            {s.status.replace('_', ' ')}
+        <span className="shrink-0 text-right">
+          <Seats taken={s.activeCount} cap={s.capacity} />
+          <span className="block text-xs mt-1 text-[#8a8378]">
+            {s.activeCount >= s.capacity ? 'Full' : `${s.capacity - s.activeCount} open`}
           </span>
         </span>
       </button>
-      {expanded && <StudyEditor s={s} all={all} staff={staff} busy={busy} call={call} />}
+      {expanded && (
+        <Modal
+          title={`${DAY_NAMES[s.day_of_week]} ${formatTime(s.start_time)}`}
+          sub={`${s.location || 'No place yet'} · ${GROUP_LABEL[s.group_type ?? 'coed']} · ${s.activeCount} of ${s.capacity}`}
+          onClose={onToggle}
+        >
+          <StudyEditor s={s} all={all} staff={staff} busy={busy} call={call} />
+        </Modal>
+      )}
     </div>
+  );
+}
+
+// Open seats as dots: filled = taken. "Where can Sam go?" at a glance.
+function Seats({ taken, cap }: { taken: number; cap: number }) {
+  return (
+    <span className="inline-flex gap-1" aria-label={`${taken} of ${cap}`}>
+      {Array.from({ length: cap }, (_, i) => (
+        <span
+          key={i}
+          className="w-2.5 h-2.5 rounded-full"
+          style={i < taken ? { background: '#2f6f5e' } : { border: '1.5px solid #2f6f5e' }}
+        />
+      ))}
+    </span>
   );
 }
 

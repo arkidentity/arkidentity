@@ -51,6 +51,8 @@ export default function Dashboard({
   const [rowOpen, setRowOpen] = useState<string | null>(null);
   const [showLater, setShowLater] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
+  const [finishing, setFinishing] = useState<string | null>(null);
+  const [note, setNote] = useState('');
   const [toast, setToast] = useState<string | null>(null);
   const [gone, setGone] = useState<string[]>([]); // finished here, before the refresh lands
   const today = chicagoToday();
@@ -92,6 +94,8 @@ export default function Dashboard({
       return;
     }
     setRowOpen(null);
+    setFinishing(null);
+    setNote('');
     if (body.status === 'done' || body.due_date) setGone((g) => [...g, t.id]);
     setToast(msg);
     router.refresh();
@@ -144,7 +148,33 @@ export default function Dashboard({
                 {dueLabel(today, t.due_date)}
               </span>
             </button>
-            {isOpen && (
+            {isOpen && finishing === t.id && (
+              <div className="px-4 pb-3">
+                <label className="block text-sm font-semibold mb-1" htmlFor={`note-${t.id}`}>
+                  What happened? <span className="font-normal" style={{ color: MUTED }}>(optional{t.contact_id ? ', goes on their history' : ''})</span>
+                </label>
+                <textarea
+                  id={`note-${t.id}`}
+                  rows={2}
+                  autoFocus
+                  value={note}
+                  onChange={(e) => setNote(e.target.value)}
+                  className="w-full px-3 py-2 rounded-lg text-[15px]"
+                  style={{ border: '1px solid #d6cfc2' }}
+                />
+                <div className="flex justify-end gap-1 mt-2">
+                  <Btn kind="quiet" onClick={() => { setFinishing(null); setNote(''); }}>Cancel</Btn>
+                  <Btn
+                    kind="solid"
+                    disabled={busy === t.id}
+                    onClick={() => patch(t, note.trim() ? { status: 'done', comment: note.trim() } : { status: 'done' }, 'Done. Nice.')}
+                  >
+                    {note.trim() ? 'Done + save note' : 'Mark done'}
+                  </Btn>
+                </div>
+              </div>
+            )}
+            {isOpen && finishing !== t.id && (
               <div className="px-4 pb-3 flex items-center justify-end gap-1 flex-wrap">
                 <Btn kind="quiet" onClick={() => { setRowOpen(null); setPopup([t.id]); }}>Open</Btn>
                 <Btn
@@ -153,7 +183,7 @@ export default function Dashboard({
                 >
                   Next week
                 </Btn>
-                <Btn kind="solid" disabled={busy === t.id} onClick={() => patch(t, { status: 'done' }, 'Done. Nice.')}>
+                <Btn kind="solid" onClick={() => { setFinishing(t.id); setNote(''); }}>
                   Done
                 </Btn>
               </div>

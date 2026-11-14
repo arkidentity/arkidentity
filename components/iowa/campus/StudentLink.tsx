@@ -1,8 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { StudentHistory } from '@/components/iowa/StudentHistory';
-import { slotLabel, sortSlots } from '@/lib/bibleStudyFormat';
+import StudentPanel from '@/components/iowa/campus/StudentPanel';
 import { useCan } from '@/components/iowa/campus/ui';
 
 // A student's name, anywhere in the admin, that opens their card: Text/Email,
@@ -22,13 +21,6 @@ interface Card {
   free_slots_semester?: string | null;
 }
 
-const STATUS: Record<string, { label: string; color: string }> = {
-  active: { label: 'Active', color: '#15803d' },
-  dormant: { label: 'Dormant', color: '#9d855a' },
-  graduated: { label: 'Graduated', color: '#143348' },
-  transferred: { label: 'Transferred', color: '#2563eb' },
-  left_school: { label: 'Left school', color: '#8a8378' },
-};
 
 export function StudentLink({ contactId, name, className }: { contactId: string | null; name: string; className?: string }) {
   const [open, setOpen] = useState(false);
@@ -78,8 +70,6 @@ function StudentCard({ contactId, fallbackName, onClose }: { contactId: string; 
     return () => window.removeEventListener('keydown', onKey);
   }, [onClose]);
 
-  const status = card ? STATUS[card.status] : undefined;
-
   return (
     <div
       className="fixed inset-0 z-[60] flex items-start sm:items-center justify-center bg-black/30 p-4 pt-12 sm:pt-4"
@@ -94,10 +84,7 @@ function StudentCard({ contactId, fallbackName, onClose }: { contactId: string; 
         role="dialog"
         aria-label={card?.name ?? fallbackName}
       >
-        <div className="flex items-start justify-between gap-3 mb-1">
-          <h3 className="text-lg font-bold" style={{ color: 'var(--navy)' }}>
-            {card?.name ?? fallbackName}
-          </h3>
+        <div className="flex justify-end -mb-2">
           <button onClick={onClose} className="text-[#8a8378] text-xl leading-none" aria-label="Close">
             ×
           </button>
@@ -108,58 +95,7 @@ function StudentCard({ contactId, fallbackName, onClose }: { contactId: string; 
 
         {card && (
           <div className="space-y-4">
-            <p className="text-sm text-[#8a8378]">
-              {status && <span className="font-semibold" style={{ color: status.color }}>{status.label}</span>}
-              {card.year ? ` · ${card.year}` : ''}
-            </p>
-            {(card.phone || card.email) && (
-              <p className="text-sm break-words">
-                {card.phone && (
-                  <a href={`sms:${card.phone.replace(/[^\d+]/g, '')}`} className="underline" style={{ color: 'var(--navy)' }} title="Text">
-                    {card.phone}
-                  </a>
-                )}
-                {card.phone && card.email && <span className="text-[#8a8378]"> · </span>}
-                {card.email && (
-                  <a href={`mailto:${card.email}`} className="underline" style={{ color: 'var(--navy)' }} title="Email">
-                    {card.email}
-                  </a>
-                )}
-              </p>
-            )}
-
-            <div>
-              <p className="text-xs font-bold uppercase tracking-wide text-[#8a8378] mb-1">Bible studies</p>
-              {card.studies.length === 0 ? (
-                <p className="text-sm text-[#8a8378]">Not in a study right now.</p>
-              ) : (
-                <ul className="text-sm text-[#4a4540] space-y-0.5">
-                  {card.studies.map((s) => (
-                    <li key={s.id}>{s.label}</li>
-                  ))}
-                </ul>
-              )}
-            </div>
-
-            {(card.free_slots?.length ?? 0) > 0 && (
-              <div>
-                <p className="text-xs font-bold uppercase tracking-wide text-[#8a8378] mb-1">Free{card.free_slots_semester ? ` for ${card.free_slots_semester}` : ''} (from signup)</p>
-                <p className="text-sm text-[#4a4540]">{sortSlots(card.free_slots!).map(slotLabel).join(', ')}</p>
-              </div>
-            )}
-
-            {card.notes && (
-              <div>
-                <p className="text-xs font-bold uppercase tracking-wide text-[#8a8378] mb-1">Notes</p>
-                <p className="text-sm text-[#4a4540] whitespace-pre-wrap">{card.notes}</p>
-              </div>
-            )}
-
-            <div>
-              <p className="text-xs font-bold uppercase tracking-wide text-[#8a8378] mb-2">History</p>
-              <StudentHistory contactId={card.contact_id} compact />
-            </div>
-
+            <StudentPanel contactId={card.contact_id} fallbackName={card.name} />
             <CheckinLinkButton contactId={card.contact_id} />
 
             <a href={`/iowa/admin/students?q=${encodeURIComponent(card.name)}`} className="inline-block text-sm font-semibold" style={{ color: 'var(--navy)' }}>

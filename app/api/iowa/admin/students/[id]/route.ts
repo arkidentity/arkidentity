@@ -6,7 +6,7 @@ import { DORMANT_REASONS } from '@/lib/checkinFormat';
 
 export const dynamic = 'force-dynamic';
 
-const STATUSES: StudentStatus[] = ['unplaced', 'active', 'dormant', 'graduated', 'transferred', 'left_school'];
+const STATUSES: StudentStatus[] = ['unplaced', 'active', 'dormant', 'elsewhere', 'graduated', 'transferred', 'left_school'];
 
 // PATCH /api/iowa/admin/students/:contactId
 //

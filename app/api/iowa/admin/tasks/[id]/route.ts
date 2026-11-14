@@ -3,6 +3,7 @@ import { addTaskComment, deleteTask, setHelper, setHelpers, updateTask, type Tas
 import { currentStaff } from '@/lib/iowaStaff';
 import { can, requirePermission } from '@/lib/iowaPerms';
 import { getTask } from '@/lib/campusTasks';
+import { addStudentNote } from '@/lib/studentHistory';
 import { notifyAddedToTask, notifyHelpOffered, notifyTaskAssigned, notifyTaskComment } from '@/lib/taskNotify';
 
 export const dynamic = 'force-dynamic';
@@ -38,12 +39,14 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     if (comment !== undefined && Object.keys(fields).length === 0) {
       const activity = await addTaskComment(id, comment, me);
       await notifyTaskComment(id, comment.trim(), me);
+      await noteOnStudent(await getTask(id), comment, me);
       return NextResponse.json({ activity });
     }
     const { task, before } = await updateTask(id, fields, me);
     if (comment !== undefined && comment.trim()) {
       await addTaskComment(id, comment, me);
       await notifyTaskComment(id, comment.trim(), me);
+      await noteOnStudent(task, comment, me);
     }
     if (task.owner_id && task.owner_id !== before.owner_id && task.owner_id !== me?.id) {
       await notifyTaskAssigned(task.id, me);
@@ -65,4 +68,15 @@ export async function DELETE(_req: Request, { params }: { params: Promise<{ id: 
   } catch (e) {
     return NextResponse.json({ error: (e as Error).message }, { status: 400 });
   }
+}
+
+// A note on a student's task is part of that student's story too (11/13,
+// Travis): it lands on their history, so nobody has to say it twice.
+async function noteOnStudent(
+  task: { contact_id: string | null; title: string } | null,
+  comment: string,
+  me: Parameters<typeof addStudentNote>[2]
+) {
+  if (!task?.contact_id || !comment.trim()) return;
+  await addStudentNote(task.contact_id, `${task.title}: ${comment.trim()}`, me).catch(() => {});
 }

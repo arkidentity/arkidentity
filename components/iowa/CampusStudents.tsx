@@ -16,26 +16,10 @@ import { DailyDnaLink } from '@/components/iowa/DailyDnaLink';
 
 const input = 'px-3 py-2 border border-gray-300 rounded-md text-sm text-gray-900 bg-white';
 
-const STATUS_LABEL: Record<StudentStatus, string> = {
-  unplaced: 'Needs a study',
-  active: 'Active',
-  dormant: 'Dormant',
-  graduated: 'Graduated',
-  transferred: 'Transferred',
-  left_school: 'Left school',
-};
-
-const STATUS_COLOR: Record<StudentStatus, string> = {
-  unplaced: '#c2410c',
-  active: '#15803d',
-  dormant: '#9d855a',
-  graduated: '#143348',
-  transferred: '#2563eb',
-  left_school: '#8a8378',
-};
+import { STATUS_COLOR, STATUS_LABEL, YEARS } from '@/components/iowa/studentStatus';
 
 // Free text would sprawl the way tags do, so year is a fixed list.
-const YEARS = ['first-year', 'sophomore', 'junior', 'senior', 'grad', 'other'];
+
 
 interface StudyOption {
   id: string;

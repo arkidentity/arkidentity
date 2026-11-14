@@ -2,12 +2,11 @@
 
 import { CheckinLinks } from '@/components/iowa/campus/CheckinLinks';
 import { ReminderListTexts } from '@/components/iowa/campus/ReminderList';
-import { StudentLink } from '@/components/iowa/campus/StudentLink';
 import { useMemo, useState } from 'react';
 import type { CampusTask, TaskActivity } from '@/lib/campusTasks';
 import type { TaskFile } from '@/lib/taskFiles';
 import { supabase } from '@/lib/supabase';
-import { StudentHistory } from '@/components/iowa/StudentHistory';
+import StudentPanel from '@/components/iowa/campus/StudentPanel';
 import {
   PRIORITIES,
   TASK_STATUSES,
@@ -486,36 +485,14 @@ function TaskDetail(props: TaskListProps & { t: CampusTask; busy: boolean; call:
       {/* A student task leads with the student: name opens their card, the
           number texts them, the email emails them. Due date and owner are
           already on the row above, so they aren't repeated here. */}
-      {t.contact_id && t.contact_name && (
-        <div>
-          <p className="text-[15px] md:text-sm">
-            <StudentLink contactId={t.contact_id} name={t.contact_name} className="font-semibold text-[#1f2937]" />
-            {student.year && <span className="text-[#8a8378]"> · {student.year}</span>}
-          </p>
-          {(t.contact_phone || t.contact_email) && (
-            <p className="text-[15px] md:text-sm break-words">
-              {t.contact_phone && (
-                <a href={`sms:${t.contact_phone.replace(/[^\d+]/g, '')}`} className="underline" style={{ color: 'var(--navy)' }} title="Text">
-                  {t.contact_phone}
-                </a>
-              )}
-              {t.contact_phone && t.contact_email && <span className="text-[#8a8378]"> · </span>}
-              {t.contact_email && (
-                <a href={`mailto:${t.contact_email}`} className="underline" style={{ color: 'var(--navy)' }} title="Email">
-                  {t.contact_email}
-                </a>
-              )}
-            </p>
-          )}
-        </div>
-      )}
       {student.body && <p className="text-[15px] md:text-sm text-[#4a4540] whitespace-pre-wrap">{student.body}</p>}
       {t.auto_kind === 'reminder_list' && t.event_id && <ReminderListTexts eventId={t.event_id} />}
       {t.auto_kind === 'checkin_links' && <CheckinLinks ownerId={t.owner_id} />}
+      {/* The student, editable right here: status, year, study, contact, history
+          (11/13, Travis: no trip to the Students tab to update someone). */}
       {t.contact_id && (
         <div className="rounded-lg border border-gray-200 bg-[#FAF8F5] p-3">
-          <p className="text-xs font-bold uppercase tracking-wide text-[#8a8378] mb-2">History</p>
-          <StudentHistory contactId={t.contact_id} compact />
+          <StudentPanel contactId={t.contact_id} fallbackName={t.contact_name ?? undefined} />
         </div>
       )}
       <div className="flex flex-wrap items-center gap-2">
@@ -935,7 +912,7 @@ function FinishForm({ busy, onDone, onCancel }: { busy: boolean; onDone: (commen
         rows={2}
         value={text}
         onChange={(e) => setText(e.target.value)}
-        placeholder="Songs: Great Are You Lord, Goodness of God…"
+        placeholder="What happened? (Goes on the student’s history too.)"
       />
       <div className="flex gap-2 mt-2">
         <button disabled={busy} onClick={() => onDone(text.trim())} className={btnPrimary} style={{ backgroundColor: '#15803d' }}>

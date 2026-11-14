@@ -13,7 +13,7 @@ const TABS: { href: string; label: string; needs?: Permission; also?: string[] }
   { href: '/iowa/admin', label: 'Today' },
   { href: '/iowa/admin/calendar', label: 'Calendar' },
   { href: '/iowa/admin/studies', label: 'Studies', needs: 'viewAllStudies' },
-  { href: '/iowa/admin/students', label: 'People', needs: 'viewStudents' },
+  { href: '/iowa/admin/students', label: 'Students', needs: 'viewStudents' },
   { href: '/iowa/admin/more', label: 'More', also: ['/iowa/admin/events', '/iowa/admin/staff', '/iowa/admin/settings', '/iowa/admin/tasks', '/iowa/admin/outreach'] },
 ];
 const ADD: { href: string; label: string; needs?: Permission }[] = [

@@ -59,6 +59,7 @@ export function CampusStudents({
   const [yearFilter, setYearFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState<StudentStatus | ''>('');
   const [placement, setPlacement] = useState<Placement>('all');
+  const [moreFilters, setMoreFilters] = useState(false);
   const [openId, setOpenId] = useState<string | null>(null);
   const [showReport, setShowReport] = useState(openReport);
   const [adding, setAdding] = useState(startAdding);
@@ -114,37 +115,32 @@ export function CampusStudents({
 
   return (
     <div style={{ background: '#FAF8F5', minHeight: '100vh' }}>
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
-        {/* Title + count on the left, actions together on the right. On a phone the
-            two buttons drop below and split the row so both are easy thumb targets. */}
-        <div className="flex flex-wrap items-end justify-between gap-x-4 gap-y-3 mb-5">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pt-5 pb-24 sm:py-10">
+        <div className="flex items-end justify-between gap-3 mb-4">
           <div>
-            <h1 className="text-3xl font-bold" style={{ color: 'var(--navy)' }}>Students</h1>
-            <p className="mt-1" style={{ color: '#8a8378' }}>
+            <h1 className="text-2xl sm:text-3xl font-bold" style={{ color: 'var(--navy)' }}>Students</h1>
+            <p className="text-sm" style={{ color: '#8a8378' }}>
               {semester} ·{' '}
-              {visible.length === counts.total ? `${counts.total} students` : `${visible.length} of ${counts.total} students`}
-              {counts.unplaced > 0 && ` · ${counts.unplaced} active but not in a study`}
+              {visible.length === counts.total ? `${counts.total} students` : `${visible.length} of ${counts.total}`}
             </p>
           </div>
-          <div className="flex w-full sm:w-auto gap-2">
-            {report && (
-              <button
-                onClick={() => setShowReport(true)}
-                className="flex-1 sm:flex-none px-4 py-2.5 rounded-lg font-semibold text-sm border"
-                style={{ borderColor: 'var(--navy)', color: 'var(--navy)', backgroundColor: 'white' }}
-              >
-                Check-in report{report.length > 0 && ` (${report.length})`}
-              </button>
-            )}
+          {report && (
             <button
-              onClick={() => setAdding((v) => !v)}
-              className="flex-1 sm:flex-none px-4 py-2.5 rounded-lg font-semibold text-sm"
-              style={{ backgroundColor: 'var(--navy)', color: 'white' }}
+              onClick={() => setShowReport(true)}
+              className="shrink-0 px-4 min-h-11 rounded-lg font-semibold text-sm border bg-white"
+              style={{ borderColor: '#d6cfc2', color: 'var(--navy)' }}
             >
-              {adding ? 'Close' : '+ Add student'}
+              Check-ins{report.length > 0 && ` (${report.length})`}
             </button>
-          </div>
+          )}
         </div>
+        <button
+          onClick={() => setAdding(true)}
+          className="fixed z-40 right-4 px-5 min-h-12 rounded-full font-bold shadow-lg"
+          style={{ background: '#E8B562', color: '#1a2b3c', bottom: 'calc(80px + env(safe-area-inset-bottom))' }}
+        >
+          + Add student
+        </button>
         {showReport && report && (
           <CheckinReport
             initial={report}
@@ -153,10 +149,12 @@ export function CampusStudents({
           />
         )}
         {adding && (
-          <div className="rounded-xl border border-gray-200 bg-white p-4 mb-4 grid sm:grid-cols-2 gap-2">
-            <input className={input} placeholder="Name" value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} />
-            <input className={input} placeholder="Phone" value={f.phone} onChange={(e) => setF({ ...f, phone: e.target.value })} />
-            <input className={input} placeholder="Email (optional)" value={f.email} onChange={(e) => setF({ ...f, email: e.target.value })} />
+          <Modal title="Add a student" sub="Phone is required so someone can text them." onClose={() => setAdding(false)}>
+          {error && <p className="mb-3 text-sm" style={{ color: '#b91c1c' }}>{error}</p>}
+          <div className="grid gap-2">
+            <input className={input} autoComplete="off" placeholder="Name" value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} />
+            <input className={input} type="tel" inputMode="tel" placeholder="Phone" value={f.phone} onChange={(e) => setF({ ...f, phone: e.target.value })} />
+            <input className={input} type="email" inputMode="email" placeholder="Email (optional)" value={f.email} onChange={(e) => setF({ ...f, email: e.target.value })} />
             <select className={input} value={f.year} onChange={(e) => setF({ ...f, year: e.target.value })}>
               <option value="">Year (optional)</option>
               {YEARS.map((y) => (
@@ -171,58 +169,72 @@ export function CampusStudents({
               <option value="friend">A friend invited them</option>
               <option value="self">Found it on their own</option>
             </select>
-            <div className="sm:col-span-2 flex gap-2">
+            <div className="flex justify-end gap-2 mt-3">
+              <button onClick={() => setAdding(false)} className="px-4 min-h-11 rounded-lg text-sm font-semibold text-[#8a8378]">
+                Cancel
+              </button>
               <button
-                disabled={busy}
+                disabled={busy || !f.name.trim() || !f.phone.trim()}
                 onClick={addStudent}
-                className="px-4 py-2 rounded-md text-sm font-semibold text-white transition hover:opacity-90 disabled:opacity-50"
+                className="px-5 min-h-11 rounded-lg text-sm font-semibold text-white transition hover:opacity-90 disabled:opacity-50"
                 style={{ backgroundColor: 'var(--navy)' }}
               >
-                Add
-              </button>
-              <button onClick={() => setAdding(false)} className="px-4 py-2 rounded-md text-sm text-[#8a8378]">
-                Cancel
+                {busy ? 'Adding…' : 'Add student'}
               </button>
             </div>
           </div>
+          </Modal>
         )}
-        {error && <p className="mb-4 text-sm" style={{ color: '#b91c1c' }}>{error}</p>}
 
-        {/* Filters */}
-        <div className="rounded-xl p-3 sm:p-4 mb-5 grid grid-cols-2 sm:flex sm:flex-wrap gap-2 sm:gap-3" style={{ backgroundColor: '#FFFFFF', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
-          <input
-            type="search"
-            placeholder="Search name, email, phone"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className={`${input} col-span-2 sm:flex-1 sm:min-w-[200px]`}
-          />
-          <select value={yearFilter} onChange={(e) => setYearFilter(e.target.value)} className={`${input} w-full sm:w-auto`}>
-            <option value="">All years</option>
-            {YEARS.map((y) => <option key={y} value={y}>{y}</option>)}
-          </select>
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value as StudentStatus | '')}
-            className={`${input} w-full sm:w-auto`}
-          >
-            <option value="">All statuses</option>
-            {(Object.keys(STATUS_LABEL) as StudentStatus[]).map((s) => (
-              <option key={s} value={s}>{STATUS_LABEL[s]}</option>
-            ))}
-          </select>
-          <select value={placement} onChange={(e) => setPlacement(e.target.value as Placement)} className={`${input} w-full sm:w-auto`}>
-            <option value="all">Placed or not</option>
-            <option value="placed">In a study</option>
-            <option value="unplaced">Not in a study</option>
-          </select>
-          {filtered && (
-            <button onClick={clearFilters} className="text-sm font-semibold underline whitespace-nowrap px-1" style={{ color: 'var(--navy)' }}>
-              Clear filters
+        {/* Search, then status as chips; year and placement are rarer, under More. */}
+        <input
+          type="search"
+          placeholder="Search name, email, phone"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className={`${input} w-full min-h-11 mb-2`}
+        />
+        <div className="flex gap-2 overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0 pb-1 mb-2">
+          {([['', 'All'], ['unplaced', 'Needs a study'], ['active', 'Active'], ['dormant', 'Dormant'], ['elsewhere', 'Elsewhere']] as [StudentStatus | '', string][]).map(([k, label]) => (
+            <button
+              key={k || 'all'}
+              onClick={() => setStatusFilter(k)}
+              className="shrink-0 px-3 min-h-9 rounded-full text-sm font-semibold border"
+              style={statusFilter === k ? { backgroundColor: 'var(--navy)', color: 'white', borderColor: 'var(--navy)' } : { backgroundColor: 'white', color: 'var(--navy)', borderColor: '#e7e2d9' }}
+            >
+              {label}
+              {k === 'unplaced' && counts.unplaced > 0 ? ` (${counts.unplaced})` : ''}
             </button>
-          )}
+          ))}
+          <button onClick={() => setMoreFilters((v) => !v)} className="shrink-0 px-3 min-h-9 text-sm font-semibold underline" style={{ color: 'var(--navy)' }}>
+            {moreFilters ? 'Fewer' : 'More'}
+          </button>
         </div>
-
+        {moreFilters && (
+          <div className="grid grid-cols-2 sm:flex gap-2 mb-2">
+            <select value={yearFilter} onChange={(e) => setYearFilter(e.target.value)} className={`${input} w-full sm:w-auto`}>
+              <option value="">All years</option>
+              {YEARS.map((y) => <option key={y} value={y}>{y}</option>)}
+            </select>
+            <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value as StudentStatus | '')} className={`${input} w-full sm:w-auto`}>
+              <option value="">All statuses</option>
+              {(Object.keys(STATUS_LABEL) as StudentStatus[]).map((st) => (
+                <option key={st} value={st}>{STATUS_LABEL[st]}</option>
+              ))}
+            </select>
+            <select value={placement} onChange={(e) => setPlacement(e.target.value as Placement)} className={`${input} w-full sm:w-auto col-span-2`}>
+              <option value="all">Placed or not</option>
+              <option value="placed">In a study</option>
+              <option value="unplaced">Not in a study</option>
+            </select>
+          </div>
+        )}
+        {filtered && (
+          <button onClick={clearFilters} className="mb-3 text-sm font-semibold underline min-h-9" style={{ color: 'var(--navy)' }}>
+            Clear filters
+          </button>
+        )}
+        <div className="mb-3" />
         <Dupes groups={dupes} />
 
         <div className="rounded-xl overflow-hidden" style={{ backgroundColor: '#FFFFFF', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
@@ -253,7 +265,7 @@ export function CampusStudents({
           {visible.length === 0 && (
             <p className="px-5 py-6 text-sm" style={{ color: '#8a8378' }}>
               {students.length === 0
-                ? 'No students yet. Add one above, or they appear once someone joins a Bible study.'
+                ? 'No students yet. Tap + Add student, or they appear once someone joins a Bible study.'
                 : <>Nothing matches those filters. <button onClick={clearFilters} className="font-semibold underline" style={{ color: 'var(--navy)' }}>Clear filters</button></>}
             </p>
           )}

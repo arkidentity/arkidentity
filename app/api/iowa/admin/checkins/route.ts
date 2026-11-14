@@ -22,14 +22,30 @@ export async function GET(req: Request) {
   }
 }
 
-// POST { contactId } → { url, semester } — a check-in for anyone (a dormant or
+// POST { contactId } → { url, semester } — a next-semester check-in for anyone (a dormant or
 // never-placed student staff want to ask by hand).
+// POST { contactIds, current: true } → { semester, from, links: [{ contactId, url }] } — the
+// same link for THIS semester, so students waiting for a study can pick their free times
+// (Studies → Waiting for a study → Text them for times).
 export async function POST(req: Request) {
   const me = await requirePermission('viewStudents');
   if (me instanceof NextResponse) return me;
-  const { contactId } = (await req.json().catch(() => ({}))) as { contactId?: string };
-  if (!contactId) return NextResponse.json({ error: 'Which student?' }, { status: 400 });
+  const body = (await req.json().catch(() => ({}))) as { contactId?: string; contactIds?: string[]; current?: boolean };
   const ctx = await semesterContext();
+  if (body.current) {
+    if (!ctx.current) return NextResponse.json({ error: 'No current semester is set.' }, { status: 400 });
+    const ids = (body.contactIds ?? []).filter((x) => typeof x === 'string').slice(0, 200);
+    try {
+      const links = await Promise.all(
+        ids.map(async (contactId) => ({ contactId, url: checkinUrl((await ensureCheckin(contactId, ctx.current!.name)).token) }))
+      );
+      return NextResponse.json({ semester: ctx.current.name, from: me.name.split(' ')[0], links });
+    } catch (e) {
+      return NextResponse.json({ error: (e as Error).message }, { status: 400 });
+    }
+  }
+  const { contactId } = body;
+  if (!contactId) return NextResponse.json({ error: 'Which student?' }, { status: 400 });
   if (!ctx.next) return NextResponse.json({ error: 'Next semester isn’t open yet.' }, { status: 400 });
   try {
     const c = await ensureCheckin(contactId, ctx.next.name);

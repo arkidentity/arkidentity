@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { GROUP_LABEL, groupFits, slotLabel, type GroupType, type StudentGender } from '@/lib/bibleStudyFormat';
 import { ContactButtons, ErrorBox, Modal, useCall } from '@/components/iowa/campus/ui';
 import StudentPanel from '@/components/iowa/campus/StudentPanel';
@@ -41,6 +41,8 @@ export default function WaitingList({ students, studies }: { students: WaitingSt
   const [placing, setPlacing] = useState<WaitingStudent | null>(null);
   const [profile, setProfile] = useState<WaitingStudent | null>(null);
   const [all, setAll] = useState(false);
+  const [asking, setAsking] = useState(false);
+  const noTimes = students.filter((p) => p.free.length === 0);
   const { call, busy, error } = useCall();
   if (!students.length) return null;
 
@@ -75,6 +77,15 @@ export default function WaitingList({ students, studies }: { students: WaitingSt
           </li>
         ))}
       </ul>
+      {noTimes.length > 0 && (
+        <div className="flex items-center justify-between gap-3 mt-2 pt-3 border-t border-[#ecdcb8]">
+          <p className="text-sm text-[#7d766b]">{noTimes.length} haven’t told us when they’re free.</p>
+          <button onClick={() => setAsking(true)} className="shrink-0 px-4 min-h-11 rounded-lg text-sm font-bold" style={{ background: '#E8B562', color: '#143348' }}>
+            Text them for times
+          </button>
+        </div>
+      )}
+      {asking && <AskForTimes students={noTimes} onClose={() => setAsking(false)} />}
       {students.length > SHOW && (
         <button onClick={() => setAll((v) => !v)} className="w-full mt-1 min-h-11 text-sm font-semibold border-t border-[#ecdcb8]" style={{ color: 'var(--navy)' }}>
           {all ? 'Show fewer' : `See all ${students.length}`}
@@ -126,5 +137,98 @@ function Studies({ list, busy, onPick }: { list: OpenStudy[]; busy: boolean; onP
         </li>
       ))}
     </ul>
+  );
+}
+
+// One text per student, each with their own link to tap free times (the semester
+// check-in page, for this semester). Your phone sends it; nothing goes out from here.
+// "Texted" is remembered on this phone for a week so you can work down the list.
+const SENT_KEY = 'iowa-asked-times';
+function readSent(): Record<string, number> {
+  try {
+    const all = JSON.parse(localStorage.getItem(SENT_KEY) ?? '{}') as Record<string, number>;
+    const weekAgo = Date.now() - 7 * 86400000;
+    return Object.fromEntries(Object.entries(all).filter(([, t]) => t > weekAgo));
+  } catch {
+    return {};
+  }
+}
+
+function rememberSent(id: string): Record<string, number> {
+  const next = { ...readSent(), [id]: Date.now() };
+  try {
+    localStorage.setItem(SENT_KEY, JSON.stringify(next));
+  } catch {
+    /* private mode: still mark it for this visit */
+  }
+  return next;
+}
+
+function AskForTimes({ students, onClose }: { students: WaitingStudent[]; onClose: () => void }) {
+  const [links, setLinks] = useState<Record<string, string> | null>(null);
+  const [from, setFrom] = useState('');
+  const [error, setError] = useState('');
+  const [sent, setSent] = useState<Record<string, number>>({});
+
+  useEffect(() => {
+    setSent(readSent());
+    let live = true;
+    fetch('/api/iowa/admin/checkins', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ current: true, contactIds: students.map((p) => p.contact_id) }),
+    })
+      .then(async (r) => {
+        const j = await r.json().catch(() => ({}));
+        if (!live) return;
+        if (!r.ok) return setError(j.error ?? 'Couldn’t make the links.');
+        setFrom(j.from ?? '');
+        setLinks(Object.fromEntries((j.links as { contactId: string; url: string }[]).map((l) => [l.contactId, l.url])));
+      })
+      .catch(() => live && setError('Couldn’t make the links.'));
+    return () => {
+      live = false;
+    };
+  }, [students]);
+
+  const message = (p: WaitingStudent) =>
+    `Hey ${p.name.split(' ')[0]}, it’s ${from || 'us'} from ARK Iowa! We want to get you into a Bible study. Tap here and pick the times you’re free, and we’ll find you a group: ${links?.[p.contact_id] ?? ''}`;
+  const markSent = (id: string) => setSent(rememberSent(id));
+  const left = students.filter((p) => !sent[p.contact_id]).length;
+
+  return (
+    <Modal title="Text them for times" sub={`${left} of ${students.length} still to text`} onClose={onClose}>
+      <ErrorBox error={error} />
+      <p className="text-sm text-[#7d766b] mb-3">
+        Each Text opens Messages with their own link filled in. Their answers show up here as free times, and Place puts
+        studies at those times first.
+      </p>
+      {!links && !error && <p className="text-sm text-[#7d766b]">Making links…</p>}
+      {links && (
+        <ul className="rounded-xl overflow-hidden bg-white border border-gray-200">
+          {students.map((p) => {
+            const done = !!sent[p.contact_id];
+            return (
+              <li key={p.contact_id} className="flex items-center justify-between gap-3 px-4 py-2.5 border-t border-gray-100 first:border-t-0">
+                <span className="min-w-0">
+                  <span className="block font-semibold" style={{ color: done ? '#9a938a' : 'var(--navy)' }}>{p.name}</span>
+                  <span className="block text-sm text-[#7d766b]">{done ? 'Texted' : p.phone ?? 'No phone'}</span>
+                </span>
+                {p.phone && (
+                  <a
+                    href={`sms:${p.phone.replace(/[^\d+]/g, '')}?&body=${encodeURIComponent(message(p))}`}
+                    onClick={() => markSent(p.contact_id)}
+                    className="shrink-0 px-4 min-h-11 inline-flex items-center rounded-lg text-sm font-semibold"
+                    style={done ? { border: '1px solid rgba(20,51,72,0.4)', color: '#143348' } : { background: '#143348', color: '#fff' }}
+                  >
+                    {done ? 'Again' : 'Text'}
+                  </a>
+                )}
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </Modal>
   );
 }

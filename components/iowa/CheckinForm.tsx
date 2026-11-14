@@ -11,7 +11,9 @@ export default function CheckinForm({
   token,
   semester,
   initial,
+  now = false,
 }: {
+  now?: boolean; // a link for THIS semester (someone waiting for a study)
   token: string;
   semester: string;
   initial: { response: Response | null; slots: string[] };
@@ -56,8 +58,8 @@ export default function CheckinForm({
         </p>
         <p className="text-[#4a4540] mt-1">
           {response === 'no'
-            ? `We’ll miss you in ${semester}. You’re always welcome back.`
-            : `We’ll let you know your ${semester} group before break.`}
+            ? now ? 'No problem. You’re always welcome later.' : `We’ll miss you in ${semester}. You’re always welcome back.`
+            : now ? 'We’ll text you a group that meets at one of those times.' : `We’ll let you know your ${semester} group before break.`}
         </p>
         <button onClick={() => setStatus('idle')} className="mt-3 text-sm font-semibold underline" style={{ color: 'var(--navy)' }}>
           Change my answer
@@ -84,15 +86,15 @@ export default function CheckinForm({
   return (
     <div className="space-y-8">
       <div className="flex flex-wrap gap-2">
-        {choice('yes', 'I’m in')}
+        {choice('yes', now ? 'Yes, find me a group' : 'I’m in')}
         {choice('unsure', 'Not sure yet')}
-        {choice('no', 'Not this time')}
+        {choice('no', now ? 'Not right now' : 'Not this time')}
       </div>
 
       {response && response !== 'no' && (
         <div>
           <span className="block text-sm font-semibold mb-1" style={{ color: 'var(--navy)' }}>
-            When are you free in {semester}?
+            {now ? 'When are you free?' : `When are you free in ${semester}?`}
           </span>
           <p className="text-sm text-[#8a8378] mb-3">Tap every time you could meet. More is better.</p>
           <SlotGrid cells={cells} onToggle={toggle} />

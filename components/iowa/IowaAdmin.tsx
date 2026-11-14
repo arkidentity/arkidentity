@@ -711,73 +711,64 @@ function MemberRow({
   const reasonLabel = DROP_REASONS.find((r) => r.key === m.drop_reason)?.label;
 
   return (
-    <li className="text-sm">
-      <div className="flex items-center justify-between gap-3">
-        <span className={dropped ? 'text-[#b0a99e] line-through' : 'text-[#4a4540]'}>
-          <StudentLink contactId={m.contact_id} name={m.name} />
-          {/* Phone AND email — you can't text someone their email address. */}
-          <span className="text-[#8a8378]">
-            {m.phone && (
-              <>{' · '}<a href={`sms:${m.phone.replace(/[^\d+]/g, '')}`} title="Text" className="hover:underline">{m.phone}</a></>
-            )}
-            {m.email && (
-              <>{' · '}<a href={`mailto:${m.email}`} className="hover:underline">{m.email}</a></>
-            )}
-            {m.year ? ` · ${m.year}` : ''}
-            {m.met_by_staff_id && staff.get(m.met_by_staff_id)
-              ? ` · met ${staff.get(m.met_by_staff_id)!.name.split(' ')[0]}`
-              : m.met_by_other === 'friend'
-                ? ' · friend invited'
-                : ''}
-          </span>
-          {!dropped && m.first_showed === true && (
-            <span className="ml-1 text-xs font-semibold text-green-700" title="Made it to their first study">✓ came</span>
-          )}
-          {!dropped && m.first_showed === false && (
-            <span className="ml-1 text-xs font-semibold text-red-700" title="Missed their first study">✗ no-show</span>
-          )}
-          {dropped && reasonLabel && (
-            <span className="no-underline inline-block ml-1 text-xs text-[#8a8378]" style={{ textDecoration: 'none' }}>
-              ({reasonLabel}
-              {m.drop_note ? `: ${m.drop_note}` : ''})
-            </span>
-          )}
-        </span>
-        <span className="flex gap-1 shrink-0">
-          {!dropped && (
-            <button
-              onClick={() => setMoving((v) => !v)}
-              disabled={busy}
-              className="text-xs font-semibold px-2 py-1 rounded border transition hover:bg-gray-50 disabled:opacity-50"
-              style={{ borderColor: '#d1d5db', color: '#143348' }}
-            >
-              {moving ? 'Cancel' : 'Move'}
-            </button>
-          )}
-          {!dropped && (
-            <button
-              onClick={() => setAdding((v) => !v)}
-              disabled={busy}
-              title="Also put them in another study (they stay in this one)"
-              className="text-xs font-semibold px-2 py-1 rounded border transition hover:bg-gray-50 disabled:opacity-50"
-              style={{ borderColor: '#d1d5db', color: '#143348' }}
-            >
-              {adding ? 'Cancel' : '+ Study'}
-            </button>
-          )}
-          <button
-            onClick={() =>
-              dropped
-                ? call(`/api/iowa/admin/members/${m.id}`, 'PATCH', { status: 'active' })
-                : setDropping((v) => !v)
-            }
-            disabled={busy}
-            className="text-xs font-semibold px-2 py-1 rounded border transition hover:bg-gray-50 disabled:opacity-50"
-            style={{ borderColor: '#d1d5db', color: dropped ? '#15803d' : '#b91c1c' }}
-          >
-            {dropped ? 'Restore' : dropping ? 'Cancel' : 'Drop'}
+    <li className="rounded-lg border border-gray-200 bg-white px-3 py-2.5">
+      {/* Name and details on top; Text + the roster actions in a row underneath (bottom-right). */}
+      <div className={dropped ? 'text-[#b0a99e] line-through' : ''}>
+        <StudentLink contactId={m.contact_id} name={m.name} className="font-semibold text-[15px]" />
+        {!dropped && m.first_showed === true && (
+          <span className="ml-2 text-xs font-semibold text-green-700" title="Made it to their first study">came</span>
+        )}
+        {!dropped && m.first_showed === false && (
+          <span className="ml-2 text-xs font-semibold text-red-700" title="Missed their first study">no-show</span>
+        )}
+      </div>
+      <p className="text-sm text-[#8a8378]">
+        {[
+          m.year,
+          m.met_by_staff_id && staff.get(m.met_by_staff_id)
+            ? `met ${staff.get(m.met_by_staff_id)!.name.split(' ')[0]}`
+            : m.met_by_other === 'friend'
+              ? 'friend invited'
+              : null,
+          dropped && reasonLabel ? `left: ${reasonLabel}${m.drop_note ? ` (${m.drop_note})` : ''}` : null,
+        ]
+          .filter(Boolean)
+          .join(' · ')}
+      </p>
+      <div className="flex flex-wrap justify-end gap-1.5 mt-2">
+        {!dropped && m.phone && (
+          <a href={`sms:${m.phone.replace(/[^\d+]/g, '')}`} className="inline-flex items-center min-h-9 px-3 text-sm font-semibold rounded-md border bg-white transition hover:bg-gray-50 disabled:opacity-50" style={{ borderColor: '#d1d5db', color: '#143348' }}>
+            Text
+          </a>
+        )}
+        {!dropped && (
+          <button onClick={() => setMoving((v) => !v)} disabled={busy} className="inline-flex items-center min-h-9 px-3 text-sm font-semibold rounded-md border bg-white transition hover:bg-gray-50 disabled:opacity-50" style={{ borderColor: '#d1d5db', color: '#143348' }}>
+            {moving ? 'Cancel' : 'Move'}
           </button>
-        </span>
+        )}
+        {!dropped && (
+          <button
+            onClick={() => setAdding((v) => !v)}
+            disabled={busy}
+            title="Also put them in another study (they stay in this one)"
+            className="inline-flex items-center min-h-9 px-3 text-sm font-semibold rounded-md border bg-white transition hover:bg-gray-50 disabled:opacity-50"
+            style={{ borderColor: '#d1d5db', color: '#143348' }}
+          >
+            {adding ? 'Cancel' : '+ Study'}
+          </button>
+        )}
+        <button
+          onClick={() =>
+            dropped
+              ? call(`/api/iowa/admin/members/${m.id}`, 'PATCH', { status: 'active' })
+              : setDropping((v) => !v)
+          }
+          disabled={busy}
+          className="inline-flex items-center min-h-9 px-3 text-sm font-semibold rounded-md border bg-white transition hover:bg-gray-50 disabled:opacity-50"
+          style={{ borderColor: '#d1d5db', color: dropped ? '#15803d' : '#b91c1c' }}
+        >
+          {dropped ? 'Restore' : dropping ? 'Cancel' : 'Drop'}
+        </button>
       </div>
 
       {/* Why they're leaving — feeds re-invites next semester. */}

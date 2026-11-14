@@ -321,7 +321,6 @@ export default function Dashboard({
             {isOpen && finishing !== t.id && (
               <div className="px-4 pb-3 flex items-center justify-end gap-1 flex-wrap">
                 <Btn kind="quiet" onClick={() => { setRowOpen(null); setPopup([t.id]); }}>Open</Btn>
-                {!person && t.contact_id && <Btn kind="quiet" onClick={() => setProfile(t)}>Profile</Btn>}
                 <Btn
                   disabled={busy === t.id}
                   onClick={() => patch(t, { due_date: addDays(t.due_date && t.due_date > today ? t.due_date : today, 7) }, 'Moved to next week')}

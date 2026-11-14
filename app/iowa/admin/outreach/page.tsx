@@ -25,8 +25,9 @@ export default async function OutreachAdminPage() {
 
   return (
     <div style={{ background: '#FAF8F5', color: '#4a4540', minHeight: '100vh' }}>
-      <div className="max-w-3xl mx-auto px-4 sm:px-6 py-10 space-y-8">
+      <div className="max-w-3xl mx-auto px-4 sm:px-6 pt-4 pb-10 space-y-6">
         <div>
+          <a href="/iowa/admin/events" className="inline-flex min-h-11 items-center font-semibold" style={navy}>‹ Events</a>
           <h1 className="text-2xl font-bold" style={navy}>
             Trick or Truth
           </h1>
@@ -41,7 +42,7 @@ export default async function OutreachAdminPage() {
           const total = people.reduce((n, p) => n + 1 + p.bringing, 0);
           const leads = people.filter((p) => p.experience === 'lead').length;
           return (
-            <section key={slot.key} className="bg-white rounded-xl border border-gray-200 p-5">
+            <section key={slot.key} className="bg-white rounded-xl border border-gray-200 p-4 sm:p-5">
               <div className="flex items-baseline justify-between gap-3 mb-3">
                 <h2 className="font-bold" style={navy}>
                   {slot.label}
@@ -63,11 +64,10 @@ export default async function OutreachAdminPage() {
                         {p.under_18 ? ' · under 18' : ''}
                       </p>
                       {showContact && (
-                        <p className="flex flex-wrap gap-x-3 gap-y-1 my-1">
-                          <a href={`sms:${p.phone}`} className="font-semibold underline" style={navy}>Text</a>
-                          <a href={`tel:${p.phone}`} className="font-semibold underline" style={navy}>Call</a>
-                          <a href={`mailto:${p.email}`} className="font-semibold underline" style={navy}>Email</a>
-                          <span className="text-[#8a8378]">{p.phone} · {p.email}</span>
+                        <p className="flex flex-wrap gap-2 my-1.5">
+                          {[['Text', `sms:${p.phone}`], ['Call', `tel:${p.phone}`], ['Email', `mailto:${p.email}`]].map(([l, h]) => (
+                            <a key={l} href={h} className="px-3 min-h-9 inline-flex items-center rounded-md border border-gray-300 bg-white text-sm font-semibold" style={navy}>{l}</a>
+                          ))}
                         </p>
                       )}
                       <p className="text-[#8a8378]">
@@ -84,7 +84,7 @@ export default async function OutreachAdminPage() {
           );
         })}
 
-        <section className="bg-white rounded-xl border border-gray-200 p-5">
+        <section className="bg-white rounded-xl border border-gray-200 p-4 sm:p-5">
           <h2 className="font-bold mb-3" style={navy}>
             Debriefs ({debriefs.length})
           </h2>

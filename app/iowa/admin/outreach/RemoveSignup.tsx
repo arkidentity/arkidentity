@@ -16,7 +16,7 @@ export function RemoveSignup({ id, name }: { id: string; name: string }) {
     else window.alert('Couldn’t remove it. Try again.');
   };
   return (
-    <button type="button" onClick={remove} disabled={busy} className="text-xs text-[#8a8378] underline shrink-0">
+    <button type="button" onClick={remove} disabled={busy} className="text-sm text-[#8a8378] underline shrink-0 min-h-11 px-1">
       {busy ? 'Removing…' : 'Remove'}
     </button>
   );

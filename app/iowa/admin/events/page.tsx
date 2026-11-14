@@ -31,19 +31,23 @@ export default async function EventsPage() {
   const navy = { color: 'var(--navy)' };
   return (
     <div style={{ background: '#FAF8F5', color: '#4a4540', minHeight: '100vh' }}>
-      <div className="max-w-3xl mx-auto px-4 sm:px-6 py-10 space-y-4">
-        <h1 className="text-2xl font-bold" style={navy}>Events</h1>
-        <p className="text-[#8a8378]">Special events with sign-ups. Scheduling stays on the calendar.</p>
-        {events.map(e => (
-          <Link key={e.href} href={e.href} className="block bg-white rounded-xl border border-gray-200 p-5 hover:border-gray-300">
-            <div className="flex items-baseline justify-between gap-3">
-              <h2 className="font-bold text-lg" style={navy}>{e.title}</h2>
-              <span className="text-sm text-[#8a8378]">{e.when}</span>
-            </div>
-            <p className="text-sm text-[#4a4540] mt-1">{e.line}</p>
-            <p className="text-xs text-[#8a8378] mt-2">Public page: arkidentity.com{e.page} · Manage →</p>
-          </Link>
-        ))}
+      <div className="max-w-3xl mx-auto px-4 sm:px-6 pt-4 pb-10">
+        <Link href="/iowa/admin/more" className="inline-flex min-h-11 items-center font-semibold" style={navy}>‹ More</Link>
+        <h1 className="text-2xl font-bold" style={navy}>Events with sign-ups</h1>
+        <p className="text-sm text-[#8a8378] mb-4">Who signed up, and their links. Times live on the Calendar.</p>
+        <ul className="rounded-xl bg-white border border-gray-200 overflow-hidden">
+          {events.map((e, i) => (
+            <li key={e.href} className={i ? 'border-t border-gray-100' : ''}>
+              <Link href={e.href} className="flex items-center justify-between gap-3 px-4 py-3.5">
+                <span className="min-w-0">
+                  <span className="block font-semibold" style={navy}>{e.title}</span>
+                  <span className="block text-sm text-[#8a8378]">{e.when} · {e.line}</span>
+                </span>
+                <span className="text-xl text-[#8a8378]" aria-hidden>›</span>
+              </Link>
+            </li>
+          ))}
+        </ul>
       </div>
     </div>
   );

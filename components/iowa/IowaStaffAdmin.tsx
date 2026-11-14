@@ -53,13 +53,14 @@ export default function IowaStaffAdmin({
 
   return (
     <div style={{ background: '#FAF8F5', minHeight: '100vh', color: '#1f2937' }}>
-      <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+      <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 pt-4 pb-8 sm:py-12">
+        <a href="/iowa/admin/more" className="inline-flex min-h-11 items-center font-semibold" style={{ color: 'var(--navy)' }}>‹ More</a>
         <div className="flex items-baseline justify-between mb-2">
-          <h1 className="text-3xl font-bold" style={{ color: 'var(--navy)' }}>
+          <h1 className="text-2xl sm:text-3xl font-bold" style={{ color: 'var(--navy)' }}>
             {selfOnly ? 'My account' : 'Staff'}
           </h1>
         </div>
-        <p className="text-sm text-[#8a8378] mb-8">
+        <p className="text-sm text-[#8a8378] mb-6">
           {selfOnly
             ? 'Your details, your password, and your schedule for the semester.'
             : 'Everyone here can sign in to the Iowa admin, and can be put on point for a study.'}

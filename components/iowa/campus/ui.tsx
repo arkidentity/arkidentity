@@ -177,7 +177,7 @@ export function ErrorBox({ error }: { error: string }) {
 export function PageShell({ children }: { children: React.ReactNode }) {
   return (
     <div style={{ background: '#FAF8F5', minHeight: '100vh', color: '#1f2937' }}>
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">{children}</div>
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pt-4 pb-8 sm:py-8">{children}</div>
     </div>
   );
 }

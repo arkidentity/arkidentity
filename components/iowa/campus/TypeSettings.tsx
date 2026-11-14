@@ -58,7 +58,8 @@ export default function TypeSettings({
   const { call, busy, error } = useCall();
   return (
     <PageShell>
-      <h1 className="text-3xl font-bold mb-1" style={{ color: 'var(--navy)' }}>
+      <a href="/iowa/admin/more" className="inline-flex min-h-11 items-center font-semibold" style={{ color: 'var(--navy)' }}>‹ More</a>
+      <h1 className="text-2xl sm:text-3xl font-bold mb-1" style={{ color: 'var(--navy)' }}>
         Settings
       </h1>
       <p className="text-sm text-[#8a8378] mb-8">

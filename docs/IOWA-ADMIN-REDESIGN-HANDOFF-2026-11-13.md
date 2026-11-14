@@ -12,6 +12,10 @@ tap to act, and every task, study, event and student editable from wherever you 
 | b87f1a4 | `StudentPanel` (editable student: status, year, study put-in/move/drop, contact, history + note) inside tasks and every student-name popup. Done asks "What happened?"; the note also goes on the student's history. New status **In a study elsewhere** (mig 062) |
 | 81b5e0d | A task's "For …" line opens its study or event in place (`useOpenItem`, `CampusCalendar openRequest`) |
 | d03212a | `Modal` is full screen on phones; task actions in a bottom bar (Done / Next week / Take it / I can help); People = tap-to-open list using `StudentPanel` (+ who met them, Daily DNA link) |
+| afbb2c4 | `/iowa/lab/studies` mock |
+| c4e6155 | Studies tab: Waiting for a study (Place → Put in, `WaitingList.tsx`), seat dots, filters, study opens full screen, + New study button |
+| c06fa76 | Events with sign-ups: list rows, Baja board tap-a-person (checks, raised, Not going), no browser prompts |
+| d225aa4 | Staff + Settings: ‹ More back link, tighter phone header |
 | abe8e29 | Speed: profile loads one student (`listCampusStudents(id)`), `app/iowa/admin/loading.tsx`, page queries start together, `currentStaff` + `semesterContext` cached per request |
 
 ## Waiting on Travis
@@ -21,13 +25,9 @@ tap to act, and every task, study, event and student editable from wherever you 
   Supabase region; set `preferredRegion` to match.
 
 ## Next, in order
-1. **Studies tab** (`app/iowa/admin/studies`, `components/iowa/IowaAdmin.tsx`, 1300 lines): one row
-   per study (time, place, X of 5, who leads, staff on point), "Who's waiting" on top, tap opens the
-   study screen (reuse `StudyCard`). Keep + New study (`?new=1`).
-2. **Events with sign-ups** (Trick or Truth, Baja board, Outreach) in the same style.
-3. **Staff / My account** and **Settings**: keep plain, just phone-friendly.
-4. Known gap: "Add a student" inside a study card still uses its old inline form.
-5. Old bug (now hidden from Today): the task list's Overdue bucket counted whole groups
+1. Optional: placing a student could create a welcome-text task for the study's staff on point (Travis hasn't said yes).
+2. Known gap: "Add a student" inside a study card still uses its old inline form.
+3. Old bug (now hidden from Today): the task list's Overdue bucket counted whole groups
    (`bucketize` uses the group's first task), so "Overdue (36)" vs "Overdue (23)".
 
 ## Rules Travis gave

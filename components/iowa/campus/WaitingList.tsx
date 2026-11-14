@@ -168,10 +168,9 @@ function AskForTimes({ students, onClose }: { students: WaitingStudent[]; onClos
   const [links, setLinks] = useState<Record<string, string> | null>(null);
   const [from, setFrom] = useState('');
   const [error, setError] = useState('');
-  const [sent, setSent] = useState<Record<string, number>>({});
+  const [sent, setSent] = useState<Record<string, number>>(readSent); // opens on a tap, so this runs in the browser
 
   useEffect(() => {
-    setSent(readSent());
     let live = true;
     fetch('/api/iowa/admin/checkins', {
       method: 'POST',
